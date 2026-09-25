@@ -1,0 +1,69 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790216023359,
+      "tag": "0000_robust_sunfire",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790222131369,
+      "tag": "0001_flaky_texas_twister",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790223648913,
+      "tag": "0002_fluffy_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790229733097,
+      "tag": "0003_strong_warbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790231116290,
+      "tag": "0004_chubby_mad_thinker",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790235869902,
+      "tag": "0005_high_rachel_grey",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790237095144,
+      "tag": "0006_fearless_sharon_carter",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790267387494,
+      "tag": "0007_long_skullbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790267429190,
+      "tag": "0008_left_hiroim",
+      "breakpoints": true
+    }
+  ]
+}

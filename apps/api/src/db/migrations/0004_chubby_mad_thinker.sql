@@ -1,0 +1,1 @@
+ALTER TABLE "password_reset_codes" ADD COLUMN "reset_token_hash" text;

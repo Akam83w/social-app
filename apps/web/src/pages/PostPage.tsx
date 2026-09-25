@@ -1,240 +1,662 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { posts } from "../data/posts";
+import { Link, useParams } from "react-router-dom";
+import {
+  createComment,
+  deleteComment,
+  getPostComments,
+  getPostLikeStatus,
+  likePost,
+  unlikePost,
+} from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+
+type Post = {
+  id: string;
+  content: string | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+  };
+};
 
 type Comment = {
-  id: number;
-  username: string;
-  text: string;
-  likes: number;
-  liked: boolean;
+  id: string;
+  parentCommentId: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+  };
 };
 
 export default function PostPage() {
-  const id = window.location.pathname.split("/").pop();
-  const post = posts.find((item) => String(item.id) === id) ?? posts[0];
+  const { id } = useParams();
+  const { user, token } = useAuth();
 
-  const storageKey = `instaIraq_comments_${post.id}`;
-
-  const [comments, setComments] = useState<Comment[]>(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch {}
-
-    return [
-      {
-        id: 1,
-        username: "أحمد",
-        text: "صورة جميلة ❤️",
-        likes: 3,
-        liked: false,
-      },
-      {
-        id: 2,
-        username: "سارة",
-        text: "المكان رهيب!",
-        likes: 1,
-        liked: false,
-      },
-    ];
-  });
-
+  const [post, setPost] = useState<Post | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState("");
+  const [replyText, setReplyText] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+
+  const [likeCount, setLikeCount] = useState(0);
+  const [likedByMe, setLikedByMe] = useState(false);
+
+  const [liking, setLiking] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(storageKey, JSON.stringify(comments));
-  }, [storageKey, comments]);
+    if (!id || !token) return;
 
-  function addComment() {
-    const text = commentText.trim();
+    const postId = id;
+    const authToken = token;
+    let cancelled = false;
 
-    if (!text) return;
+    async function load() {
+      try {
+        setLoading(true);
+        setError("");
 
-    setComments((current) => [
-      ...current,
-      {
-        id: Date.now(),
-        username: "ذنون",
-        text,
-        likes: 0,
-        liked: false,
-      },
-    ]);
+        const [postResponse, commentsResponse, likeResponse] =
+          await Promise.all([
+            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/posts/${postId}`, {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            }).then(async (res) => {
+              const json = await res.json();
 
-    setCommentText("");
+              if (!res.ok) {
+                throw new Error(json.error || "REQUEST_FAILED");
+              }
+
+              return json as { post: Post };
+            }),
+
+            getPostComments(postId, authToken) as Promise<{
+              comments: Comment[];
+            }>,
+
+            getPostLikeStatus(postId, authToken) as Promise<{
+              likeCount: number;
+              likedByMe: boolean;
+            }>,
+          ]);
+
+        if (!cancelled) {
+          setPost(postResponse.post);
+          setComments(commentsResponse.comments);
+          setLikeCount(likeResponse.likeCount);
+          setLikedByMe(likeResponse.likedByMe);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "حدث خطأ أثناء تحميل المنشور",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, token]);
+
+  async function toggleLike() {
+    if (!token || !id || liking) return;
+
+    try {
+      setLiking(true);
+      setError("");
+
+      if (likedByMe) {
+        await unlikePost(id, token);
+        setLikedByMe(false);
+        setLikeCount((count) => Math.max(0, count - 1));
+      } else {
+        await likePost(id, token);
+        setLikedByMe(true);
+        setLikeCount((count) => count + 1);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "تعذر تحديث الإعجاب",
+      );
+    } finally {
+      setLiking(false);
+    }
   }
 
-  function toggleCommentLike(commentId: number) {
-    setComments((current) =>
-      current.map((comment) =>
-        comment.id === commentId
-          ? {
-              ...comment,
-              liked: !comment.liked,
-              likes: comment.liked
-                ? comment.likes - 1
-                : comment.likes + 1,
-            }
-          : comment
-      )
+  async function addComment() {
+    const content = commentText.trim();
+
+    if (!content || !id || !token || sending) return;
+
+    try {
+      setSending(true);
+      setError("");
+
+      const response = (await createComment(
+        id,
+        content,
+        token,
+      )) as {
+        comment: {
+          id: string;
+          parentCommentId: string | null;
+          content: string;
+          createdAt: string;
+          updatedAt: string;
+        };
+      };
+
+      const newComment: Comment = {
+        ...response.comment,
+        parentCommentId: null,
+        user: {
+          id: user?.id || "",
+          username: user?.username || "مستخدم",
+          displayName: user?.displayName || null,
+        },
+      };
+
+      setComments((current) => [...current, newComment]);
+      setCommentText("");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "تعذر إرسال التعليق",
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function addReply(parentCommentId: string) {
+    const content = replyText.trim();
+
+    if (!content || !id || !token || sending) return;
+
+    try {
+      setSending(true);
+      setError("");
+
+      const response = (await createComment(
+        id,
+        content,
+        token,
+        parentCommentId,
+      )) as {
+        comment: {
+          id: string;
+          parentCommentId: string | null;
+          content: string;
+          createdAt: string;
+          updatedAt: string;
+        };
+      };
+
+      const newReply: Comment = {
+        ...response.comment,
+        parentCommentId,
+        user: {
+          id: user?.id || "",
+          username: user?.username || "مستخدم",
+          displayName: user?.displayName || null,
+        },
+      };
+
+      setComments((current) => [...current, newReply]);
+      setReplyText("");
+      setReplyingTo(null);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "تعذر إرسال الرد",
+      );
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function removeComment(commentId: string) {
+    if (!token) return;
+
+    try {
+      setError("");
+
+      await deleteComment(commentId, token);
+
+      setComments((current) =>
+        current.filter(
+          (comment) =>
+            comment.id !== commentId &&
+            comment.parentCommentId !== commentId,
+        ),
+      );
+
+      if (replyingTo === commentId) {
+        setReplyingTo(null);
+        setReplyText("");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "تعذر حذف التعليق",
+      );
+    }
+  }
+
+  function renderComment(comment: Comment, isReply = false) {
+    const replies = comments.filter(
+      (item) => item.parentCommentId === comment.id,
     );
-  }
 
-  function deleteComment(commentId: number) {
-    setComments((current) =>
-      current.filter((comment) => comment.id !== commentId)
-    );
-  }
-
-  return (
-    <main className="feed-container">
-      <article className="post-card">
-        <header className="post-header">
-          <Link
-            to={`/u/${encodeURIComponent(post.username)}`}
-            className="post-user"
+    return (
+      <div
+        key={comment.id}
+        style={{
+          marginRight: isReply ? 38 : 0,
+          marginBottom: 12,
+        }}
+      >
+        <div
+          style={{
+            border: "1px solid #eee",
+            borderRadius: 14,
+            padding: 12,
+            background: isReply ? "#fafafa" : "#fff",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 10,
+              alignItems: "flex-start",
+            }}
           >
-            <img src={post.avatar} alt={post.username} />
-
             <div>
-              <strong>{post.username}</strong>
-              <span>{post.location}</span>
+              <Link
+                to={`/profile/${comment.user.username}`}
+                style={{
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  color: "#111",
+                }}
+              >
+                {comment.user.displayName ||
+                  comment.user.username}
+              </Link>
+
+              <div
+                style={{
+                  color: "#777",
+                  fontSize: 13,
+                  marginTop: 2,
+                }}
+              >
+                @{comment.user.username}
+              </div>
             </div>
-          </Link>
-        </header>
 
-        <div className="post-media">
-          <img src={post.image} alt={post.caption} />
-        </div>
+            {comment.user.id === user?.id && (
+              <button
+                type="button"
+                onClick={() => void removeComment(comment.id)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#c00",
+                  cursor: "pointer",
+                }}
+              >
+                حذف
+              </button>
+            )}
+          </div>
 
-        <div className="post-content">
-          <strong>
-            {post.likes.toLocaleString("ar-IQ")} إعجاب
-          </strong>
+          <div
+            style={{
+              marginTop: 9,
+              lineHeight: 1.7,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {comment.content}
+          </div>
 
-          <p>
-            <b>{post.username}</b> {post.caption}
-          </p>
-
-          <div id="comments" style={{ marginTop: 28 }}>
-            <div
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginTop: 10,
+              alignItems: "center",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setReplyingTo(
+                  replyingTo === comment.id ? null : comment.id,
+                );
+                setReplyText("");
+              }}
               style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
+                border: "none",
+                background: "transparent",
+                color: "#555",
+                cursor: "pointer",
+                padding: 0,
+                fontFamily: "inherit",
               }}
             >
-              <strong>التعليقات ({comments.length})</strong>
-            </div>
+              ↩ رد
+            </button>
 
+            <span
+              style={{
+                color: "#999",
+                fontSize: 12,
+              }}
+            >
+              {new Date(comment.createdAt).toLocaleString("ar-IQ")}
+            </span>
+          </div>
+
+          {replyingTo === comment.id && (
             <div
               style={{
+                marginTop: 12,
                 display: "flex",
                 gap: 8,
-                marginBottom: 20,
               }}
             >
               <input
-                value={commentText}
-                onChange={(event) => setCommentText(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    addComment();
-                  }
-                }}
-                placeholder="اكتب تعليقك..."
+                value={replyText}
+                onChange={(event) =>
+                  setReplyText(event.target.value)
+                }
+                placeholder="اكتب ردك..."
+                disabled={sending}
                 style={{
                   flex: 1,
-                  padding: "12px 14px",
+                  minWidth: 0,
                   border: "1px solid #ddd",
-                  borderRadius: 12,
-                  outline: "none",
+                  borderRadius: 10,
+                  padding: "10px 12px",
                   fontFamily: "inherit",
-                  fontSize: 14,
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void addReply(comment.id);
+                  }
                 }}
               />
 
               <button
-                onClick={addComment}
-                disabled={!commentText.trim()}
+                type="button"
+                onClick={() => void addReply(comment.id)}
+                disabled={sending || !replyText.trim()}
                 style={{
-                  border: 0,
-                  borderRadius: 12,
-                  padding: "0 16px",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "0 14px",
                   background: "#111",
                   color: "#fff",
                   cursor: "pointer",
                   fontFamily: "inherit",
-                  opacity: commentText.trim() ? 1 : 0.5,
                 }}
               >
-                إرسال
+                {sending ? "..." : "إرسال"}
               </button>
             </div>
+          )}
+        </div>
 
-            <div style={{ display: "grid", gap: 12 }}>
-              {comments.map((comment) => (
-                <div
-                  key={comment.id}
-                  style={{
-                    padding: 14,
-                    border: "1px solid #eee",
-                    borderRadius: 14,
-                    background: "#fafafa",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <strong>{comment.username}</strong>
+        {replies.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            {replies.map((reply) =>
+              renderComment(reply, true),
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
-                    {comment.username === "ذنون" && (
-                      <button
-                        onClick={() => deleteComment(comment.id)}
-                        style={{
-                          border: 0,
-                          background: "transparent",
-                          color: "#d00",
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                        }}
-                      >
-                        حذف
-                      </button>
-                    )}
-                  </div>
+  if (loading) {
+    return (
+      <main style={{ padding: 24 }}>
+        جاري التحميل...
+      </main>
+    );
+  }
 
-                  <p style={{ margin: "8px 0 10px" }}>
-                    {comment.text}
-                  </p>
+  if (error && !post) {
+    return (
+      <main style={{ padding: 24 }}>
+        <p style={{ color: "#c00" }}>{error}</p>
+      </main>
+    );
+  }
 
-                  <button
-                    onClick={() => toggleCommentLike(comment.id)}
-                    style={{
-                      border: 0,
-                      background: "transparent",
-                      cursor: "pointer",
-                      padding: 0,
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {comment.liked ? "♥" : "♡"} {comment.likes}
-                  </button>
-                </div>
-              ))}
-            </div>
+  if (!post) {
+    return (
+      <main style={{ padding: 24 }}>
+        المنشور غير موجود.
+      </main>
+    );
+  }
+
+  const rootComments = comments.filter(
+    (comment) => comment.parentCommentId === null,
+  );
+
+  return (
+    <main
+      style={{
+        maxWidth: 760,
+        margin: "0 auto",
+        padding: 24,
+      }}
+    >
+      <div style={{ marginBottom: 18 }}>
+        <Link
+          to="/"
+          style={{
+            textDecoration: "none",
+            color: "#555",
+          }}
+        >
+          ← رجوع
+        </Link>
+      </div>
+
+      {error && (
+        <div
+          style={{
+            marginBottom: 14,
+            padding: 10,
+            borderRadius: 10,
+            background: "#fff0f0",
+            color: "#b00020",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      <article
+        style={{
+          border: "1px solid #eee",
+          borderRadius: 18,
+          padding: 18,
+          background: "#fff",
+        }}
+      >
+        <div>
+          <Link
+            to={`/profile/${post.user.username}`}
+            style={{
+              fontWeight: 700,
+              color: "#111",
+              textDecoration: "none",
+            }}
+          >
+            {post.user.displayName || post.user.username}
+          </Link>
+
+          <div
+            style={{
+              color: "#777",
+              fontSize: 13,
+              marginTop: 3,
+            }}
+          >
+            @{post.user.username}
           </div>
         </div>
+
+        {post.content && (
+          <div
+            style={{
+              marginTop: 16,
+              lineHeight: 1.8,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {post.content}
+          </div>
+        )}
+
+        {post.mediaUrl && (
+          <div style={{ marginTop: 16 }}>
+            {post.mediaType?.startsWith("image/") ? (
+              <img
+                src={post.mediaUrl}
+                alt=""
+                style={{
+                  width: "100%",
+                  borderRadius: 14,
+                  display: "block",
+                }}
+              />
+            ) : (
+              <a href={post.mediaUrl}>فتح المرفق</a>
+            )}
+          </div>
+        )}
+
+        <div
+          style={{
+            marginTop: 18,
+            paddingTop: 14,
+            borderTop: "1px solid #eee",
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => void toggleLike()}
+            disabled={liking}
+            style={{
+              border: "1px solid #eee",
+              borderRadius: 12,
+              padding: "9px 14px",
+              background: likedByMe ? "#fff0f0" : "#fff",
+              color: likedByMe ? "#d00" : "#333",
+              cursor: liking ? "default" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {likedByMe ? "❤️ أعجبني" : "♡ إعجاب"}
+          </button>
+
+          <span>{likeCount} إعجاب</span>
+        </div>
       </article>
+
+      <section style={{ marginTop: 24 }}>
+        <h2 style={{ marginBottom: 12 }}>التعليقات</h2>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            marginBottom: 18,
+          }}
+        >
+          <input
+            value={commentText}
+            onChange={(event) =>
+              setCommentText(event.target.value)
+            }
+            placeholder="اكتب تعليقك..."
+            disabled={sending}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              border: "1px solid #ddd",
+              borderRadius: 12,
+              padding: "11px 13px",
+              fontFamily: "inherit",
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void addComment();
+              }
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => void addComment()}
+            disabled={sending || !commentText.trim()}
+            style={{
+              border: "none",
+              borderRadius: 12,
+              padding: "0 16px",
+              background: "#111",
+              color: "#fff",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {sending ? "..." : "نشر"}
+          </button>
+        </div>
+
+        {rootComments.length === 0 ? (
+          <div style={{ color: "#777" }}>
+            لا توجد تعليقات بعد.
+          </div>
+        ) : (
+          rootComments.map((comment) =>
+            renderComment(comment),
+          )
+        )}
+      </section>
     </main>
   );
 }

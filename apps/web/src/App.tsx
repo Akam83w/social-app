@@ -1,4 +1,4 @@
-import { SearchIcon, PlusIcon, HeartIcon, BookmarkIcon, BellIcon } from "./components/icons/Icons";
+import { SearchIcon, HeartIcon, BookmarkIcon, BellIcon } from "./components/icons/Icons";
 import {
   Route,
   Routes,
@@ -8,13 +8,21 @@ import Layout from "./components/layout/Layout";
 import HomePage from "./pages/HomePage";
 import PostPage from "./pages/PostPage";
 import SimplePage from "./pages/SimplePage";
+import CreatePostPage from "./pages/CreatePostPage";
 import ProfilePage from "./pages/ProfilePage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 
 function App() {
   return (
     <Layout>
       <Routes>
         <Route path="/" element={<HomePage />} />
+
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
         <Route
           path="/explore"
@@ -49,16 +57,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/create"
-          element={
-            <SimplePage
-              title="إنشاء منشور"
-              description="صفحة إنشاء المنشورات جاهزة، وسنربط رفع الصور والفيديو بالـ API."
-              icon={<PlusIcon size={52} />}
-            />
-          }
-        />
+        <Route path="/create" element={<CreatePostPage />} />
 
         <Route
           path="/stories"

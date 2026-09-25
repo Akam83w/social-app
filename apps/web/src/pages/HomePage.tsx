@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   PlusIcon,
@@ -8,22 +8,130 @@ import {
   BookmarkIcon,
   MoreIcon,
 } from "../components/icons/Icons";
-import { posts } from "../data/posts";
 import { stories } from "../data/stories";
+import { apiRequest, likePost, unlikePost } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+
+type ApiPost = {
+  id: string;
+  content: string | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  createdAt: string;
+  updatedAt: string;
+  likeCount: number;
+  likedByMe: boolean;
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+  };
+};
+
+function formatPostTime(dateString: string) {
+  const date = new Date(dateString);
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) return "الآن";
+  if (diffMinutes < 60) return `منذ ${diffMinutes} دقيقة`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `منذ ${diffDays} يوم`;
+
+  return date.toLocaleDateString("ar-IQ");
+}
 
 export default function HomePage() {
-  const [likedPosts, setLikedPosts] = useState<number[]>([]);
-  const [savedPosts, setSavedPosts] = useState<number[]>([]);
+  const { token } = useAuth();
 
-  const toggleLike = (id: number) => {
-    setLikedPosts((current) =>
-      current.includes(id)
-        ? current.filter((postId) => postId !== id)
-        : [...current, id],
-    );
+  const [posts, setPosts] = useState<ApiPost[]>([]);
+  const [savedPosts, setSavedPosts] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    async function loadPosts() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const data = await apiRequest("/posts", token);
+
+        if (active) {
+          setPosts(data.posts ?? []);
+        }
+      } catch (err) {
+        if (active) {
+          setError(
+            err instanceof Error ? err.message : "تعذر تحميل المنشورات",
+          );
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadPosts();
+
+    return () => {
+      active = false;
+    };
+  }, [token]);
+
+  const toggleLike = async (id: string) => {
+    if (!token) return;
+
+    const post = posts.find((item) => item.id === id);
+    if (!post) return;
+
+    try {
+      if (post.likedByMe) {
+        await unlikePost(id, token);
+        setPosts((current) =>
+          current.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  likedByMe: false,
+                  likeCount: Math.max(0, item.likeCount - 1),
+                }
+              : item,
+          ),
+        );
+      } else {
+        await likePost(id, token);
+        setPosts((current) =>
+          current.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  likedByMe: true,
+                  likeCount: item.likeCount + 1,
+                }
+              : item,
+          ),
+        );
+      }
+    } catch (err) {
+      console.error("Like action failed:", err);
+    }
   };
 
-  const toggleSave = (id: number) => {
+  const toggleSave = (id: string) => {
     setSavedPosts((current) =>
       current.includes(id)
         ? current.filter((postId) => postId !== id)
@@ -74,90 +182,147 @@ export default function HomePage() {
       </div>
 
       <section className="posts">
-        {posts.map((post) => {
-          const liked = likedPosts.includes(post.id);
-          const saved = savedPosts.includes(post.id);
+        {loading && (
+          <div className="post-card">
+            <div className="post-content">
+              <p>جاري تحميل المنشورات...</p>
+            </div>
+          </div>
+        )}
 
-          return (
-            <article className="post-card" key={post.id}>
-              <header className="post-header">
-                <Link to={`/u/${encodeURIComponent(post.username)}`} className="post-user">
-                  <img src={post.avatar} alt={post.username} />
+        {!loading && error && (
+          <div className="post-card">
+            <div className="post-content">
+              <strong>تعذر تحميل المنشورات</strong>
+              <p>{error}</p>
+            </div>
+          </div>
+        )}
 
-                  <div>
-                    <strong>{post.username}</strong>
-                    <span>{post.location}</span>
-                  </div>
-                </Link>
+        {!loading && !error && posts.length === 0 && (
+          <div className="post-card">
+            <div className="post-content">
+              <strong>ماكو منشورات حالياً</strong>
+              <p>أول منشور تكتبه راح يظهر هنا.</p>
+            </div>
+          </div>
+        )}
 
-                <button className="more-button">
-                  <MoreIcon />
-                </button>
-              </header>
+        {!loading &&
+          !error &&
+          posts.map((post) => {
+            const liked = post.likedByMe;
+            const saved = savedPosts.includes(post.id);
 
-              <Link to={`/post/${post.id}`} className="post-media">
-                <img src={post.image} alt={post.caption} />
-              </Link>
-
-              <div className="post-actions">
-                <div className="actions-left">
-                  <button
-                    className={liked ? "action liked" : "action"}
-                    onClick={() => toggleLike(post.id)}
+            return (
+              <article className="post-card" key={post.id}>
+                <header className="post-header">
+                  <Link
+                    to={`/u/${encodeURIComponent(post.user.username)}`}
+                    className="post-user"
                   >
-                    <HeartIcon filled={liked} />
-                  </button>
+                    <div className="story-image">
+                      <img
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          post.user.displayName || post.user.username,
+                        )}&background=random`}
+                        alt={post.user.username}
+                      />
+                    </div>
 
-                  <Link to={`/post/${post.id}#comments`} className="action">
-                    <CommentIcon />
+                    <div>
+                      <strong>{post.user.username}</strong>
+                      <span>{post.user.displayName || ""}</span>
+                    </div>
                   </Link>
 
-                  <button
-                    className="action"
-                    onClick={() => {
-                      const url = `${window.location.origin}/post/${post.id}`;
-                      navigator.clipboard?.writeText(url);
-                    }}
+                  <button className="more-button" type="button">
+                    <MoreIcon />
+                  </button>
+                </header>
+
+                {post.mediaUrl ? (
+                  <Link to={`/post/${post.id}`} className="post-media">
+                    <img
+                      src={post.mediaUrl}
+                      alt={post.content || "منشور"}
+                    />
+                  </Link>
+                ) : (
+                  <Link
+                    to={`/post/${post.id}`}
+                    className="post-media post-text-media"
                   >
-                    <SendIcon />
+                    <p>{post.content}</p>
+                  </Link>
+                )}
+
+                <div className="post-actions">
+                  <div className="actions-left">
+                    <button
+                      type="button"
+                      className={liked ? "action liked" : "action"}
+                      onClick={() => void toggleLike(post.id)}
+                    >
+                      <HeartIcon filled={liked} />
+                    </button>
+
+                    <Link
+                      to={`/post/${post.id}#comments`}
+                      className="action"
+                    >
+                      <CommentIcon />
+                    </Link>
+
+                    <button
+                      type="button"
+                      className="action"
+                      onClick={() => {
+                        const url = `${window.location.origin}/post/${post.id}`;
+                        navigator.clipboard?.writeText(url);
+                      }}
+                    >
+                      <SendIcon />
+                    </button>
+                  </div>
+
+                  <span className="post-like-count">
+                    {post.likeCount} إعجاب
+                  </span>
+
+                  <button
+                    type="button"
+                    className={saved ? "action saved" : "action"}
+                    onClick={() => toggleSave(post.id)}
+                  >
+                    <BookmarkIcon />
                   </button>
                 </div>
 
-                <button
-                  className={saved ? "action saved" : "action"}
-                  onClick={() => toggleSave(post.id)}
-                >
-                  <BookmarkIcon />
-                </button>
-              </div>
+                <div className="post-content">
+                  <strong>
+                    {(liked ? 1 : 0).toLocaleString("ar-IQ")} إعجاب
+                  </strong>
 
-              <div className="post-content">
-                <strong>
-                  {(liked ? post.likes + 1 : post.likes).toLocaleString(
-                    "ar-IQ",
-                  )}{" "}
-                  إعجاب
-                </strong>
+                  <p>
+                    <Link to={`/u/${encodeURIComponent(post.user.username)}`}>
+                      <b>{post.user.username}</b>
+                    </Link>{" "}
+                    {post.content || ""}
+                  </p>
 
-                <p>
-                  <Link to={`/u/${encodeURIComponent(post.username)}`}>
-                    <b>{post.username}</b>
-                  </Link>{" "}
-                  {post.caption}
-                </p>
+                  <Link
+                    to={`/post/${post.id}#comments`}
+                    className="comments-link"
+                  >
+                    عرض التعليقات
+                  </Link>
 
-                <Link
-                  to={`/post/${post.id}#comments`}
-                  className="comments-link"
-                >
-                  عرض كل التعليقات ({post.comments})
-                </Link>
-
-                <time>{post.time}</time>
-              </div>
-            </article>
-          );
-        })}
+                  <time>{formatPostTime(post.createdAt)}</time>
+                </div>
+              </article>
+            );
+          })}
       </section>
     </main>
   );
