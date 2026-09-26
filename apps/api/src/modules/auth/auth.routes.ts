@@ -186,8 +186,8 @@ export async function authRoutes(app: FastifyInstance) {
       posts: profilePosts,
       stats: {
         posts: profilePosts.length,
-        followers: 0,
-        following: 0,
+        followers: Number((await db.select({ count: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followingId, profile.id)))[0]?.count ?? 0),
+        following: Number((await db.select({ count: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followerId, profile.id)))[0]?.count ?? 0),
       },
     });
   });
