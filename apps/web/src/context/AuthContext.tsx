@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface User {
@@ -36,7 +36,6 @@ function saveAccounts(accounts: Account[]) {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [accounts, setAccounts] = useState<Account[]>(() => loadAccounts());
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
     const storedAccounts = loadAccounts();
