@@ -5,6 +5,7 @@ import Layout from "./components/layout/Layout";
 import HomePage from "./pages/HomePage";
 import PostPage from "./pages/PostPage";
 import SimplePage from "./pages/SimplePage";
+import ExplorePage from "./pages/ExplorePage";
 import CreatePostPage from "./pages/CreatePostPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
@@ -23,7 +24,7 @@ function ProtectedApp() {
     <Layout>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/explore" element={<SimplePage title="استكشاف" description="هنا راح تظهر المنشورات والحسابات الرائجة." icon={<SearchIcon size={52} />} />} />
+        <Route path="/explore" element={<ExplorePage />} />
         <Route path="/notifications" element={<SimplePage title="الإشعارات" description="هنا راح تظهر الإعجابات والتعليقات والمتابعات." icon={<BellIcon size={52} />} />} />
         <Route path="/saved" element={<SimplePage title="المحفوظات" description="المنشورات التي تحفظها ستظهر هنا." icon={<BookmarkIcon size={52} />} />} />
         <Route path="/create" element={<CreatePostPage />} />
