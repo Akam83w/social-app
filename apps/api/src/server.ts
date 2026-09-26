@@ -3,8 +3,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
-import { sql } from 'drizzle-orm';
-import { db } from './db';
+import { Pool } from 'pg';
 import { authRoutes } from './modules/auth/auth.routes';
 
 const app = Fastify({
@@ -41,8 +40,15 @@ app.setNotFoundHandler(async (request, reply) => {
 });
 
 app.get('/health', async (_request, reply) => {
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
+
   try {
-    const result = await db.execute(sql`SELECT 1 AS ok`);
+    const result = await pool.query('SELECT 1 AS ok');
 
     return reply.status(200).send({
       status: 'ok',
@@ -53,8 +59,15 @@ app.get('/health', async (_request, reply) => {
 
     return reply.status(500).send({
       status: 'error',
-      database: err?.message || String(err),
+      database: {
+        message: err?.message || String(err),
+        code: err?.code || null,
+        detail: err?.detail || null,
+        hint: err?.hint || null,
+      },
     });
+  } finally {
+    await pool.end();
   }
 });
 
