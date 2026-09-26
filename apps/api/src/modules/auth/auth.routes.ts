@@ -22,7 +22,13 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(409).send({ error: 'USER_ALREADY_EXISTS' });
       }
       app.log.error(err);
-      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+      return reply.status(500).send({
+        error: 'INTERNAL_ERROR',
+        debug: {
+          message: err instanceof Error ? err.message : String(err),
+          name: err instanceof Error ? err.name : typeof err,
+        },
+      });
     }
   });
 
