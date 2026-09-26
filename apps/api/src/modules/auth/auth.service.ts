@@ -71,6 +71,7 @@ export async function loginUser(input: LoginInput) {
     username: existingUser.username,
     email: existingUser.email,
     displayName: existingUser.displayName,
+    avatarUrl: existingUser.avatarUrl,
   };
 }
 
