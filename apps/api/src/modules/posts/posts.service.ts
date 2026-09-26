@@ -89,6 +89,14 @@ export async function likePost(userId: string, postId: string) {
   return like ?? null;
 }
 
+export async function deletePost(userId: string, postId: string) {
+  const result = await db
+    .delete(posts)
+    .where(and(eq(posts.id, postId), eq(posts.userId, userId)));
+
+  return result.rowCount ?? 0;
+}
+
 export async function unlikePost(userId: string, postId: string) {
   const result = await db
     .delete(likes)
