@@ -4,7 +4,8 @@ import { registerUser, loginUser, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
-import { users } from '../../db/schema';
+import { users, posts, likes } from '../../db/schema';
+import { desc, sql } from 'drizzle-orm';
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/register', async (request, reply) => {
@@ -109,7 +110,30 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'USER_NOT_FOUND' });
     }
 
-    return reply.status(200).send({ user: profile });
+    const profilePosts = await db
+      .select({
+        id: posts.id,
+        content: posts.content,
+        mediaUrl: posts.mediaUrl,
+        mediaType: posts.mediaType,
+        createdAt: posts.createdAt,
+        likeCount: sql<number>`count(${likes.id})::int`,
+      })
+      .from(posts)
+      .leftJoin(likes, eq(likes.postId, posts.id))
+      .where(eq(posts.userId, profile.id))
+      .groupBy(posts.id)
+      .orderBy(desc(posts.createdAt));
+
+    return reply.status(200).send({
+      user: profile,
+      posts: profilePosts,
+      stats: {
+        posts: profilePosts.length,
+        followers: 0,
+        following: 0,
+      },
+    });
   });
 
   app.get('/auth/me', { preHandler: verifyToken }, async (request, reply) => {
