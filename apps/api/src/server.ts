@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { db } from './db';
 import { authRoutes } from './modules/auth/auth.routes';
+import { postsRoutes } from './modules/posts/posts.routes';
 
 const app = Fastify({
   logger: true,
@@ -30,6 +31,7 @@ app.register(fastifyStatic, {
 });
 
 app.register(authRoutes);
+app.register(postsRoutes);
 
 app.setNotFoundHandler(async (request, reply) => {
   if (request.method === 'GET' && !request.url.startsWith('/health')) {
