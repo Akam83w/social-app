@@ -47,7 +47,7 @@ function formatPostTime(dateString: string) {
 }
 
 export default function HomePage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [posts, setPosts] = useState<ApiPost[]>([]);
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
@@ -237,9 +237,20 @@ export default function HomePage() {
                     </div>
                   </Link>
 
-                  <button className="more-button" type="button" aria-label="المزيد">
-                    <MoreIcon />
-                  </button>
+                  {post.user.id === user?.id ? (
+                    <button className="more-button" type="button" aria-label="حذف المنشور"
+                      onClick={async () => {
+                        if (!token || !window.confirm("تحذف هذا المنشور؟")) return;
+                        try {
+                          await apiRequest(`/posts/${post.id}`, token, { method: "DELETE" });
+                          setPosts((current) => current.filter((item) => item.id !== post.id));
+                        } catch (err) { console.error(err); }
+                      }}>
+                      حذف
+                    </button>
+                  ) : (
+                    <button className="more-button" type="button" aria-label="المزيد"><MoreIcon /></button>
+                  )}
                 </header>
 
                 {post.content && (
