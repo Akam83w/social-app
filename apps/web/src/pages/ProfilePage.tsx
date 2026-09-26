@@ -1,95 +1,135 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { avatar } from "../data/stories";
 import { useAuth } from "../context/AuthContext";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-function compressImage(file: File): Promise<string> {
+type ProfileUser = {
+  id: string;
+  username: string;
+  email?: string | null;
+  displayName?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  createdAt?: string;
+};
+
+function readImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onload = () => {
       const img = new Image();
-
-      img.onload = () => {
-        const size = 320;
-        const scale = Math.min(size / img.width, size / img.height, 1);
-
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('CANVAS_ERROR'));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      };
-
+      img.onload = () => resolve(img);
       img.onerror = () => reject(new Error('INVALID_IMAGE'));
       img.src = String(reader.result);
     };
-
     reader.onerror = () => reject(new Error('READ_ERROR'));
     reader.readAsDataURL(file);
   });
 }
 
+function cropAvatar(file: File, zoom: number, offsetX: number, offsetY: number): Promise<string> {
+  return readImage(file).then((img) => {
+    const sourceSize = Math.min(img.width, img.height) / zoom;
+    const maxX = (img.width - sourceSize) / 2;
+    const maxY = (img.height - sourceSize) / 2;
+    const sx = Math.max(0, Math.min(img.width - sourceSize, maxX + offsetX * maxX));
+    const sy = Math.max(0, Math.min(img.height - sourceSize, maxY + offsetY * maxY));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('CANVAS_ERROR');
+
+    ctx.drawImage(img, sx, sy, sourceSize, sourceSize, 0, 0, 512, 512);
+    return canvas.toDataURL('image/jpeg', 0.86);
+  });
+}
+
 export default function ProfilePage() {
-  const { user, token, accounts, logout, switchAccount, login } = useAuth();
+  const { username: routeUsername } = useParams<{ username: string }>();
+  const { user: currentUser, token, accounts, logout, switchAccount, login } = useAuth();
   const navigate = useNavigate();
 
+  const isOwnProfile = !routeUsername || routeUsername === currentUser?.username;
+  const [profile, setProfile] = useState<ProfileUser | null>(
+    isOwnProfile ? (currentUser as ProfileUser | null) : null,
+  );
+  const [profileLoading, setProfileLoading] = useState(!isOwnProfile);
+  const [profileError, setProfileError] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [savingPhoto, setSavingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState('');
+  const [zoom, setZoom] = useState(1);
+  const [offsetX, setOffsetX] = useState(0);
+  const [offsetY, setOffsetY] = useState(0);
+
+  useState(() => {
+    if (isOwnProfile || !token || !routeUsername) return;
+    let cancelled = false;
+
+    void fetch(`${API_URL}/auth/users/${encodeURIComponent(routeUsername)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'PROFILE_FAILED');
+        return data;
+      })
+      .then((data) => {
+        if (!cancelled) setProfile(data.user);
+      })
+      .catch((error) => {
+        if (!cancelled) setProfileError(error instanceof Error ? error.message : 'تعذر تحميل الحساب');
+      })
+      .finally(() => {
+        if (!cancelled) setProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  });
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const handleAddAccount = () => {
-    navigate('/login');
-  };
+  const handleAddAccount = () => navigate('/login');
 
-  const handleChoosePhoto = () => {
-    fileInputRef.current?.click();
-  };
+  const handleChoosePhoto = () => fileInputRef.current?.click();
 
-  const handlePhotoChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
     event.target.value = '';
-
     if (!file) return;
-
     if (!file.type.startsWith('image/')) {
       setPhotoError('اختار صورة فقط');
       return;
     }
-
     if (file.size > 10 * 1024 * 1024) {
       setPhotoError('الصورة لازم تكون أقل من 10 ميگابايت');
       return;
     }
+    setPhotoError('');
+    setSelectedFile(file);
+    setZoom(1);
+    setOffsetX(0);
+    setOffsetY(0);
+  };
 
-    if (!token || !user) {
-      setPhotoError('سجّل دخول أولاً');
-      return;
-    }
-
+  const savePhoto = async () => {
+    if (!selectedFile || !token || !currentUser) return;
     setSavingPhoto(true);
     setPhotoError('');
 
     try {
-      const avatarUrl = await compressImage(file);
-
+      const avatarUrl = await cropAvatar(selectedFile, zoom, offsetX, offsetY);
       const response = await fetch(`${API_URL}/auth/avatar`, {
         method: 'PATCH',
         headers: {
@@ -98,15 +138,13 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({ avatarUrl }),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'UPLOAD_FAILED');
-      }
+      if (!response.ok) throw new Error(data.error || 'UPLOAD_FAILED');
 
       login(data.user, token);
-    } catch (error: any) {
+      setProfile(data.user);
+      setSelectedFile(null);
+    } catch (error) {
       console.error(error);
       setPhotoError('تعذر حفظ الصورة، حاول مرة ثانية');
     } finally {
@@ -114,130 +152,105 @@ export default function ProfilePage() {
     }
   };
 
-  const currentAvatar =
-    (user as UserWithAvatar | null)?.avatarUrl || avatar;
+  const currentAvatar = profile?.avatarUrl || avatar;
+  const title = profile?.displayName || profile?.username || 'زائر';
+
+  if (profileLoading) {
+    return <main className="feed-container"><section className="profile-page-card"><p>جاري تحميل الحساب...</p></section></main>;
+  }
+
+  if (profileError || !profile) {
+    return <main className="feed-container"><section className="profile-page-card"><strong>الحساب غير موجود</strong><p>{profileError || 'تعذر تحميل الملف الشخصي.'}</p></section></main>;
+  }
 
   return (
     <main className="feed-container">
-      <section className="stories-card">
-        <div
-          className="profile-row"
-          style={{ padding: 25, alignItems: 'center' }}
-        >
-          <div style={{ position: 'relative' }}>
-            <img
-              src={currentAvatar}
-              alt={user?.displayName || user?.username || "مستخدم"}
-              style={{
-                width: 90,
-                height: 90,
-                borderRadius: "50%",
-                objectFit: "cover",
-              }}
-            />
-
-            <button
-              type="button"
-              onClick={handleChoosePhoto}
-              disabled={savingPhoto}
-              style={{
-                position: 'absolute',
-                bottom: -4,
-                right: -4,
-                border: 'none',
-                borderRadius: '50%',
-                width: 32,
-                height: 32,
-                cursor: savingPhoto ? 'wait' : 'pointer',
-                background: '#111',
-                color: '#fff',
-                fontSize: 16,
-              }}
-              aria-label="تغيير صورة الحساب"
-            >
-              {savingPhoto ? '…' : '📷'}
-            </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              style={{ display: 'none' }}
-            />
+      <section className="profile-page-card">
+        <div className="profile-cover" />
+        <div className="profile-main">
+          <div className="profile-avatar-wrap">
+            <img className="profile-avatar" src={currentAvatar} alt={title} />
+            {isOwnProfile && (
+              <>
+                <button
+                  type="button"
+                  className="profile-camera"
+                  onClick={handleChoosePhoto}
+                  disabled={savingPhoto}
+                  aria-label="تغيير صورة الحساب"
+                >
+                  {savingPhoto ? '…' : '📷'}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} hidden />
+              </>
+            )}
           </div>
 
-          <div>
-            <h1>{user?.displayName || user?.username || "زائر"}</h1>
-            <span>@{user?.username || "غير مسجل"}</span>
+          <div className="profile-identity">
+            <h1>{title}</h1>
+            <p>@{profile.username}</p>
+            {profile.bio && <p className="profile-bio">{profile.bio}</p>}
           </div>
+
+          {isOwnProfile && <button type="button" className="profile-edit">تعديل الملف</button>}
         </div>
 
-        {photoError && (
-          <p style={{ color: '#c00', padding: '0 25px' }}>
-            {photoError}
-          </p>
-        )}
-
-        <div style={{ padding: "0 25px 25px" }}>
-          <p>حسابي على إنستعراق 🇮🇶</p>
-          <p style={{ color: "#777" }}>
-            0 منشور · 0 متابع · 0 يتابع
-          </p>
+        <div className="profile-stats">
+          <div><strong>0</strong><span>منشور</span></div>
+          <div><strong>0</strong><span>متابع</span></div>
+          <div><strong>0</strong><span>يتابع</span></div>
         </div>
 
-        {accounts.length > 1 && (
-          <div style={{ padding: "0 25px 15px" }}>
-            <p style={{ fontWeight: "bold", marginBottom: 8 }}>حساباتك:</p>
-
-            {accounts.map((acc) => (
-              <button
-                key={acc.user.id}
-                onClick={() => switchAccount(acc.user.id)}
+        {selectedFile && (
+          <div className="avatar-crop-panel">
+            <div className="crop-preview">
+              <img
+                src={URL.createObjectURL(selectedFile)}
+                alt="معاينة قص الصورة"
                 style={{
-                  display: "block",
-                  width: "100%",
-                  textAlign: "right",
-                  padding: 8,
-                  marginBottom: 4,
-                  background:
-                    acc.user.id === user?.id ? "#eee" : "transparent",
-                  border: "1px solid #ddd",
-                  borderRadius: 6,
+                  transform: `translate(${offsetX * 12}%, ${offsetY * 12}%) scale(${zoom})`,
                 }}
-              >
-                @{acc.user.username} {acc.user.id === user?.id && "✓"}
-              </button>
-            ))}
+              />
+            </div>
+            <label>
+              تكبير الصورة
+              <input type="range" min="1" max="3" step="0.05" value={zoom} onChange={(e) => setZoom(Number(e.target.value))} />
+            </label>
+            <div className="crop-offsets">
+              <label>يمين / يسار<input type="range" min="-1" max="1" step="0.01" value={offsetX} onChange={(e) => setOffsetX(Number(e.target.value))} /></label>
+              <label>أعلى / أسفل<input type="range" min="-1" max="1" step="0.01" value={offsetY} onChange={(e) => setOffsetY(Number(e.target.value))} /></label>
+            </div>
+            <div className="crop-actions">
+              <button type="button" onClick={() => setSelectedFile(null)}>إلغاء</button>
+              <button type="button" onClick={() => void savePhoto()} disabled={savingPhoto}>حفظ الصورة</button>
+            </div>
           </div>
         )}
 
-        <div
-          style={{
-            padding: "0 25px 25px",
-            display: "flex",
-            gap: 10,
-          }}
-        >
-          <button
-            onClick={handleAddAccount}
-            style={{ flex: 1, padding: 10 }}
-          >
-            إضافة حساب
-          </button>
+        {photoError && <p className="profile-error">{photoError}</p>}
 
-          <button
-            onClick={handleLogout}
-            style={{ flex: 1, padding: 10 }}
-          >
-            تسجيل خروج
-          </button>
-        </div>
+        {isOwnProfile && (
+          <>
+            <div className="profile-bio-block">
+              <p>حسابي على إنستعراق 🇮🇶</p>
+            </div>
+            {accounts.length > 1 && (
+              <div className="profile-accounts">
+                <strong>حساباتك:</strong>
+                {accounts.map((acc) => (
+                  <button key={acc.user.id} type="button" onClick={() => switchAccount(acc.user.id)}>
+                    @{acc.user.username} {acc.user.id === currentUser?.id && '✓'}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="profile-footer-actions">
+              <button type="button" onClick={handleAddAccount}>إضافة حساب</button>
+              <button type="button" onClick={handleLogout}>تسجيل خروج</button>
+            </div>
+          </>
+        )}
       </section>
     </main>
   );
 }
-
-type UserWithAvatar = {
-  avatarUrl?: string | null;
-};
