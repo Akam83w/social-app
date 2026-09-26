@@ -12,6 +12,7 @@ import {
   deleteComment,
   likePost,
   unlikePost,
+  deletePost,
 } from './posts.service';
 
 export async function postsRoutes(app: FastifyInstance) {
@@ -70,6 +71,19 @@ export async function postsRoutes(app: FastifyInstance) {
       return reply.status(200).send({
         liked: true,
       });
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
+  app.delete('/posts/:id', { preHandler: verifyToken }, async (request, reply) => {
+    try {
+      const payload = request.user as { id: string };
+      const { id } = request.params as { id: string };
+      const deleted = await deletePost(payload.id, id);
+      if (!deleted) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
+      return reply.status(200).send({ deleted: true });
     } catch (err) {
       app.log.error(err);
       return reply.status(500).send({ error: 'INTERNAL_ERROR' });
