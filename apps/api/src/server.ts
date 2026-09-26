@@ -39,6 +39,27 @@ app.setNotFoundHandler(async (request, reply) => {
   });
 });
 
+app.get('/dns-test', async (_request, reply) => {
+  const dns = await import('node:dns/promises');
+
+  try {
+    const result = await dns.lookup('aws-0-ap-northeast-1.pooler.supabase.com', {
+      all: true,
+    });
+
+    return reply.status(200).send({
+      status: 'ok',
+      addresses: result,
+    });
+  } catch (err: any) {
+    return reply.status(500).send({
+      status: 'error',
+      message: err?.message || String(err),
+      code: err?.code || null,
+    });
+  }
+});
+
 app.get('/health', async (_request, reply) => {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
