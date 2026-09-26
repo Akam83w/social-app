@@ -157,7 +157,7 @@ export default function HomePage() {
             >
               <div className={`story-ring ${story.own ? "own" : ""}`}>
                 <div className="story-image">
-                  <img src={story.image} alt={story.name} />
+                  <img src={story.own ? (user?.avatarUrl || story.image) : story.image} alt={story.name} />
                 </div>
 
                 {story.own && (
@@ -261,10 +261,11 @@ export default function HomePage() {
 
                 {post.mediaUrl ? (
                   <Link to={`/post/${post.id}`} className="post-media">
-                    <img
-                      src={post.mediaUrl}
-                      alt={post.content || "منشور"}
-                    />
+                    {post.mediaType === "video" ? (
+                      <video src={post.mediaUrl} className="post-video" controls muted playsInline preload="metadata" />
+                    ) : (
+                      <img src={post.mediaUrl} alt={post.content || "منشور"} />
+                    )}
                   </Link>
                 ) : null}
 
