@@ -1,0 +1,16 @@
+import { useEffect, useState } from "react";
+import { apiRequest } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
+
+type Message={id:string;content:string;createdAt:string;senderId:string;receiverId:string};
+type ChatUser={username:string;displayName:string|null;avatarUrl:string|null};
+type Chat={user:ChatUser;messages:Message[]};
+export default function MessagesPage(){
+ const {token}=useAuth(); const [chats,setChats]=useState<Chat[]>([]); const [active,setActive]=useState<Chat|null>(null); const [text,setText]=useState(""); const [username,setUsername]=useState(""); const [error,setError]=useState("");
+ const load=()=>token&&apiRequest("/messages",token).then(d=>setChats(d.chats??[])).catch(()=>setError("تعذر تحميل الرسائل."));
+ useEffect(()=>{void load()},[token]);
+ const open=async(u:string)=>{if(!token)return;try{const d=await apiRequest(`/messages/${encodeURIComponent(u.replace(/^@/,""))}`,token);setActive(d);setError("")}catch{setError("ما لكيت هذا الحساب أو تعذر فتح المحادثة.")}};
+ const send=async(e:React.FormEvent)=>{e.preventDefault();if(!token||!active||!text.trim())return;try{await apiRequest(`/messages/${encodeURIComponent(active.user.username)}`,token,{method:"POST",body:JSON.stringify({content:text.trim()})});setText("");await open(active.user.username);await load()}catch{setError("تعذر إرسال الرسالة.")}};
+ if(active)return <main className="feed-container"><section className="messages-panel"><button className="back-messages" onClick={()=>setActive(null)}>← الرسائل</button><header className="chat-header"><img src={active.user.avatarUrl||`https://ui-avatars.com/api/?name=${encodeURIComponent(active.user.username)}`} alt=""/><div><strong>{active.user.displayName||active.user.username}</strong><span>@{active.user.username}</span></div></header><div className="chat-list">{active.messages.map(m=><div key={m.id} className={m.senderId===active.user.username?"message other":"message"}>{m.content}<small>{new Date(m.createdAt).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"})}</small></div>)}</div><form className="message-form" onSubmit={send}><input value={text} onChange={e=>setText(e.target.value)} placeholder="اكتب رسالة..." maxLength={2000}/><button>إرسال</button></form>{error&&<p className="search-error">{error}</p>}</section></main>;
+ return <main className="feed-container"><section className="messages-panel"><div className="messages-title"><h1>الرسائل</h1><span>دردشة مباشرة بين المستخدمين</span></div><form className="message-search" onSubmit={e=>{e.preventDefault();void open(username)}}><input value={username} onChange={e=>setUsername(e.target.value)} placeholder="اكتب @username"/><button>محادثة</button></form>{error&&<p className="search-error">{error}</p>}<div className="chat-list">{chats.map(c=><button className="chat-row" key={c.user.username} onClick={()=>void open(c.user.username)}><img src={c.user.avatarUrl||`https://ui-avatars.com/api/?name=${encodeURIComponent(c.user.username)}`} alt=""/><div><strong>{c.user.displayName||c.user.username}</strong><span>@{c.user.username}</span><small>{c.messages[c.messages.length-1]?.content||"ابدأ المحادثة"}</small></div></button>)}</div></section></main>;
+}
