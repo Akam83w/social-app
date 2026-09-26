@@ -3,7 +3,9 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
 import path from 'path';
+import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
+import { db } from './db';
 import { authRoutes } from './modules/auth/auth.routes';
 
 const app = Fastify({
