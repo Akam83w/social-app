@@ -79,6 +79,48 @@ app.get('/dns-test', async (_request, reply) => {
   }
 });
 
+app.get('/db-test', async (_request, reply) => {
+  const { Pool } = await import('pg');
+
+  try {
+    const original = process.env.DATABASE_URL;
+
+    if (!original) {
+      throw new Error('DATABASE_URL is not configured');
+    }
+
+    const url = new URL(original);
+    url.hostname = '54.64.190.72';
+
+    const pool = new Pool({
+      connectionString: url.toString(),
+      ssl: {
+        rejectUnauthorized: false,
+        servername: 'aws-0-ap-northeast-1.pooler.supabase.com',
+      },
+    });
+
+    try {
+      const result = await pool.query('SELECT 1 AS ok');
+      return reply.status(200).send({
+        status: 'ok',
+        database: result.rows[0],
+      });
+    } finally {
+      await pool.end();
+    }
+  } catch (err: any) {
+    app.log.error(err);
+
+    return reply.status(500).send({
+      status: 'error',
+      message: err?.message || String(err),
+      code: err?.code || null,
+      detail: err?.detail || null,
+    });
+  }
+});
+
 app.get('/health', async (_request, reply) => {
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
