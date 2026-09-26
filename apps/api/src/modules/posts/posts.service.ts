@@ -30,6 +30,7 @@ export async function getPosts(currentUserId?: string) {
         id: users.id,
         username: users.username,
         displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
       },
       likeCount: sql<number>`count(${likes.id})::int`,
       likedByMe: currentUserId
@@ -44,6 +45,7 @@ export async function getPosts(currentUserId?: string) {
       users.id,
       users.username,
       users.displayName,
+      users.avatarUrl,
     )
     .orderBy(desc(posts.createdAt));
 }
