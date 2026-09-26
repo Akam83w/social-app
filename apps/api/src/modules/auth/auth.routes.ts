@@ -2,6 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import { registerSchema, loginSchema } from './auth.schema';
 import { registerUser, loginUser, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
+import { eq } from 'drizzle-orm';
+import { db } from '../../db';
+import { users } from '../../db/schema';
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/register', async (request, reply) => {
@@ -84,6 +87,29 @@ export async function authRoutes(app: FastifyInstance) {
       app.log.error(err);
       return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
+  });
+
+  app.get('/auth/users/:username', { preHandler: verifyToken }, async (request, reply) => {
+    const { username } = request.params as { username: string };
+    const [profile] = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        email: users.email,
+        displayName: users.displayName,
+        bio: users.bio,
+        avatarUrl: users.avatarUrl,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (!profile) {
+      return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    }
+
+    return reply.status(200).send({ user: profile });
   });
 
   app.get('/auth/me', { preHandler: verifyToken }, async (request, reply) => {
