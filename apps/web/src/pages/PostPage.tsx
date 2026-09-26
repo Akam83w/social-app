@@ -563,18 +563,10 @@ export default function PostPage() {
 
         {post.mediaUrl && (
           <div style={{ marginTop: 16 }}>
-            {post.mediaType === "image" ? (
-              <img
-                src={post.mediaUrl}
-                alt=""
-                style={{
-                  width: "100%",
-                  borderRadius: 14,
-                  display: "block",
-                }}
-              />
+            {post.mediaType === "video" ? (
+              <video src={post.mediaUrl} controls playsInline preload="metadata" style={{ width: "100%", maxHeight: 680, borderRadius: 14, display: "block", background: "#111" }} />
             ) : (
-              <a href={post.mediaUrl}>فتح المرفق</a>
+              <img src={post.mediaUrl} alt="" style={{ width: "100%", borderRadius: 14, display: "block" }} />
             )}
           </div>
         )}
