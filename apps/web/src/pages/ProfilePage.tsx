@@ -66,6 +66,8 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<ProfileUser | null>(isOwnProfile ? (currentUser as ProfileUser | null) : null);
   const [profilePosts, setProfilePosts] = useState<ProfilePost[]>([]);
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
   const [profileLoading, setProfileLoading] = useState(!isOwnProfile);
   const [profileError, setProfileError] = useState('');
 
@@ -102,6 +104,7 @@ export default function ProfilePage() {
           setProfile(data.user);
           setProfilePosts(data.posts ?? []);
           setStats(data.stats ?? { posts: data.posts?.length ?? 0, followers: 0, following: 0 });
+          setIsFollowing(Boolean(data.isFollowing));
         }
       })
       .catch((error) => {
@@ -213,7 +216,26 @@ export default function ProfilePage() {
             {profile.bio && <p className="profile-bio">{profile.bio}</p>}
           </div>
 
-          {isOwnProfile && <button type="button" className="profile-edit">تعديل الملف</button>}
+          {isOwnProfile ? (
+            <button type="button" className="profile-edit">تعديل الملف</button>
+          ) : (
+            <button type="button" className="profile-edit" disabled={followBusy}
+              onClick={async () => {
+                if (!token || !profile) return;
+                setFollowBusy(true);
+                try {
+                  const method = isFollowing ? "DELETE" : "POST";
+                  const res = await fetch(`${API_URL}/auth/users/${encodeURIComponent(profile.username)}/follow`, { method, headers: { Authorization: `Bearer ${token}` } });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error();
+                  setIsFollowing(Boolean(data.following));
+                  setStats((s) => ({ ...s, followers: Math.max(0, s.followers + (data.following ? 1 : -1)) }));
+                } catch { setPhotoError("تعذر تحديث المتابعة."); }
+                finally { setFollowBusy(false); }
+              }}>
+              {followBusy ? "..." : isFollowing ? "إلغاء المتابعة" : "متابعة"}
+            </button>
+          )}
         </div>
 
         <div className="profile-stats">
