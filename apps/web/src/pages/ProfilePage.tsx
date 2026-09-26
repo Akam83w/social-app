@@ -15,6 +15,15 @@ type ProfileUser = {
   createdAt?: string;
 };
 
+type ProfilePost = {
+  id: string;
+  content: string | null;
+  mediaUrl: string | null;
+  mediaType: string | null;
+  createdAt: string;
+  likeCount: number;
+};
+
 function readImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -54,9 +63,9 @@ export default function ProfilePage() {
   const navigate = useNavigate();
 
   const isOwnProfile = !routeUsername || routeUsername === currentUser?.username;
-  const [profile, setProfile] = useState<ProfileUser | null>(
-    isOwnProfile ? (currentUser as ProfileUser | null) : null,
-  );
+  const [profile, setProfile] = useState<ProfileUser | null>(isOwnProfile ? (currentUser as ProfileUser | null) : null);
+  const [profilePosts, setProfilePosts] = useState<ProfilePost[]>([]);
+  const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
   const [profileLoading, setProfileLoading] = useState(!isOwnProfile);
   const [profileError, setProfileError] = useState('');
 
@@ -69,8 +78,16 @@ export default function ProfilePage() {
   const [offsetY, setOffsetY] = useState(0);
 
   useEffect(() => {
-    if (isOwnProfile || !token || !routeUsername) return;
+    if (!token) return;
     let cancelled = false;
+    if (isOwnProfile) {
+      setProfile(currentUser as ProfileUser | null);
+      setProfilePosts([]);
+      setStats((s) => ({ ...s, posts: 0 }));
+      setProfileLoading(false);
+      return () => { cancelled = true; };
+    }
+    if (!routeUsername) return;
 
     void fetch(`${API_URL}/auth/users/${encodeURIComponent(routeUsername)}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -81,7 +98,11 @@ export default function ProfilePage() {
         return data;
       })
       .then((data) => {
-        if (!cancelled) setProfile(data.user);
+        if (!cancelled) {
+          setProfile(data.user);
+          setProfilePosts(data.posts ?? []);
+          setStats(data.stats ?? { posts: data.posts?.length ?? 0, followers: 0, following: 0 });
+        }
       })
       .catch((error) => {
         if (!cancelled) setProfileError(error instanceof Error ? error.message : 'تعذر تحميل الحساب');
@@ -93,7 +114,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [isOwnProfile, routeUsername, token]);
+  }, [isOwnProfile, routeUsername, token, currentUser]);
 
   const handleLogout = () => {
     logout();
@@ -196,9 +217,23 @@ export default function ProfilePage() {
         </div>
 
         <div className="profile-stats">
-          <div><strong>0</strong><span>منشور</span></div>
-          <div><strong>0</strong><span>متابع</span></div>
-          <div><strong>0</strong><span>يتابع</span></div>
+          <div><strong>{stats.posts}</strong><span>منشور</span></div>
+          <div><strong>{stats.followers}</strong><span>متابع</span></div>
+          <div><strong>{stats.following}</strong><span>يتابع</span></div>
+        </div>
+
+        <div className="profile-posts">
+          {profilePosts.length === 0 ? (
+            <p className="profile-empty">ماكو منشورات بهذا الحساب حالياً.</p>
+          ) : (
+            profilePosts.map((post) => (
+              <article className="profile-post" key={post.id}>
+                {post.mediaUrl && <img src={post.mediaUrl} alt={post.content || 'منشور'} />}
+                {post.content && <p>{post.content}</p>}
+                <span>{post.likeCount.toLocaleString('ar-IQ')} إعجاب</span>
+              </article>
+            ))
+          )}
         </div>
 
         {selectedFile && (
