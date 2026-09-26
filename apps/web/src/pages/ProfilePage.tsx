@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { avatar } from "../data/stories";
 import { useAuth } from "../context/AuthContext";
@@ -68,7 +68,7 @@ export default function ProfilePage() {
   const [offsetX, setOffsetX] = useState(0);
   const [offsetY, setOffsetY] = useState(0);
 
-  useState(() => {
+  useEffect(() => {
     if (isOwnProfile || !token || !routeUsername) return;
     let cancelled = false;
 
@@ -93,7 +93,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  });
+  }, [isOwnProfile, routeUsername, token]);
 
   const handleLogout = () => {
     logout();
