@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 interface User {
@@ -37,18 +37,15 @@ function saveAccounts(accounts: Account[]) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [accounts, setAccounts] = useState<Account[]>(() => loadAccounts());
+  const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
     const storedAccounts = loadAccounts();
     const storedCurrentId = localStorage.getItem('currentUserId');
-    setAccounts(storedAccounts);
     if (storedCurrentId && storedAccounts.some((a) => a.user.id === storedCurrentId)) {
-      setCurrentUserId(storedCurrentId);
-    } else if (storedAccounts.length > 0) {
-      setCurrentUserId(storedAccounts[0].user.id);
+      return storedCurrentId;
     }
-  }, []);
+    return storedAccounts[0]?.user.id ?? null;
+  });
 
   const login = (userData: User, newToken: string) => {
     setAccounts((prev) => {
