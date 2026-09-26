@@ -2,13 +2,18 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY apps/api/package*.json ./
-RUN npm ci
+COPY apps/api/package*.json ./api/
+RUN cd api && npm ci
 
-COPY apps/api/ ./
+COPY apps/web/package*.json ./web/
+RUN cd web && npm ci
 
-RUN npm run build
+COPY apps/api ./api
+COPY apps/web ./web
+
+RUN cd api && npm run build
+RUN cd web && npm run build
 
 EXPOSE 3000
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "api/dist/server.js"]

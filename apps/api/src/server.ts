@@ -1,5 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
+import path from 'node:path';
 import jwt from '@fastify/jwt';
 import 'dotenv/config';
 import { authRoutes } from './modules/auth/auth.routes';
@@ -25,6 +27,11 @@ app.register(jwt, {
 app.register(authRoutes);
 app.register(passwordResetRoutes);
 app.register(postsRoutes);
+
+app.register(fastifyStatic, {
+  root: path.resolve(process.cwd(), '../web/dist'),
+  prefix: '/',
+});
 
 app.get('/health', async () => {
   return { status: 'ok' };
