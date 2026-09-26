@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createPostSchema = z
   .object({
     content: z.string().trim().max(5000).optional(),
-    mediaUrl: z.string().trim().url().optional(),
+    mediaUrl: z.string().trim().max(2_000_000).optional(),
     mediaType: z.enum(['image', 'video']).optional(),
   })
   .refine(
