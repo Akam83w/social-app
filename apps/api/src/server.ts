@@ -1,32 +1,24 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import fastifyStatic from '@fastify/static';
-import path from 'node:path';
 import jwt from '@fastify/jwt';
-import 'dotenv/config';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
+import { sql } from 'drizzle-orm';
+import { db } from './db';
 import { authRoutes } from './modules/auth/auth.routes';
-
-import { passwordResetRoutes } from './modules/password-reset/password-reset.routes';
-import { postsRoutes } from './modules/posts/posts.routes';
 
 const app = Fastify({
   logger: true,
 });
 
 app.register(cors, {
-  origin: ['http://localhost:5173', 'http://localhost', 'https://localhost', 'http://192.168.0.108:3000'],
+  origin: true,
   credentials: true,
-  methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
 });
 
 app.register(jwt, {
-  secret: process.env.JWT_SECRET || 'dev_secret_change_me',
+  secret: process.env.JWT_SECRET || 'change_this_to_a_long_random_string_later',
 });
-
-app.register(authRoutes);
-app.register(passwordResetRoutes);
-app.register(postsRoutes);
 
 app.register(fastifyStatic, {
   root: path.resolve(
@@ -35,6 +27,8 @@ app.register(fastifyStatic, {
   ),
   prefix: '/',
 });
+
+app.register(authRoutes);
 
 app.setNotFoundHandler(async (request, reply) => {
   if (request.method === 'GET' && !request.url.startsWith('/health')) {
@@ -46,8 +40,22 @@ app.setNotFoundHandler(async (request, reply) => {
   });
 });
 
-app.get('/health', async () => {
-  return { status: 'ok' };
+app.get('/health', async (_request, reply) => {
+  try {
+    const result = await db.execute(sql`SELECT 1 AS ok`);
+
+    return reply.status(200).send({
+      status: 'ok',
+      database: result.rows[0],
+    });
+  } catch (err: any) {
+    app.log.error(err);
+
+    return reply.status(500).send({
+      status: 'error',
+      database: err?.message || String(err),
+    });
+  }
 });
 
 const start = async () => {
