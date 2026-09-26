@@ -7,6 +7,7 @@ import {
   PlusIcon,
   BellIcon,
   BookmarkIcon,
+  SendIcon,
 } from "../icons/Icons";
 
 type LayoutProps = {
@@ -185,53 +186,26 @@ export default function Layout({ children }: LayoutProps) {
       </div>
 
       <nav className="mobile-nav">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) =>
-            isActive ? "nav-item active" : "nav-item"
-          }
-        >
+        <NavLink to="/" end className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
           <HomeIcon />
-          <span>الرئيسية</span>
+          <span>منشورات</span>
         </NavLink>
-
-        <NavLink
-          to="/explore"
-          className={({ isActive }) =>
-            isActive ? "nav-item active" : "nav-item"
-          }
-        >
+        <NavLink to="/reels" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+          <span className="nav-glyph">▶</span>
+          <span>ريلز</span>
+        </NavLink>
+        <NavLink to="/messages" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+          <SendIcon />
+          <span>الرسائل</span>
+        </NavLink>
+        <NavLink to="/explore" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
           <SearchIcon />
-          <span>استكشاف</span>
+          <span>البحث</span>
         </NavLink>
-
-        <Link to="/create" className="nav-add">
-          <PlusIcon size={25} />
-        </Link>
-
-        <NavLink
-          to="/notifications"
-          className={({ isActive }) =>
-            isActive ? "nav-item active" : "nav-item"
-          }
-        >
-          <BellIcon />
-          <span>الإشعارات</span>
-        </NavLink>
-
-        <NavLink
-          to="/profile"
-          className={({ isActive }) =>
-            isActive ? "nav-item active" : "nav-item"
-          }
-        >
-          <span className="nav-avatar">
-            <img src={user?.avatarUrl || avatar} alt="" />
-          </span>
+        <NavLink to="/profile" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
+          <span className="nav-avatar"><img src={user?.avatarUrl || avatar} alt="" /></span>
           <span>حسابي</span>
         </NavLink>
-      </nav>
-    </div>
+      </nav>    </div>
   );
 }
