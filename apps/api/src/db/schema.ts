@@ -96,3 +96,18 @@ export const comments = pgTable(
     createdAtIdx: index('comments_created_at_idx').on(table.createdAt),
   }),
 );
+
+
+export const follows = pgTable(
+  'follows',
+  {
+    followerId: uuid('follower_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    followingId: uuid('following_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    pairUnique: uniqueIndex('follows_pair_unique').on(table.followerId, table.followingId),
+    followerIdx: index('follows_follower_idx').on(table.followerId),
+    followingIdx: index('follows_following_idx').on(table.followingId),
+  }),
+);
