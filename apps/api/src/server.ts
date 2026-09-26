@@ -150,6 +150,17 @@ app.get('/health', async (_request, reply) => {
 
 const start = async () => {
   try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS follows (
+        follower_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        following_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at timestamp NOT NULL DEFAULT now(),
+        CONSTRAINT follows_pair_unique UNIQUE (follower_id, following_id)
+      )
+    `);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS follows_follower_idx ON follows(follower_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS follows_following_idx ON follows(following_id)`);
+
     const port = Number(process.env.PORT) || 3000;
     await app.listen({ port, host: '0.0.0.0' });
   } catch (err) {
