@@ -22,15 +22,7 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(409).send({ error: 'USER_ALREADY_EXISTS' });
       }
       app.log.error(err);
-      return reply.status(500).send({
-        error: 'INTERNAL_ERROR',
-        debug: {
-          message: err.message,
-          name: err.name,
-          code: err.code,
-          cause: err.cause ? { message: err.cause.message, code: err.cause.code } : null,
-        },
-      });
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
   });
 
@@ -53,15 +45,7 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(401).send({ error: 'INVALID_CREDENTIALS' });
       }
       app.log.error(err);
-      return reply.status(500).send({
-        error: 'INTERNAL_ERROR',
-        debug: {
-          message: err.message,
-          name: err.name,
-          code: err.code,
-          cause: err.cause ? { message: err.cause.message, code: err.cause.code } : null,
-        },
-      });
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
   });
 
