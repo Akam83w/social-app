@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   createComment,
   deleteComment,
@@ -39,6 +39,7 @@ type Comment = {
 
 export default function PostPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, token } = useAuth();
 
   const [post, setPost] = useState<Post | null>(null);
@@ -535,6 +536,19 @@ export default function PostPage() {
           </div>
         </div>
 
+        {post.user.id === user?.id && (
+          <button type="button" onClick={async () => {
+            if (!token || !id || !window.confirm("تحذف هذا المنشور؟")) return;
+            try {
+              const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/posts/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+              if (!res.ok) throw new Error();
+              navigate("/");
+            } catch { setError("تعذر حذف المنشور."); }
+          }} style={{ marginTop: 14, color: "#c00", border: "1px solid #f0cccc", borderRadius: 10, padding: "8px 12px", background: "#fff" }}>
+            حذف المنشور
+          </button>
+        )}
+
         {post.content && (
           <div
             style={{
@@ -549,7 +563,7 @@ export default function PostPage() {
 
         {post.mediaUrl && (
           <div style={{ marginTop: 16 }}>
-            {post.mediaType?.startsWith("image/") ? (
+            {post.mediaType === "image" ? (
               <img
                 src={post.mediaUrl}
                 alt=""
