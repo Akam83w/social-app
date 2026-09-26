@@ -122,15 +122,8 @@ app.get('/db-test', async (_request, reply) => {
 });
 
 app.get('/health', async (_request, reply) => {
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  });
-
   try {
-    const result = await pool.query('SELECT 1 AS ok');
+    const result = await db.execute(sql`SELECT 1 AS ok`);
 
     return reply.status(200).send({
       status: 'ok',
@@ -148,8 +141,6 @@ app.get('/health', async (_request, reply) => {
         hint: err?.hint || null,
       },
     });
-  } finally {
-    await pool.end();
   }
 });
 
