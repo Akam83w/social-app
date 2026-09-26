@@ -43,8 +43,27 @@ app.get('/dns-test', async (_request, reply) => {
   const dns = await import('node:dns/promises');
 
   try {
-    const result = await dns.lookup('google.com', {
-      all: true,
+    const net = await import('node:net');
+
+    const socket = new net.Socket();
+
+    const result = await new Promise((resolve, reject) => {
+      socket.setTimeout(5000);
+
+      socket.connect(5432, '54.64.190.72', () => {
+        socket.destroy();
+        resolve({
+          connected: true,
+          ip: '54.64.190.72',
+          port: 5432,
+        });
+      });
+
+      socket.on('error', reject);
+      socket.on('timeout', () => {
+        socket.destroy();
+        reject(new Error('Connection timeout'));
+      });
     });
 
     return reply.status(200).send({
