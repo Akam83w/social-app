@@ -29,7 +29,7 @@ app.register(passwordResetRoutes);
 app.register(postsRoutes);
 
 app.register(fastifyStatic, {
-  root: path.resolve(process.cwd(), '../web/dist'),
+  root: path.resolve(process.cwd(), 'web/dist'),
   prefix: '/',
 });
 
