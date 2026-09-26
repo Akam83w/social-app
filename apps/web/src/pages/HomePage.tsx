@@ -25,6 +25,7 @@ type ApiPost = {
     id: string;
     username: string;
     displayName: string | null;
+    avatarUrl: string | null;
   };
 };
 
@@ -223,7 +224,7 @@ export default function HomePage() {
                   >
                     <div className="story-image">
                       <img
-                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        src={post.user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(
                           post.user.displayName || post.user.username,
                         )}&background=random`}
                         alt={post.user.username}
