@@ -29,8 +29,21 @@ app.register(passwordResetRoutes);
 app.register(postsRoutes);
 
 app.register(fastifyStatic, {
-  root: path.resolve(process.cwd(), 'web/dist'),
+  root: path.resolve(
+    process.cwd(),
+    process.cwd() === '/app' ? 'web/dist' : '../web/dist',
+  ),
   prefix: '/',
+});
+
+app.setNotFoundHandler(async (request, reply) => {
+  if (request.method === 'GET' && !request.url.startsWith('/health')) {
+    return reply.sendFile('index.html');
+  }
+
+  return reply.status(404).send({
+    error: 'NOT_FOUND',
+  });
 });
 
 app.get('/health', async () => {

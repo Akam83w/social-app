@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import {
   HomeIcon,
   SearchIcon,
@@ -45,6 +46,7 @@ const stories = [
 
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="app-shell" dir="rtl">
@@ -69,7 +71,7 @@ export default function Layout({ children }: LayoutProps) {
               className="profile-mini"
               onClick={() => navigate("/profile")}
             >
-              <img src={avatar} alt="حسابي" />
+              <img src={user?.avatarUrl || avatar} alt="حسابي" />
             </button>
           </div>
         </div>
@@ -126,7 +128,7 @@ export default function Layout({ children }: LayoutProps) {
               }
             >
               <span className="side-avatar">
-                <img src={avatar} alt="" />
+                <img src={user?.avatarUrl || avatar} alt="" />
               </span>
               <span>حسابي</span>
             </NavLink>
@@ -149,11 +151,11 @@ export default function Layout({ children }: LayoutProps) {
         <aside className="right-panel">
           <div className="profile-card">
             <div className="profile-row">
-              <img src={avatar} alt="ذنون" />
+              <img src={user?.avatarUrl || avatar} alt={user?.displayName || user?.username || "حسابي"} />
 
               <div>
-                <strong>ذنون</strong>
-                <span>@dhnoun</span>
+                <strong>{user?.displayName || user?.username || "مستخدم"}</strong>
+                <span>@{user?.username || "مستخدم"}</span>
               </div>
 
               <Link to="/profile">تعديل</Link>
@@ -225,7 +227,7 @@ export default function Layout({ children }: LayoutProps) {
           }
         >
           <span className="nav-avatar">
-            <img src={avatar} alt="" />
+            <img src={user?.avatarUrl || avatar} alt="" />
           </span>
           <span>حسابي</span>
         </NavLink>

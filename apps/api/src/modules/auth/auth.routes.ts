@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { registerSchema, loginSchema } from './auth.schema';
-import { registerUser, loginUser } from './auth.service';
+import { registerUser, loginUser, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
 
 export async function authRoutes(app: FastifyInstance) {
@@ -44,6 +44,36 @@ export async function authRoutes(app: FastifyInstance) {
       if (err.message === 'INVALID_CREDENTIALS') {
         return reply.status(401).send({ error: 'INVALID_CREDENTIALS' });
       }
+      app.log.error(err);
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
+
+  app.patch('/auth/avatar', { preHandler: verifyToken }, async (request, reply) => {
+    const payload = request.user as { id: string; username: string };
+    const body = request.body as { avatarUrl?: unknown };
+
+    if (body.avatarUrl !== null && typeof body.avatarUrl !== 'string') {
+      return reply.status(400).send({ error: 'INVALID_AVATAR_URL' });
+    }
+
+    if (typeof body.avatarUrl === 'string' && body.avatarUrl.length > 2_000_000) {
+      return reply.status(413).send({ error: 'AVATAR_TOO_LARGE' });
+    }
+
+    try {
+      const user = await updateUserAvatar(
+        payload.id,
+        body.avatarUrl === null ? null : body.avatarUrl || null,
+      );
+
+      return reply.status(200).send({ user });
+    } catch (err: any) {
+      if (err.message === 'USER_NOT_FOUND') {
+        return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+      }
+
       app.log.error(err);
       return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }

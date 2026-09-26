@@ -73,3 +73,27 @@ export async function loginUser(input: LoginInput) {
     displayName: existingUser.displayName,
   };
 }
+
+
+export async function updateUserAvatar(userId: string, avatarUrl: string | null) {
+  const [updatedUser] = await db
+    .update(users)
+    .set({
+      avatarUrl,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    });
+
+  if (!updatedUser) {
+    throw new Error('USER_NOT_FOUND');
+  }
+
+  return updatedUser;
+}
