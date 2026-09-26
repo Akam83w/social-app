@@ -166,6 +166,10 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'USER_NOT_FOUND' });
     }
 
+    const payload = request.user as { id: string };
+    const [followRelation] = await db.select({ id: follows.followerId }).from(follows)
+      .where(and(eq(follows.followerId, payload.id), eq(follows.followingId, profile.id))).limit(1);
+
     const profilePosts = await db
       .select({
         id: posts.id,
@@ -184,6 +188,7 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.status(200).send({
       user: profile,
       posts: profilePosts,
+      isFollowing: Boolean(followRelation),
       stats: {
         posts: profilePosts.length,
         followers: Number((await db.select({ count: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followingId, profile.id)))[0]?.count ?? 0),
