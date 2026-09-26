@@ -1135,3 +1135,48 @@ img {
   .profile-bio-block { padding: 14px 13px; }
   .avatar-crop-panel { margin-left: 13px; margin-right: 13px; }
 }
+
+
+.profile-posts {
+  padding: 20px 24px 24px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  border-top: 1px solid #eee;
+}
+.profile-post {
+  min-width: 0;
+  overflow: hidden;
+  background: #f0f1f2;
+  border-radius: 8px;
+}
+.profile-post img {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  object-fit: cover;
+}
+.profile-post p {
+  margin: 0;
+  padding: 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.profile-post span {
+  display: block;
+  padding: 0 8px 8px;
+  color: #888d93;
+  font-size: 10px;
+}
+.profile-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 20px 0;
+  text-align: center;
+  color: #888d93;
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .profile-posts { padding-left: 13px; padding-right: 13px; }
+}
