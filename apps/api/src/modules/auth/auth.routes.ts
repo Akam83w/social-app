@@ -24,7 +24,12 @@ export async function authRoutes(app: FastifyInstance) {
       app.log.error(err);
       return reply.status(500).send({
         error: 'INTERNAL_ERROR',
-        debug: { message: err.message, name: err.name, code: err.code },
+        debug: {
+          message: err.message,
+          name: err.name,
+          code: err.code,
+          cause: err.cause ? { message: err.cause.message, code: err.cause.code } : null,
+        },
       });
     }
   });
@@ -50,7 +55,12 @@ export async function authRoutes(app: FastifyInstance) {
       app.log.error(err);
       return reply.status(500).send({
         error: 'INTERNAL_ERROR',
-        debug: { message: err.message, name: err.name, code: err.code },
+        debug: {
+          message: err.message,
+          name: err.name,
+          code: err.code,
+          cause: err.cause ? { message: err.cause.message, code: err.cause.code } : null,
+        },
       });
     }
   });
