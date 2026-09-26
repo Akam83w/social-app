@@ -24,6 +24,8 @@ function ProtectedApp() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/explore" element={<SimplePage title="استكشاف" description="ابحث عن حساب باسم المستخدم وتابع الحسابات من هنا." icon={<SearchIcon size={52} />} />} />
+        <Route path="/reels" element={<SimplePage title="الريلز" description="فيديوهات قصيرة." icon={<SearchIcon size={52} />} />} />
+        <Route path="/messages" element={<SimplePage title="الرسائل" description="الرسائل ستتوفر هنا." icon={<HeartIcon size={52} />} />} />
         <Route path="/notifications" element={<SimplePage title="الإشعارات" description="هنا راح تظهر الإعجابات والتعليقات والمتابعات." icon={<BellIcon size={52} />} />} />
         <Route path="/saved" element={<SimplePage title="المحفوظات" description="المنشورات التي تحفظها ستظهر هنا." icon={<BookmarkIcon size={52} />} />} />
         <Route path="/create" element={<CreatePostPage />} />
