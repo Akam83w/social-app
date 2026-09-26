@@ -4,8 +4,8 @@ import { registerUser, loginUser, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
-import { users, posts, likes } from '../../db/schema';
-import { desc, sql } from 'drizzle-orm';
+import { users, posts, likes, follows } from '../../db/schema';
+import { desc, sql, and } from 'drizzle-orm';
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/register', async (request, reply) => {
@@ -88,6 +88,62 @@ export async function authRoutes(app: FastifyInstance) {
       app.log.error(err);
       return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
+  });
+
+  app.get('/auth/search/users/:username', { preHandler: verifyToken }, async (request, reply) => {
+    const { username } = request.params as { username: string };
+    const payload = request.user as { id: string };
+
+    const [profile] = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (!profile) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+
+    const [relation] = await db
+      .select({ id: follows.followerId })
+      .from(follows)
+      .where(and(eq(follows.followerId, payload.id), eq(follows.followingId, profile.id)))
+      .limit(1);
+
+    const [followersRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(follows)
+      .where(eq(follows.followingId, profile.id));
+
+    return reply.send({
+      user: profile,
+      isFollowing: Boolean(relation),
+      followerCount: followersRow?.count ?? 0,
+    });
+  });
+
+  app.post('/auth/users/:username/follow', { preHandler: verifyToken }, async (request, reply) => {
+    const payload = request.user as { id: string };
+    const { username } = request.params as { username: string };
+    const [target] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    if (target.id === payload.id) return reply.status(400).send({ error: 'CANNOT_FOLLOW_SELF' });
+
+    await db.insert(follows).values({ followerId: payload.id, followingId: target.id }).onConflictDoNothing();
+    return reply.send({ following: true });
+  });
+
+  app.delete('/auth/users/:username/follow', { preHandler: verifyToken }, async (request, reply) => {
+    const payload = request.user as { id: string };
+    const { username } = request.params as { username: string };
+    const [target] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+
+    await db.delete(follows).where(and(eq(follows.followerId, payload.id), eq(follows.followingId, target.id)));
+    return reply.send({ following: false });
   });
 
   app.get('/auth/users/:username', { preHandler: verifyToken }, async (request, reply) => {
