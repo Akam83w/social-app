@@ -43,7 +43,7 @@ app.get('/dns-test', async (_request, reply) => {
   const dns = await import('node:dns/promises');
 
   try {
-    const result = await dns.lookup('aws-0-ap-northeast-1.pooler.supabase.com', {
+    const result = await dns.lookup('google.com', {
       all: true,
     });
 
