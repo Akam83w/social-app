@@ -10,6 +10,7 @@ import {
   getPostById,
   getPosts,
   getPostsByHashtag,
+  getExplorePosts,
   getPostComments,
   getCommentById,
   createComment,
@@ -76,6 +77,25 @@ export async function postsRoutes(app: FastifyInstance) {
         posts: result,
         nextCursor: result.length === Math.min(Math.max(limit, 1), 50)
           ? (result[result.length - 1] ? `${result[result.length - 1].createdAt}__${result[result.length - 1].id}` : null)
+          : null,
+      });
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
+  app.get('/posts/explore', { preHandler: verifyToken }, async (request, reply) => {
+    try {
+      const payload = request.user as { id: string };
+      const query = request.query as { limit?: string; cursor?: string };
+      const limit = Number(query.limit || 30);
+      const result = await getExplorePosts(payload.id, limit, query.cursor);
+      const safeLimit = Math.min(Math.max(limit, 1), 50);
+      return reply.send({
+        posts: result,
+        nextCursor: result.length === safeLimit && result[result.length - 1]
+          ? \`${result[result.length - 1].createdAt}__${result[result.length - 1].id}\`
           : null,
       });
     } catch (err) {
