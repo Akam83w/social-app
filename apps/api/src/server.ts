@@ -35,6 +35,7 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
 }
 
 const app = Fastify({ logger: true });
+app.decorate('notifyUser', notifyUser);
 app.register(cors, { origin: true, credentials: true });
 app.register(jwt, { secret: process.env.JWT_SECRET || 'change_this_to_a_long_random_string_later' });
 app.register(fastifyStatic, { root: path.resolve(process.cwd(), process.cwd() === '/app' ? 'web/dist' : '../web/dist'), prefix: '/' });
