@@ -1,4 +1,6 @@
 import type { FastifyInstance } from 'fastify';
+import { sql } from 'drizzle-orm';
+import { db } from '../../db';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { createPostSchema } from './posts.schema';
 import {
@@ -30,7 +32,9 @@ export async function postsRoutes(app: FastifyInstance) {
       const payload = request.user as { id: string };
 
       const post = await createPost(payload.id, parsed.data);
-
+      const followers = await db.execute(sql`SELECT follower_id FROM follows WHERE following_id=${payload.id}`);
+      const actor = await db.execute(sql`SELECT username,display_name FROM users WHERE id=${payload.id} LIMIT 1`);
+      const a:any=actor.rows[0]; for(const row of followers.rows as any[]) await (app as any).notifyUser(row.follower_id,'post','منشور جديد',`@${a?.username||"مستخدم} نشر منشوراً جديداً`,payload.id,{actorId:payload.id,url:'/'});
       return reply.status(201).send({ post });
     } catch (err) {
       app.log.error(err);
@@ -72,6 +76,7 @@ export async function postsRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string };
 
       await likePost(payload.id, id);
+      const owner=await db.execute(sql`SELECT p.user_id,u.username FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=${id} LIMIT 1`); const o:any=owner.rows[0]; if(o?.user_id&&o.user_id!==payload.id){const actor=await db.execute(sql`SELECT username FROM users WHERE id=${payload.id} LIMIT 1`);const a:any=actor.rows[0];await (app as any).notifyUser(o.user_id,'like','إعجاب جديد',`@${a?.username||"مستخدم} أعجب بمنشورك`,payload.id,{actorId:payload.id,url:'/post/'+id});}
 
       return reply.status(200).send({
         liked: true,
