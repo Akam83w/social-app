@@ -101,6 +101,28 @@ export const comments = pgTable(
 );
 
 
+export const reports = pgTable('reports', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  reporterId: uuid('reporter_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  targetId: uuid('target_id').notNull(),
+  targetType: varchar('target_type', { length: 20 }).notNull(),
+  reason: text('reason').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  reporterIdx: index('reports_reporter_idx').on(table.reporterId),
+  targetIdx: index('reports_target_idx').on(table.targetType, table.targetId),
+}));
+
+export const blocks = pgTable('blocks', {
+  blockerId: uuid('blocker_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  blockedId: uuid('blocked_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  pairUnique: uniqueIndex('blocks_pair_unique').on(table.blockerId, table.blockedId),
+  blockerIdx: index('blocks_blocker_idx').on(table.blockerId),
+  blockedIdx: index('blocks_blocked_idx').on(table.blockedId),
+}));
+
 export const follows = pgTable(
   'follows',
   {
