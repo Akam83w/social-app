@@ -32,22 +32,14 @@ export async function getPosts(currentUserId?: string, limit = 20, cursor?: stri
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
       },
-      likeCount: sql<number>`count(${likes.id})::int`,
+      likeCount: sql<number>`(SELECT count(*)::int FROM likes WHERE likes.post_id = ${posts.id})`,
       likedByMe: currentUserId
-        ? sql<boolean>`bool_or(${likes.userId} = ${currentUserId})`
+        ? sql<boolean>`EXISTS (SELECT 1 FROM likes WHERE likes.post_id = ${posts.id} AND likes.user_id = ${currentUserId})`
         : sql<boolean>`false`,
     })
     .from(posts)
-    .leftJoin(likes, eq(likes.postId, posts.id))
     .innerJoin(users, eq(posts.userId, users.id))
     .where(cursor ? sql`${posts.createdAt} < ${new Date(cursor)}` : undefined)
-    .groupBy(
-      posts.id,
-      users.id,
-      users.username,
-      users.displayName,
-      users.avatarUrl,
-    )
     .orderBy(desc(posts.createdAt))
     .limit(Math.min(Math.max(limit, 1), 50));
 }
