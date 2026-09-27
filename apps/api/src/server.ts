@@ -13,7 +13,8 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { postsRoutes } from './modules/posts/posts.routes';
 import { messagesRoutes } from './modules/messages.routes';
 import { storiesRoutes } from './modules/stories.routes';
-import { passwordResetRoutes } from './modules/password-reset/password-reset.routes';import { verifyToken } from './middleware/auth.middleware';
+import { passwordResetRoutes } from './modules/password-reset/password-reset.routes';
+import { verifyToken } from './middleware/auth.middleware';
 
 
 const realtimeClients = new Map<string, Set<any>>();
