@@ -22,6 +22,12 @@ export async function registerUser(input: RegisterInput) {
 
   const passwordHash = await bcrypt.hash(input.password, 10);
 
+  const nextSupporter = await db.execute<{ next_number: string }>(sql`SELECT nextval('supporter_number_seq')::text AS next_number`);
+  const supporterNumber = Number(nextSupporter.rows[0]?.next_number ?? 999999);
+  const createdAt = new Date();
+  const supporter = supporterNumber <= 1932 ? supporterNumber : null;
+  const supporterExpiresAt = supporter ? new Date(createdAt.getTime() + 90 * 24 * 60 * 60 * 1000) : null;
+
   const [newUser] = await db
     .insert(users)
     .values({
@@ -30,6 +36,9 @@ export async function registerUser(input: RegisterInput) {
       phone: input.phone,
       passwordHash,
       displayName: input.displayName,
+      supporterNumber: supporter ? String(supporter) : null,
+      supporterExpiresAt,
+      verifiedAt: null,
     })
     .returning({
       id: users.id,
@@ -38,6 +47,9 @@ export async function registerUser(input: RegisterInput) {
       phone: users.phone,
       displayName: users.displayName,
       createdAt: users.createdAt,
+      supporterNumber: users.supporterNumber,
+      supporterExpiresAt: users.supporterExpiresAt,
+      verifiedAt: users.verifiedAt,
     });
 
   return newUser;
@@ -74,6 +86,9 @@ export async function loginUser(input: LoginInput) {
     phone: existingUser.phone,
     bio: existingUser.bio,
     avatarUrl: existingUser.avatarUrl,
+    supporterNumber: existingUser.supporterNumber,
+    supporterExpiresAt: existingUser.supporterExpiresAt,
+    verifiedAt: existingUser.verifiedAt,
   };
 }
 
