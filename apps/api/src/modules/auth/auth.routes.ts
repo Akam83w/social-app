@@ -61,6 +61,74 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
 
+  app.patch('/auth/profile', { preHandler: verifyToken }, async (request, reply) => {
+    const payload = request.user as { id: string };
+    const body = request.body as {
+      displayName?: unknown;
+      username?: unknown;
+      phone?: unknown;
+      bio?: unknown;
+    };
+
+    const displayName = typeof body.displayName === 'string' ? body.displayName.trim().slice(0, 100) : '';
+    const username = typeof body.username === 'string' ? body.username.trim().replace(/^@/, '') : '';
+    const phone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 20) : '';
+    const bio = typeof body.bio === 'string' ? body.bio.trim().slice(0, 500) : '';
+
+    if (!username || !/^[A-Za-z0-9_.]{3,50}$/.test(username)) {
+      return reply.status(400).send({ error: 'INVALID_USERNAME' });
+    }
+
+    const existing = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (existing[0] && existing[0].id !== payload.id) {
+      return reply.status(409).send({ error: 'USERNAME_TAKEN' });
+    }
+
+    if (phone) {
+      const phoneOwner = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.phone, phone))
+        .limit(1);
+      if (phoneOwner[0] && phoneOwner[0].id !== payload.id) {
+        return reply.status(409).send({ error: 'PHONE_TAKEN' });
+      }
+    }
+
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          displayName: displayName || null,
+          username,
+          phone: phone || null,
+          bio: bio || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, payload.id))
+        .returning({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          phone: users.phone,
+          displayName: users.displayName,
+          bio: users.bio,
+          avatarUrl: users.avatarUrl,
+        });
+
+      if (!updatedUser) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+      return reply.send({ user: updatedUser });
+    } catch (err: any) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
   app.patch('/auth/avatar', { preHandler: verifyToken }, async (request, reply) => {
     const payload = request.user as { id: string; username: string };
     const body = request.body as { avatarUrl?: unknown };
