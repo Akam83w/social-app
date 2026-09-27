@@ -6,6 +6,8 @@ import path from 'path';
 import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
 import webpush from 'web-push';
+import { cert, getApps, initializeApp } from 'firebase-admin/app';
+import { getMessaging, type Messaging } from 'firebase-admin/messaging';
 import { db } from './db';
 import { authRoutes } from './modules/auth/auth.routes';
 import { postsRoutes } from './modules/posts/posts.routes';
@@ -17,12 +19,29 @@ import { verifyToken } from './middleware/auth.middleware';
 const realtimeClients = new Map<string, Set<any>>();
 const callTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let vapidPublicKey = '';
+let firebaseMessaging: Messaging | null = null;
+
+function setupFirebaseMessaging() {
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (!raw) return;
+  try {
+    const serviceAccount = JSON.parse(raw);
+    const firebaseApp = getApps().length ? getApps()[0] : initializeApp({ credential: cert(serviceAccount) });
+    firebaseMessaging = getMessaging(firebaseApp);
+  } catch (error) {
+    console.error('Firebase Admin initialization failed:', error);
+    firebaseMessaging = null;
+  }
+}
 
 async function setupRealtimeAndPush() {
   await db.execute(sql`CREATE TABLE IF NOT EXISTS app_config (key text PRIMARY KEY, value text NOT NULL)`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, actor_id uuid REFERENCES users(id) ON DELETE CASCADE, type varchar(30) NOT NULL, title text NOT NULL, body text NOT NULL, data text, read_at timestamp, created_at timestamp NOT NULL DEFAULT now())`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications(user_id, created_at DESC)`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS push_subscriptions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, endpoint text NOT NULL UNIQUE, subscription text NOT NULL, created_at timestamp NOT NULL DEFAULT now())`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS fcm_tokens (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, token text NOT NULL UNIQUE, platform varchar(20) NOT NULL DEFAULT 'android', created_at timestamp NOT NULL DEFAULT now(), updated_at timestamp NOT NULL DEFAULT now())`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS fcm_tokens_user_idx ON fcm_tokens(user_id)`);
+  setupFirebaseMessaging();
   const row=await db.execute(sql`SELECT value FROM app_config WHERE key='vapid_keys' LIMIT 1`);
   let keys:any;
   if(row.rows[0]) keys=JSON.parse(String((row.rows[0] as any).value)); else { keys=webpush.generateVAPIDKeys(); await db.execute(sql`INSERT INTO app_config(key,value) VALUES('vapid_keys',${JSON.stringify(keys)}) ON CONFLICT(key) DO NOTHING`); }
@@ -34,6 +53,12 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
   for(const res of realtimeClients.get(userId)||[]) res.write(`data: ${JSON.stringify(item)}\\n\\n`);
   const subs=await db.execute(sql`SELECT id,subscription FROM push_subscriptions WHERE user_id=${userId}`);
   for(const s of subs.rows as any[]) try{await webpush.sendNotification(JSON.parse(s.subscription),JSON.stringify({title,body,data}),{TTL:60,urgency:'high'});}catch(e:any){if(e?.statusCode===404||e?.statusCode===410)await db.execute(sql`DELETE FROM push_subscriptions WHERE id=${s.id}`);}
+  if(firebaseMessaging){
+    const tokens=await db.execute(sql`SELECT id,token FROM fcm_tokens WHERE user_id=${userId}`);
+    const fcmData: Record<string,string>={type,title,body};
+    for(const [key,value] of Object.entries(data||{})) fcmData[key]=typeof value==='string'?value:JSON.stringify(value);
+    for(const row of tokens.rows as any[]) try{await firebaseMessaging.send({token:String(row.token),data:fcmData,android:{priority:'high'}});}catch(e:any){const code=String(e?.code||'');if(code.includes('registration-token-not-registered')||code.includes('invalid-registration-token'))await db.execute(sql`DELETE FROM fcm_tokens WHERE id=${row.id}`);}
+  }
 }
 
 const app = Fastify({ logger: true });
@@ -50,6 +75,7 @@ app.get('/notifications/config',{preHandler:verifyToken},async(_req,reply)=>repl
 app.get('/notifications',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const r=await db.execute(sql`SELECT id,type,title,body,data,read_at,created_at FROM notifications WHERE user_id=${me} ORDER BY created_at DESC LIMIT 50`);return reply.send({notifications:r.rows});});
 app.post('/notifications/read',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;await db.execute(sql`UPDATE notifications SET read_at=now() WHERE user_id=${me} AND read_at IS NULL`);return reply.send({ok:true});});
 app.post('/notifications/push-subscription',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const sub=req.body as any;if(!sub?.endpoint)return reply.status(400).send({error:'INVALID_SUBSCRIPTION'});await db.execute(sql`INSERT INTO push_subscriptions(user_id,endpoint,subscription) VALUES(${me},${sub.endpoint},${JSON.stringify(sub)}) ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`);return reply.send({ok:true});});
+app.post('/notifications/fcm-token',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.token)return reply.status(400).send({error:'INVALID_FCM_TOKEN'});const platform=String(b.platform||'android').slice(0,20);await db.execute(sql`INSERT INTO fcm_tokens(user_id,token,platform) VALUES(${me},${String(b.token)},${platform}) ON CONFLICT(token) DO UPDATE SET user_id=EXCLUDED.user_id,platform=EXCLUDED.platform,updated_at=now()`);return reply.send({ok:true});});
 app.get('/realtime',async(req,reply)=>{const token=String((req.query as any)?.token||'');try{const payload=app.jwt.verify<{id:string}>(token);reply.hijack();reply.raw.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});reply.raw.write('data: '+JSON.stringify({type:'ready'})+'\\n\\n');let set=realtimeClients.get(payload.id);if(!set){set=new Set();realtimeClients.set(payload.id,set)}set.add(reply.raw);req.raw.on('close',()=>{set?.delete(reply.raw);if(!set?.size)realtimeClients.delete(payload.id)});return reply;}catch{return reply.status(401).send({error:'UNAUTHORIZED'});}});
 app.post('/calls/start',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const b=req.body as any;
