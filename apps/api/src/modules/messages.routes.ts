@@ -11,8 +11,22 @@ export async function messagesRoutes(app: FastifyInstance){
   try{await verifyToken(request,reply);}catch{return;}
   if(reply.sent)return;
   const me=(request.user as {id:string}).id;
-  const result=await db.execute(sql`SELECT DISTINCT ON (CASE WHEN sender_id=${me} THEN receiver_id ELSE sender_id END) CASE WHEN sender_id=${me} THEN receiver_id ELSE sender_id END AS other_id, m.id,m.content,m.created_at,u.username,u.display_name,u.avatar_url FROM messages m JOIN users u ON u.id=CASE WHEN m.sender_id=${me} THEN m.receiver_id ELSE m.sender_id END WHERE m.sender_id=${me} OR m.receiver_id=${me} ORDER BY CASE WHEN sender_id=${me} THEN receiver_id ELSE sender_id END,m.created_at DESC`);
-  return {chats:result.rows.map((r:any)=>({user:{id:r.other_id,username:r.username,displayName:r.display_name,avatarUrl:r.avatar_url},messages:[{id:r.id,content:r.content,createdAt:r.created_at,senderId:r.other_id,receiverId:me}]}))};
+  const result=await db.execute(sql`
+    SELECT DISTINCT ON (CASE WHEN m.sender_id=${me} THEN m.receiver_id ELSE m.sender_id END)
+      CASE WHEN m.sender_id=${me} THEN m.receiver_id ELSE m.sender_id END AS other_id,
+      m.id,m.content,m.created_at,m.sender_id,m.receiver_id,
+      u.username,u.display_name,u.avatar_url
+    FROM messages m
+    JOIN users u ON u.id=CASE WHEN m.sender_id=${me} THEN m.receiver_id ELSE m.sender_id END
+    WHERE m.sender_id=${me} OR m.receiver_id=${me}
+    ORDER BY CASE WHEN m.sender_id=${me} THEN m.receiver_id ELSE m.sender_id END,m.created_at DESC
+  `);
+  return {
+    chats: result.rows.map((r:any)=>({
+      user:{id:r.other_id,username:r.username,displayName:r.display_name,avatarUrl:r.avatar_url},
+      messages:[{id:r.id,content:r.content,createdAt:r.created_at,senderId:r.sender_id,receiverId:r.receiver_id}]
+    }))
+  };
  });
  app.get('/messages/:username',{preHandler:verifyToken},async(request,reply)=>{const me=(request.user as {id:string}).id;const {username}=request.params as {username:string};const u=await db.execute(sql`SELECT id,username,display_name,avatar_url FROM users WHERE lower(username)=lower(${username}) LIMIT 1`);const other=(u.rows[0] as any);if(!other)return reply.status(404).send({error:'USER_NOT_FOUND'});const rows=await db.execute(sql`SELECT id,content,created_at,sender_id,receiver_id FROM messages WHERE (sender_id=${me} AND receiver_id=${other.id}) OR (sender_id=${other.id} AND receiver_id=${me}) ORDER BY created_at ASC LIMIT 200`);return {user:{id:other.id,username:other.username,displayName:other.display_name,avatarUrl:other.avatar_url},messages:rows.rows.map((r:any)=>({id:r.id,content:r.content,createdAt:r.created_at,senderId:r.sender_id,receiverId:r.receiver_id}))};});
  app.post('/messages/:username',{preHandler:verifyToken},async(request,reply)=>{const me=(request.user as {id:string}).id;const {username}=request.params as {username:string};const body=request.body as {content?:string};const content=body.content?.trim();if(!content)return reply.status(400).send({error:'VALIDATION_ERROR'});const u=await db.execute(sql`SELECT id FROM users WHERE lower(username)=lower(${username}) LIMIT 1`);const other=(u.rows[0] as any);if(!other)return reply.status(404).send({error:'USER_NOT_FOUND'});if(other.id===me)return reply.status(400).send({error:'CANNOT_MESSAGE_SELF'});const result=await db.execute(sql`INSERT INTO messages(sender_id,receiver_id,content) VALUES(${me},${other.id},${content}) RETURNING id,content,created_at,sender_id,receiver_id`);return reply.status(201).send({message:result.rows[0]});});
