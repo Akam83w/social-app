@@ -1220,7 +1220,7 @@ img {
 /* ---------------- SDM FOUNDER BADGE ---------------- */
 .profile-name-line{display:flex;align-items:center;gap:7px;min-width:0}
 .profile-name-line>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.founder-badge{border:0;padding:0;font-family:inherit;cursor:pointer;width:21px;height:21px;flex:0 0 21px;display:inline-grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#111715,#078968);color:#fff;font-size:12px;font-weight:900;box-shadow:0 2px 7px rgba(7,137,104,.25);cursor:help}
+.founder-badge{border:0;padding:0;font-family:inherit;cursor:default;width:21px;height:21px;flex:0 0 21px;display:inline-grid;place-items:center;border-radius:50%;background:rgba(7,137,104,.10);color:#078968;font-size:17px;font-weight:900;box-shadow:none}
 .founder-label{display:inline-flex!important;align-items:center;margin-inline-start:7px!important;padding:3px 7px;border-radius:999px;background:rgba(7,137,104,.09);color:#078968!important;font-size:9px!important;font-weight:800}
 @media(max-width:480px){.founder-badge{width:19px;height:19px;flex-basis:19px;font-size:11px}.founder-label{font-size:8px!important;padding:2px 6px}}
 
@@ -1436,7 +1436,8 @@ img {
 
 /* Real supporter / verification identity */
 .supporter-name{color:#147bd1 !important}
-.supporter-star{font-size:1em;vertical-align:middle;display:inline-block}
+.supporter-star{display:inline-grid;place-items:center;width:18px;height:18px;margin-inline:3px;border-radius:50%;background:#147bd1;color:#fff;font-size:11px;line-height:1;font-weight:900;vertical-align:middle;box-shadow:0 2px 5px rgba(20,123,209,.22)}
+.founder-star-inline{display:inline-block;margin-inline:3px;color:#078968;font-size:19px;line-height:1;font-weight:900;vertical-align:middle;text-shadow:0 1px 2px rgba(7,137,104,.2)}
 .supporter-label{display:inline-block;margin-right:7px;padding:3px 7px;border-radius:999px;background:#e8f3ff;color:#147bd1;font-size:10px;font-weight:800}
 .real-verified,.verified-badge-inline{display:inline-grid;place-items:center;width:18px;height:18px;margin-right:4px;border-radius:50%;background:#1877f2;color:#fff;font-size:11px;font-weight:900;vertical-align:middle}
 .verified-badge-inline{width:15px;height:15px;font-size:9px;margin-right:3px}
