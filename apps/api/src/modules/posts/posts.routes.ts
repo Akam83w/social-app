@@ -150,6 +150,8 @@ export async function postsRoutes(app: FastifyInstance) {
     try {
       const { id } = request.params as { id: string };
       const payload = request.user as { id: string };
+      const privateDenied = await db.execute(sql`SELECT 1 FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=${id} AND u.is_private=true AND u.id<>${payload.id} AND NOT EXISTS (SELECT 1 FROM follows f WHERE f.follower_id=${payload.id} AND f.following_id=u.id AND f.status='accepted') LIMIT 1`);
+      if (privateDenied.rows[0]) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
       const result = await getPostComments(id, payload.id);
 
       return reply.status(200).send({
@@ -253,6 +255,9 @@ export async function postsRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string };
     const me = (request.user as { id: string }).id;
     const blocked = await db.execute(sql`SELECT 1 FROM blocks WHERE (blocker_id=${me} AND blocked_id=(SELECT user_id FROM posts WHERE id=${id})) OR (blocked_id=${me} AND blocker_id=(SELECT user_id FROM posts WHERE id=${id})) LIMIT 1`);
+    const privateDenied = await db.execute(sql`SELECT 1 FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=${id} AND u.is_private=true AND u.id<>${me} AND NOT EXISTS (SELECT 1 FROM follows f WHERE f.follower_id=${me} AND f.following_id=u.id AND f.status='accepted') LIMIT 1`);
+    if (privateDenied.rows[0]) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
+
     if (blocked.rows[0]) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
 
     const post = await getPostById(id);
