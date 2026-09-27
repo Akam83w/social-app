@@ -208,8 +208,34 @@ export async function postsRoutes(app: FastifyInstance) {
     }
   });
 
+  app.post('/reports', { preHandler: verifyToken }, async (request, reply) => {
+    const reporterId = (request.user as { id: string }).id;
+    const body = request.body as { targetId?: string; targetType?: string; reason?: string };
+    const targetId = String(body.targetId || '').trim();
+    const targetType = String(body.targetType || '').trim().toLowerCase();
+    const reason = String(body.reason || '').trim().slice(0, 500);
+    if (!targetId || !['post', 'user'].includes(targetType) || !reason) {
+      return reply.status(400).send({ error: 'INVALID_REPORT' });
+    }
+    if (targetType === 'post') {
+      const found = await db.execute(sql`SELECT id FROM posts WHERE id=${targetId} LIMIT 1`);
+      if (!found.rows[0]) return reply.status(404).send({ error: 'TARGET_NOT_FOUND' });
+    } else {
+      const found = await db.execute(sql`SELECT id FROM users WHERE id=${targetId} LIMIT 1`);
+      if (!found.rows[0]) return reply.status(404).send({ error: 'TARGET_NOT_FOUND' });
+    }
+    if (targetType === 'user' && targetId === reporterId) {
+      return reply.status(400).send({ error: 'CANNOT_REPORT_SELF' });
+    }
+    await db.execute(sql`INSERT INTO reports(reporter_id,target_id,target_type,reason) VALUES(${reporterId},${targetId},${targetType},${reason})`);
+    return reply.status(201).send({ reported: true });
+  });
+
   app.get('/posts/:id', { preHandler: verifyToken }, async (request, reply) => {
     const { id } = request.params as { id: string };
+    const me = (request.user as { id: string }).id;
+    const blocked = await db.execute(sql`SELECT 1 FROM blocks WHERE (blocker_id=${me} AND blocked_id=(SELECT user_id FROM posts WHERE id=${id})) OR (blocked_id=${me} AND blocker_id=(SELECT user_id FROM posts WHERE id=${id})) LIMIT 1`);
+    if (blocked.rows[0]) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
 
     const post = await getPostById(id);
 
