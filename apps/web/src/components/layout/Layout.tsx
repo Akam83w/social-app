@@ -1,6 +1,8 @@
-import React from "react";
+import React,{useEffect} from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { apiRequest } from "../../lib/api";
+import { connectRealtime } from "../../lib/realtime";
 import {
   HomeIcon,
   SearchIcon,
@@ -47,7 +49,8 @@ const stories = [
 
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user,token } = useAuth();
+  useEffect(()=>{if(!token)return;let stop=()=>{};(async()=>{try{if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.register('/sw.js');const cfg=await apiRequest('/notifications/config',token);if('Notification' in window&&Notification.permission==='default')await Notification.requestPermission();if('PushManager' in window&&Notification.permission==='granted'&&cfg.publicKey){const bytes=Uint8Array.from(atob(cfg.publicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));const sub=await reg.pushManager.getSubscription()||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});await apiRequest('/notifications/push-subscription',token,{method:'POST',body:JSON.stringify(sub.toJSON())})}}stop=connectRealtime(token,e=>{if(e.type==='notification'&&'Notification'in window&&Notification.permission==='granted')new Notification(e.title,{body:e.body})})}catch{}})();return()=>stop()},[token]);
 
   return (
     <div className="app-shell" dir="rtl">
