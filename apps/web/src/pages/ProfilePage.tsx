@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { avatar } from "../data/stories";
 import { useAuth } from "../context/AuthContext";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const FOUNDER_EMAIL = 'sdmtr003@gmail.com';
+const FOUNDER_EMAIL = 'sdmtr033@gmail.com';
 type ProfileUser={id:string;username:string;email?:string|null;displayName?:string|null;bio?:string|null;avatarUrl?:string|null;createdAt?:string};
 type ProfilePost={id:string;content:string|null;mediaUrl:string|null;mediaType:string|null;createdAt:string;likeCount:number};
 function readImage(file:File):Promise<HTMLImageElement>{return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error('INVALID_IMAGE'));i.src=String(r.result)};r.onerror=()=>reject(new Error('READ_ERROR'));r.readAsDataURL(file)})}
