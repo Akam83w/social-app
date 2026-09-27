@@ -9,6 +9,9 @@ export const users = pgTable('users', {
   displayName: varchar('display_name', { length: 100 }),
   bio: text('bio'),
   avatarUrl: text('avatar_url'),
+  supporterNumber: varchar('supporter_number', { length: 10 }),
+  supporterExpiresAt: timestamp('supporter_expires_at'),
+  verifiedAt: timestamp('verified_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
