@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "581767127236",
+    "project_id": "sdm5-1fabc",
+    "storage_bucket": "sdm5-1fabc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:581767127236:android:66837f80f4b5996c51e991",
+        "android_client_info": {
+          "package_name": "com.instaIraq.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBILCBMCNMgDl4B1zy3i5vpKQGEOzDROnA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
