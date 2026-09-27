@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const registerSchema = z.object({
-  username: z.string().min(3).max(50),
+  username: z.string().min(2).max(30).regex(/^[A-Za-z0-9_.]+$/, 'USERNAME_INVALID_CHARACTERS'),
   email: z.string().email(),
   phone: z.string().min(8).max(20).optional(),
   password: z.string().min(8),
