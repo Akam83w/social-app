@@ -1,8 +1,7 @@
 import React,{useEffect} from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { apiRequest } from "../../lib/api";
-import { connectRealtime } from "../../lib/realtime";
+import { apiRequest,connectRealtime } from "../../lib/api";
 import {
   HomeIcon,
   SearchIcon,
