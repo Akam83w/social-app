@@ -168,6 +168,9 @@ export async function authRoutes(app: FastifyInstance) {
         username: users.username,
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
+        supporterNumber: users.supporterNumber,
+        supporterExpiresAt: users.supporterExpiresAt,
+        verifiedAt: users.verifiedAt,
       })
       .from(users)
       .where(eq(users.username, username))
@@ -224,6 +227,9 @@ export async function authRoutes(app: FastifyInstance) {
         displayName: users.displayName,
         bio: users.bio,
         avatarUrl: users.avatarUrl,
+        supporterNumber: users.supporterNumber,
+        supporterExpiresAt: users.supporterExpiresAt,
+        verifiedAt: users.verifiedAt,
         createdAt: users.createdAt,
       })
       .from(users)
