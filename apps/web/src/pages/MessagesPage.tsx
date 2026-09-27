@@ -6,13 +6,13 @@ export function CallPage(){
  const{token,user}=useAuth();const[p]=useSearchParams();const callId=p.get("callId")||"";const incoming=p.get("incoming")==="1";
  const remote=useRef<HTMLVideoElement>(null),local=useRef<HTMLVideoElement>(null),pc=useRef<RTCPeerConnection|null>(null),pendingIce=useRef<any[]>([]);
  const[call,setCall]=useState<any>(null),[status,setStatus]=useState(incoming?"مكالمة واردة":"جاري الاتصال..."),[error,setError]=useState(""),[speaker,setSpeaker]=useState(false),[accepted,setAccepted]=useState(!incoming);
- const streamRef=useRef<MediaStream|null>(null);
+ const streamRef=useRef<MediaStream|null>(null); let otherId="";
  useEffect(()=>{if(!token||!callId)return;let stop=()=>{};let alive=true;
    const setupMedia=async(video:boolean)=>{if(streamRef.current)return;const s=await navigator.mediaDevices.getUserMedia({audio:true,video});streamRef.current=s;if(local.current)local.current.srcObject=s;const peer=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});pc.current=peer;s.getTracks().forEach(t=>peer.addTrack(t,s));peer.ontrack=e=>{if(remote.current){remote.current.srcObject=e.streams[0];void remote.current.play().catch(()=>{})}};peer.onicecandidate=e=>{if(e.candidate&&call)void sendSignal(token,otherId,"ice",{callId,candidate:e.candidate.toJSON()})};return peer};
    (async()=>{try{
      const d=await getCall(token,callId);if(!alive)return;setCall(d.call);
      const c=d.call;const isCaller=c.caller_id===user?.id;
-     const otherId=isCaller?c.callee_id:c.caller_id;
+     otherId=isCaller?c.callee_id:c.caller_id;
      const video=c.kind==="video";
      if(c.status==="missed"||c.status==="rejected"||c.status==="ended"){setStatus(c.status==="missed"?"مكالمة فائتة":c.status==="rejected"?"تم رفض المكالمة":"انتهت المكالمة");return}
      stop=connectRealtime(token,async e=>{
@@ -21,7 +21,7 @@ export function CallPage(){
          if(e.kind==="accept"&&!incoming){await setupMedia(video);const peer=pc.current!;const offer=await peer.createOffer();await peer.setLocalDescription(offer);await sendSignal(token,otherId,"offer",{callId,sdp:offer});setStatus("جاري الاتصال...");}
          if(e.kind==="reject"){setStatus("تم رفض المكالمة");setTimeout(()=>location.href="/messages",1200)}
          if(e.kind==="hangup"){setStatus("انتهت المكالمة");setTimeout(()=>location.href="/messages",700)}
-         if(e.kind==="offer"&&incoming&&accepted){const peer=pc.current||await setupMedia(video);await peer.setRemoteDescription(e.payload.sdp);for(const ice of pendingIce.current)await peer.addIceCandidate(ice);pendingIce.current=[];const answer=await peer.createAnswer();await peer.setLocalDescription(answer);await sendSignal(token,otherId,"answer",{callId,sdp:answer});setStatus("متصل")}
+         if(e.kind==="offer"&&incoming&&accepted){const peer=pc.current||await setupMedia(video);if(!peer)throw new Error("PEER_NOT_READY");await peer.setRemoteDescription(e.payload.sdp);for(const ice of pendingIce.current)await peer.addIceCandidate(ice);pendingIce.current=[];const answer=await peer.createAnswer();await peer.setLocalDescription(answer);await sendSignal(token,otherId,"answer",{callId,sdp:answer});setStatus("متصل")}
          if(e.kind==="answer"&&!incoming){const peer=pc.current;if(peer){await peer.setRemoteDescription(e.payload.sdp);for(const ice of pendingIce.current)await peer.addIceCandidate(ice);pendingIce.current=[];setStatus("متصل")}}
          if(e.kind==="ice"&&e.payload?.callId===callId){const candidate=new RTCIceCandidate(e.payload.candidate);if(pc.current?.remoteDescription)await pc.current.addIceCandidate(candidate);else pendingIce.current.push(candidate)}
        }catch{setError("تعذر إنشاء الاتصال الصوتي.");}
