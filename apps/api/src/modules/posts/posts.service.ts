@@ -43,7 +43,7 @@ export async function getPosts(currentUserId?: string, limit = 20, cursor?: stri
     })
     .from(posts)
     .innerJoin(users, eq(posts.userId, users.id))
-    .where(cursor ? sql`${posts.createdAt} < ${new Date(cursor)}` : undefined)
+    .where(sql`(${cursor ? sql`${posts.createdAt} < ${new Date(cursor)}` : sql`true`}) AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${currentUserId} AND b.blocked_id=${posts.userId}) OR (b.blocker_id=${posts.userId} AND b.blocked_id=${currentUserId}))`)
     .orderBy(desc(posts.createdAt))
     .limit(Math.min(Math.max(limit, 1), 50));
 }
@@ -64,7 +64,7 @@ export async function getPostsByHashtag(currentUserId: string, tag: string, limi
     })
     .from(posts)
     .innerJoin(users, eq(posts.userId, users.id))
-    .where(sql`lower(coalesce(${posts.content}, '')) ~ ${`(^|[^[:alnum:]_])#${cleanTag}([^[:alnum:]_]|$)`}`)
+    .where(sql`lower(coalesce(${posts.content}, '')) ~ ${`(^|[^[:alnum:]_])#${cleanTag}([^[:alnum:]_]|$)`} AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${currentUserId} AND b.blocked_id=${posts.userId}) OR (b.blocker_id=${posts.userId} AND b.blocked_id=${currentUserId}))`)
     .orderBy(desc(posts.createdAt))
     .limit(Math.min(Math.max(limit, 1), 50));
 }
