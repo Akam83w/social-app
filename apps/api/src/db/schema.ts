@@ -155,3 +155,15 @@ export const moderationViolations = pgTable('moderation_violations', {
   userIdx: index('moderation_violations_user_idx').on(table.userId),
   createdIdx: index('moderation_violations_created_idx').on(table.createdAt),
 }));
+
+
+export const moderationAppeals = pgTable('moderation_appeals', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reason: text('reason').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index('moderation_appeals_user_idx').on(table.userId),
+  statusIdx: index('moderation_appeals_status_idx').on(table.status),
+}));
