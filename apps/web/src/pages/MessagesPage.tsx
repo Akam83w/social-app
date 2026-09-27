@@ -11,7 +11,7 @@ export function CallPage(){
    const setupMedia=async(video:boolean)=>{if(streamRef.current)return;const s=await navigator.mediaDevices.getUserMedia({audio:true,video});streamRef.current=s;if(local.current)local.current.srcObject=s;const peer=new RTCPeerConnection({iceServers:[{urls:"stun:stun.l.google.com:19302"}]});pc.current=peer;s.getTracks().forEach(t=>peer.addTrack(t,s));peer.ontrack=e=>{if(remote.current){remote.current.srcObject=e.streams[0];void remote.current.play().catch(()=>{})}};peer.onicecandidate=e=>{if(e.candidate&&call)void sendSignal(token,otherId,"ice",{callId,candidate:e.candidate.toJSON()})};return peer};
    (async()=>{try{
      const d=await getCall(token,callId);if(!alive)return;setCall(d.call);
-     const c=d.call;const isCaller=c.caller_id===((await apiRequest("/auth/me",token)).user?.id);
+     const c=d.call;const isCaller=c.caller_id===user?.id;
      const otherId=isCaller?c.callee_id:c.caller_id;
      const video=c.kind==="video";
      if(c.status==="missed"||c.status==="rejected"||c.status==="ended"){setStatus(c.status==="missed"?"مكالمة فائتة":c.status==="rejected"?"تم رفض المكالمة":"انتهت المكالمة");return}
