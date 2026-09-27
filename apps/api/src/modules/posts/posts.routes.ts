@@ -41,10 +41,15 @@ export async function postsRoutes(app: FastifyInstance) {
   app.get('/posts', { preHandler: verifyToken }, async (request, reply) => {
     try {
       const payload = request.user as { id: string };
-      const result = await getPosts(payload.id);
+      const query = request.query as { limit?: string; cursor?: string };
+      const limit = Number(query.limit || 20);
+      const result = await getPosts(payload.id, limit, query.cursor);
 
       return reply.status(200).send({
         posts: result,
+        nextCursor: result.length === Math.min(Math.max(limit, 1), 50)
+          ? result[result.length - 1]?.createdAt ?? null
+          : null,
       });
     } catch (err) {
       app.log.error(err);
