@@ -13,9 +13,14 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const normalizedUsername = username.trim().toLowerCase();
+    if (!/^[a-z0-9_.]{2,30}$/.test(normalizedUsername)) {
+      setError('اسم المستخدم لازم يكون من حرفين إلى 30 حرف، ويحتوي فقط على a-z والأرقام و _ و .');
+      return;
+    }
     setLoading(true);
     try {
-      await registerUser({ username, email, password });
+      await registerUser({ username: normalizedUsername, email, password });
       navigate('/login');
     } catch (err: any) {
       if (err.message === 'USER_ALREADY_EXISTS') {
@@ -36,10 +41,13 @@ export default function RegisterPage() {
           <input
             type="text"
             name="username"
-            placeholder="اسم المستخدم"
+            placeholder="اسم المستخدم (مثلاً a_a أو 1_2)"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '').slice(0, 30))}
             required
+            minLength={2}
+            maxLength={30}
+            pattern="[a-z0-9_.]{2,30}"
             autoComplete="username"
             style={{ width: '100%', padding: 8 }}
           />
