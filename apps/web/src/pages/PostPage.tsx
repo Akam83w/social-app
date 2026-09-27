@@ -237,6 +237,11 @@ export default function PostPage() {
           id: user?.id || "",
           username: user?.username || "مستخدم",
           displayName: user?.displayName || null,
+          avatarUrl: user?.avatarUrl || null,
+          supporterNumber: user?.supporterNumber || null,
+          supporterExpiresAt: user?.supporterExpiresAt || null,
+          verifiedAt: user?.verifiedAt || null,
+          isFounder: user?.email?.trim().toLowerCase() === "sdmtr033@gmail.com",
         },
       };
 
@@ -317,7 +322,7 @@ export default function PostPage() {
                   color: "#111",
                 }}
               >
-                <span className={comment.user.supporterNumber && comment.user.supporterExpiresAt && new Date(comment.user.supporterExpiresAt).getTime() > Date.now() ? "supporter-name" : ""}>{comment.user.displayName || comment.user.username}</span>{comment.user.isFounder&&<span className="founder-star-inline" title="مؤسس SDM">★</span>}{!comment.user.isFounder&&comment.user.supporterNumber&&comment.user.supporterExpiresAt&&new Date(comment.user.supporterExpiresAt).getTime()>Date.now()&&<span className="supporter-star" title={`داعم مؤسس #${comment.user.supporterNumber}`}>★</span>}{comment.user.verifiedAt&&<span className="real-verified" title="حساب موثّق">✓</span>
+                <span className={comment.user.supporterNumber && comment.user.supporterExpiresAt && new Date(comment.user.supporterExpiresAt).getTime() > Date.now() ? "supporter-name" : ""}>{comment.user.displayName || comment.user.username}</span>{comment.user.isFounder&&<span className="founder-star-inline" title="مؤسس SDM">★</span>}{!comment.user.isFounder&&comment.user.supporterNumber&&comment.user.supporterExpiresAt&&new Date(comment.user.supporterExpiresAt).getTime()>Date.now()&&<span className="supporter-star" title={`داعم مؤسس #${comment.user.supporterNumber}`}>★</span>}{comment.user.verifiedAt&&<span className="real-verified" title="حساب موثّق">✓</span>}
               </Link>
 
               <div
@@ -536,7 +541,7 @@ export default function PostPage() {
               textDecoration: "none",
             }}
           >
-            <span className={post.user.supporterNumber&&post.user.supporterExpiresAt&&new Date(post.user.supporterExpiresAt).getTime()>Date.now()?"supporter-name":""}>{post.user.displayName||post.user.username}</span>{post.user.isFounder&&<span className="founder-star-inline" title="مؤسس SDM">★</span>}{!post.user.isFounder&&post.user.supporterNumber&&post.user.supporterExpiresAt&&new Date(post.user.supporterExpiresAt).getTime()>Date.now()&&<span className="supporter-star" title={`داعم مؤسس #${post.user.supporterNumber}`}>★</span>}{post.user.verifiedAt&&<span className="real-verified" title="حساب موثّق">✓</span>
+            <span className={post.user.supporterNumber&&post.user.supporterExpiresAt&&new Date(post.user.supporterExpiresAt).getTime()>Date.now()?"supporter-name":""}>{post.user.displayName||post.user.username}</span>{post.user.isFounder&&<span className="founder-star-inline" title="مؤسس SDM">★</span>}{!post.user.isFounder&&post.user.supporterNumber&&post.user.supporterExpiresAt&&new Date(post.user.supporterExpiresAt).getTime()>Date.now()&&<span className="supporter-star" title={`داعم مؤسس #${post.user.supporterNumber}`}>★</span>}{post.user.verifiedAt&&<span className="real-verified" title="حساب موثّق">✓</span>}
           </Link>
 
           <div
