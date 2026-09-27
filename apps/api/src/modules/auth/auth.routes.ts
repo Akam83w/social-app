@@ -222,7 +222,9 @@ export async function authRoutes(app: FastifyInstance) {
     if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
     if (target.id === payload.id) return reply.status(400).send({ error: 'CANNOT_FOLLOW_SELF' });
 
-    await db.insert(follows).values({ followerId: payload.id, followingId: target.id }).onConflictDoNothing();
+    await db.insert(follows).values({ followerId: payload.id, followingId: target.id, status: target.isPrivate ? 'pending' : 'accepted' }).onConflictDoNothing();
+    const [relation] = await db.select({ status: follows.status }).from(follows).where(and(eq(follows.followerId, payload.id), eq(follows.followingId, target.id))).limit(1);
+    const status = relation?.status ?? (target.isPrivate ? 'pending' : 'accepted');
     const actor=await db.execute(sql`SELECT username FROM users WHERE id=${payload.id} LIMIT 1`); const a:any=actor.rows[0]; await (app as any).notifyUser(target.id,target.isPrivate?'follow_request':'follow','متابعة جديدة',target.isPrivate?`@${a?.username||'مستخدم'} أرسل طلب متابعة`:`@${a?.username||'مستخدم'} بدأ بمتابعتك`,payload.id,{actorId:payload.id,url:'/u/'+encodeURIComponent(a?.username||'')}); return reply.send({ following: status === 'accepted', pending: status === 'pending' });
   });
 
