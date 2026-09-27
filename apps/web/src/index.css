@@ -1441,3 +1441,139 @@ img {
 .supporter-label{display:inline-block;margin-right:7px;padding:3px 7px;border-radius:999px;background:#e8f3ff;color:#147bd1;font-size:10px;font-weight:800}
 .real-verified,.verified-badge-inline{display:inline-grid;place-items:center;width:18px;height:18px;margin-right:4px;border-radius:50%;background:#1877f2;color:#fff;font-size:11px;font-weight:900;vertical-align:middle}
 .verified-badge-inline{width:15px;height:15px;font-size:9px;margin-right:3px}
+
+
+/* ---------------- QX FULL-SCREEN IRAQI SPLASH ---------------- */
+.qx-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #000;
+  isolation: isolate;
+}
+
+.qx-flag {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(
+      to bottom,
+      #ce1126 0%,
+      #ce1126 33.333%,
+      #fff 33.333%,
+      #fff 66.666%,
+      #000 66.666%,
+      #000 100%
+    );
+}
+
+.qx-flag::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, rgba(0,0,0,.04), rgba(0,0,0,.24)),
+    linear-gradient(90deg, rgba(0,0,0,.16), transparent 25%, transparent 75%, rgba(0,0,0,.16));
+}
+
+.qx-flag-word {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  color: #007a3d;
+  font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", sans-serif;
+  font-size: clamp(30px, 8vw, 92px);
+  font-weight: 900;
+  white-space: nowrap;
+  opacity: .95;
+  text-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+.qx-splash-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+.qx-logo {
+  color: #fff;
+  font-size: clamp(78px, 24vw, 190px);
+  font-weight: 950;
+  line-height: .82;
+  letter-spacing: -7px;
+  font-family: Inter, "Segoe UI", sans-serif;
+  text-shadow:
+    0 5px 28px rgba(0,0,0,.48),
+    0 1px 0 rgba(255,255,255,.25);
+  animation: qx-logo-in 900ms cubic-bezier(.16,1,.3,1) both;
+}
+
+.qx-tagline {
+  color: #fff;
+  padding: 9px 18px 11px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.32);
+  border: 1px solid rgba(255,255,255,.24);
+  box-shadow: 0 10px 35px rgba(0,0,0,.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", sans-serif;
+  font-size: clamp(19px, 5.5vw, 42px);
+  font-weight: 850;
+  line-height: 1.5;
+  white-space: nowrap;
+  animation: qx-tagline-in 900ms 350ms cubic-bezier(.16,1,.3,1) both;
+}
+
+.qx-splash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
+  transform: translateX(120%);
+  animation: qx-shine 1200ms 850ms ease-out both;
+}
+
+@keyframes qx-logo-in {
+  0% { opacity: 0; transform: translateY(35px) scale(.72); filter: blur(10px); }
+  65% { opacity: 1; transform: translateY(-4px) scale(1.04); filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes qx-tagline-in {
+  0% { opacity: 0; transform: translateY(24px) scale(.9); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes qx-shine {
+  0% { transform: translateX(120%); }
+  100% { transform: translateX(-120%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qx-logo,
+  .qx-tagline,
+  .qx-splash::after {
+    animation: none;
+  }
+}
+
