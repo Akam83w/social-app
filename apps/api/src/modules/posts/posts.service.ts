@@ -147,7 +147,7 @@ export async function getPostLikeStatus(userId: string, postId: string) {
 }
 
 
-export async function getPostComments(postId: string) {
+export async function getPostComments(postId: string, currentUserId?: string) {
   return db
     .select({
       id: comments.id,
@@ -168,7 +168,7 @@ export async function getPostComments(postId: string) {
     })
     .from(comments)
     .innerJoin(users, eq(comments.userId, users.id))
-    .where(eq(comments.postId, postId))
+    .where(sql`${comments.postId} = ${postId} AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${currentUserId} AND b.blocked_id=${comments.userId}) OR (b.blocker_id=${comments.userId} AND b.blocked_id=${currentUserId}))`)
     .orderBy(desc(comments.createdAt));
 }
 
