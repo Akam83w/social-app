@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { verifyToken } from '../../middleware/auth.middleware';
+import { moderateMedia, registerModerationViolation } from '../../services/moderation.service';
 import { createPostSchema } from './posts.schema';
 import {
   getPostLikeStatus,
@@ -31,6 +32,22 @@ export async function postsRoutes(app: FastifyInstance) {
 
     try {
       const payload = request.user as { id: string };
+
+      if (parsed.data.mediaUrl && parsed.data.mediaType) {
+        let decision;
+        try {
+          decision = await moderateMedia(parsed.data.mediaUrl, parsed.data.mediaType);
+        } catch (moderationError) {
+          const code = moderationError instanceof Error ? moderationError.message : 'MODERATION_ERROR';
+          if (code === 'MODERATION_VIDEO_NOT_SUPPORTED') return reply.status(503).send({ error: 'MEDIA_REVIEW_REQUIRED' });
+          return reply.status(503).send({ error: 'MODERATION_UNAVAILABLE' });
+        }
+        if (decision.flagged) {
+          const enforcement = await registerModerationViolation(payload.id, 'post', null, decision);
+          try { await (app as any).notifyUser(payload.id, 'moderation', 'تم رفض المنشور', enforcement.action === 'warning' ? 'تم رفض المحتوى لأنه يخالف إرشادات SDM.' : 'تم رفض المحتوى وتم تطبيق إجراء على الحساب بسبب تكرار المخالفات.', payload.id, { url: '/profile/settings' }); } catch {}
+          return reply.status(422).send({ error: 'CONTENT_REJECTED', action: enforcement.action, strikes: enforcement.strikes });
+        }
+      }
 
       const post = await createPost(payload.id, parsed.data);
       const followers = await db.execute(sql`SELECT follower_id FROM follows WHERE following_id=${payload.id}`);
