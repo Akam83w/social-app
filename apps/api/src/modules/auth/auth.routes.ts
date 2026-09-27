@@ -201,7 +201,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (target.id === payload.id) return reply.status(400).send({ error: 'CANNOT_FOLLOW_SELF' });
 
     await db.insert(follows).values({ followerId: payload.id, followingId: target.id }).onConflictDoNothing();
-    return reply.send({ following: true });
+    const actor=await db.execute(sql`SELECT username FROM users WHERE id=${payload.id} LIMIT 1`); const a:any=actor.rows[0]; await (app as any).notifyUser(target.id,'follow','متابع جديد',`@${a?.username||'مستخدم'} بدأ بمتابعتك`,payload.id,{actorId:payload.id,url:'/u/'+encodeURIComponent(a?.username||'')}); return reply.send({ following: true });
   });
 
   app.delete('/auth/users/:username/follow', { preHandler: verifyToken }, async (request, reply) => {
