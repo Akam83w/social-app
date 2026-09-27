@@ -19,6 +19,11 @@ import {
   deletePost,
 } from './posts.service';
 
+async function ensurePostAccessible(userId: string, postId: string) {
+  const row = await db.execute(sql`SELECT 1 FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=${postId} AND (u.id=${userId} OR (u.is_private=false OR EXISTS (SELECT 1 FROM follows f WHERE f.follower_id=${userId} AND f.following_id=u.id AND f.status='accepted'))) AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${userId} AND b.blocked_id=p.user_id) OR (b.blocker_id=p.user_id AND b.blocked_id=${userId})) LIMIT 1`);
+  return Boolean(row.rows[0]);
+}
+
 export async function postsRoutes(app: FastifyInstance) {
   app.post('/posts', { preHandler: verifyToken }, async (request, reply) => {
     const parsed = createPostSchema.safeParse(request.body);
@@ -95,6 +100,7 @@ export async function postsRoutes(app: FastifyInstance) {
     const user = request.user as { id: string };
     const { id } = request.params as { id: string };
 
+    if (!(await ensurePostAccessible(user.id, id))) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
     const result = await getPostLikeStatus(user.id, id);
 
     return reply.send(result);
@@ -105,6 +111,7 @@ export async function postsRoutes(app: FastifyInstance) {
       const payload = request.user as { id: string };
       const { id } = request.params as { id: string };
 
+      if (!(await ensurePostAccessible(payload.id, id))) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
       await likePost(payload.id, id);
       const owner=await db.execute(sql`SELECT p.user_id,u.username FROM posts p JOIN users u ON u.id=p.user_id WHERE p.id=${id} LIMIT 1`); const o:any=owner.rows[0]; if(o?.user_id&&o.user_id!==payload.id){const actor=await db.execute(sql`SELECT username FROM users WHERE id=${payload.id} LIMIT 1`);const a:any=actor.rows[0];await (app as any).notifyUser(o.user_id,'like','إعجاب جديد',`@${a?.username||"مستخدم"} أعجب بمنشورك`,payload.id,{actorId:payload.id,url:'/post/'+id});}
 
@@ -135,6 +142,7 @@ export async function postsRoutes(app: FastifyInstance) {
       const payload = request.user as { id: string };
       const { id } = request.params as { id: string };
 
+      if (!(await ensurePostAccessible(payload.id, id))) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
       await unlikePost(payload.id, id);
 
       return reply.status(200).send({
@@ -167,6 +175,7 @@ export async function postsRoutes(app: FastifyInstance) {
     try {
       const payload = request.user as { id: string };
       const { id } = request.params as { id: string };
+      if (!(await ensurePostAccessible(payload.id, id))) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
       const body = request.body as {
         content?: string;
         parentCommentId?: string;
