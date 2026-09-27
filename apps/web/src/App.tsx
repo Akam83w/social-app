@@ -6,6 +6,7 @@ import Layout from "./components/layout/Layout";
 import HomePage from "./pages/HomePage";
 import PostPage from "./pages/PostPage";
 import SimplePage from "./pages/SimplePage";
+import ExplorePage from "./pages/ExplorePage";
 import CreatePostPage from "./pages/CreatePostPage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import ReelsPage from "./pages/ReelsPage";
@@ -31,16 +32,7 @@ function ProtectedApp() {
     <Layout>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route
-          path="/explore"
-          element={
-            <SimplePage
-              title="استكشاف"
-              description="ابحث عن حساب باسم المستخدم وتابع الحسابات من هنا."
-              icon={<SearchIcon size={52} />}
-            />
-          }
-        />
+        <Route path="/explore" element={<ExplorePage />} />
         <Route path="/reels" element={<ReelsPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/call" element={<CallPage />} />
