@@ -110,3 +110,7 @@ export async function deleteComment(commentId: string, token: string) {
     method: 'DELETE',
   });
 }
+
+
+export function connectRealtime(token:string,onEvent:(event:any)=>void){const API_URL=import.meta.env.VITE_API_URL||'http://localhost:3000';const es=new EventSource(API_URL+'/realtime?token='+encodeURIComponent(token));es.onmessage=e=>{try{const data=JSON.parse(e.data);if(data.type==='ready')return;onEvent(data)}catch{}};return()=>es.close()}
+export function sendSignal(token:string,toUserId:string,kind:string,payload:unknown){const API_URL=import.meta.env.VITE_API_URL||'http://localhost:3000';return fetch(API_URL+'/calls/signal',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({toUserId,kind,payload})})}
