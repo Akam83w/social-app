@@ -18,7 +18,7 @@ const rows: Array<{ id: Exclude<Section, 'home'>; title: string; description: st
 ];
 
 export default function AccountSettingsPage() {
-  const { user, token, login } = useAuth();
+  const { user, token, login, logout } = useAuth();
   const navigate = useNavigate();
   const editableUser = user as (typeof user & EditableUser);
   const [section, setSection] = useState<Section>('home');
@@ -105,7 +105,9 @@ export default function AccountSettingsPage() {
             </div>
 
             <div className="settings-group">
-              <button className="settings-row danger" type="button" onClick={() => navigate('/profile')}><b className="settings-icon">↩</b><span><strong>العودة إلى الحساب</strong><small>إغلاق الإعدادات</small></span><b>›</b></button>
+              <button className="settings-row" type="button" onClick={() => navigate('/login')}><b className="settings-icon">➕</b><span><strong>إضافة حساب</strong><small>تسجيل الدخول إلى حساب آخر</small></span><b>›</b></button>
+              <button className="settings-row danger" type="button" onClick={() => { logout(); navigate('/login', { replace: true }); }}><b className="settings-icon">↪</b><span><strong>تسجيل خروج</strong><small>الخروج من هذا الحساب</small></span><b>›</b></button>
+              <button className="settings-row" type="button" onClick={() => navigate('/profile')}><b className="settings-icon">↩</b><span><strong>العودة إلى الحساب</strong><small>إغلاق الإعدادات</small></span><b>›</b></button>
             </div>
           </>
         )}
