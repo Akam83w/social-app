@@ -5,7 +5,8 @@ import { users } from '../../db/schema';
 import type { RegisterInput, LoginInput } from './auth.schema';
 
 export async function registerUser(input: RegisterInput) {
-  const conditions = [eq(users.email, input.email), eq(users.username, input.username)];
+  const username = input.username.trim().toLowerCase();
+  const conditions = [eq(users.email, input.email), sql`lower(${users.username}) = ${username}`];
   if (input.phone) {
     conditions.push(eq(users.phone, input.phone));
   }
@@ -31,7 +32,7 @@ export async function registerUser(input: RegisterInput) {
   const [newUser] = await db
     .insert(users)
     .values({
-      username: input.username,
+      username,
       email: input.email,
       phone: input.phone,
       passwordHash,
