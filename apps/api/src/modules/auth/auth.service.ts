@@ -63,7 +63,7 @@ export async function loginUser(input: LoginInput) {
     .where(
       or(
         eq(users.email, input.identifier),
-        eq(users.username, input.identifier),
+        sql`lower(${users.username}) = lower(${input.identifier})`,
         eq(users.phone, input.identifier)
       )
     )
