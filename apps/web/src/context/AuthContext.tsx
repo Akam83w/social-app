@@ -7,6 +7,9 @@ interface User {
   email?: string;
   displayName?: string | null;
   avatarUrl?: string | null;
+  supporterNumber?: string | null;
+  supporterExpiresAt?: string | null;
+  verifiedAt?: string | null;
 }
 
 interface Account {
