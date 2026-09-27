@@ -55,6 +55,7 @@ function ProtectedApp() {
           }
         />
         <Route path="/create" element={<CreatePostPage />} />
+        <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/create-story" element={<CreateStoryPage />} />
         <Route
           path="/stories"
