@@ -1220,7 +1220,7 @@ img {
 /* ---------------- SDM FOUNDER BADGE ---------------- */
 .profile-name-line{display:flex;align-items:center;gap:7px;min-width:0}
 .profile-name-line>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.founder-badge{width:21px;height:21px;flex:0 0 21px;display:inline-grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#111715,#078968);color:#fff;font-size:12px;font-weight:900;box-shadow:0 2px 7px rgba(7,137,104,.25);cursor:help}
+.founder-badge{border:0;padding:0;font-family:inherit;cursor:pointer;width:21px;height:21px;flex:0 0 21px;display:inline-grid;place-items:center;border-radius:50%;background:linear-gradient(145deg,#111715,#078968);color:#fff;font-size:12px;font-weight:900;box-shadow:0 2px 7px rgba(7,137,104,.25);cursor:help}
 .founder-label{display:inline-flex!important;align-items:center;margin-inline-start:7px!important;padding:3px 7px;border-radius:999px;background:rgba(7,137,104,.09);color:#078968!important;font-size:9px!important;font-weight:800}
 @media(max-width:480px){.founder-badge{width:19px;height:19px;flex-basis:19px;font-size:11px}.founder-label{font-size:8px!important;padding:2px 6px}}
 
