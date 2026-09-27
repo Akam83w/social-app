@@ -1338,3 +1338,23 @@ img {
   .founder-profile-card .profile-cover { height: 105px; }
   .founder-badge,.verified-badge { width:19px;height:19px;flex-basis:19px;font-size:11px; }
 }
+
+.post-media { position: relative; }
+.double-like-heart {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: #fff;
+  font-size: clamp(72px,16vw,150px);
+  line-height: 1;
+  text-shadow: 0 6px 22px rgba(0,0,0,.28);
+  animation: double-like-heart-pop .7s ease forwards;
+}
+@keyframes double-like-heart-pop {
+  0% { opacity: 0; transform: scale(.35); }
+  18% { opacity: 1; transform: scale(1.18); }
+  42% { opacity: 1; transform: scale(.96); }
+  100% { opacity: 0; transform: scale(1.05); }
+}
