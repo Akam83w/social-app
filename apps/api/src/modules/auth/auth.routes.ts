@@ -206,7 +206,7 @@ export async function authRoutes(app: FastifyInstance) {
     const [followersRow] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(follows)
-      .where(eq(follows.followingId, profile.id));
+      .where(and(eq(follows.followingId, profile.id), eq(follows.status, 'accepted')));
 
     return reply.send({
       user: profile,
