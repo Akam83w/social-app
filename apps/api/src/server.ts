@@ -147,6 +147,27 @@ const start = async () => {
   await db.execute(sql`CREATE TABLE IF NOT EXISTS follows (follower_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, following_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at timestamp NOT NULL DEFAULT now(), CONSTRAINT follows_pair_unique UNIQUE (follower_id, following_id))`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS follows_follower_idx ON follows(follower_id)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS follows_following_idx ON follows(following_id)`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS supporter_number varchar(10)`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS supporter_expires_at timestamp`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_at timestamp`);
+  await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_supporter_number_unique ON users(supporter_number) WHERE supporter_number IS NOT NULL`);
+  await db.execute(sql`WITH ranked AS (SELECT id, row_number() OVER (ORDER BY created_at ASC, id ASC) AS rn FROM users WHERE supporter_number IS NULL) UPDATE users u SET supporter_number=ranked.rn::text, supporter_expires_at=u.created_at + interval '90 days' FROM ranked WHERE u.id=ranked.id AND ranked.rn <= 1932`);
+  await db.execute(sql`CREATE SEQUENCE IF NOT EXISTS supporter_number_seq START WITH 1`);
+  await db.execute(sql`SELECT setval('supporter_number_seq', GREATEST(COALESCE((SELECT MAX(supporter_number::int) FROM users WHERE supporter_number ~ '^[0-9]+
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS calls (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), caller_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, callee_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind varchar(10) NOT NULL, status varchar(20) NOT NULL, created_at timestamp NOT NULL DEFAULT now(), started_at timestamp, ended_at timestamp)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS calls_caller_created_idx ON calls(caller_id,created_at DESC)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS calls_callee_created_idx ON calls(callee_id,created_at DESC)`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), sender_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, receiver_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, content text NOT NULL, created_at timestamp NOT NULL DEFAULT now())`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS messages_sender_receiver_idx ON messages(sender_id, receiver_id, created_at)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS messages_receiver_sender_idx ON messages(receiver_id, sender_id, created_at)`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS stories (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, media_url text NOT NULL, media_type varchar(20) NOT NULL, content text, created_at timestamp NOT NULL DEFAULT now(), expires_at timestamp NOT NULL)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS stories_user_expires_idx ON stories(user_id, expires_at)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS stories_expires_idx ON stories(expires_at)`);
+  const port=Number(process.env.PORT)||3000; await app.listen({port,host:'0.0.0.0'});
+ }catch(err){app.log.error(err);process.exit(1)}
+};
+start();
+),0)+1,1), false)`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS calls (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), caller_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, callee_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind varchar(10) NOT NULL, status varchar(20) NOT NULL, created_at timestamp NOT NULL DEFAULT now(), started_at timestamp, ended_at timestamp)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS calls_caller_created_idx ON calls(caller_id,created_at DESC)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS calls_callee_created_idx ON calls(callee_id,created_at DESC)`);
