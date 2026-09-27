@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 type EditableUser = { bio?: string | null; phone?: string | null };
 
 type Section = 'home' | 'edit' | 'personal' | 'security' | 'privacy' | 'notifications' | 'linked' | 'activity';
+type Detail = 'password' | 'sessions' | 'twoFactor' | 'privateAccount' | 'messagePrivacy' | 'blocked' | 'likesComments' | 'followers' | 'messageNotifications' | 'linkedAccounts' | null;
 
 const rows: Array<{ id: Exclude<Section, 'home'>; title: string; description: string; icon: string }> = [
   { id: 'edit', title: 'تعديل الملف الشخصي', description: 'الاسم، اسم المستخدم، النبذة والصورة الشخصية', icon: '👤' },
@@ -27,6 +28,11 @@ export default function AccountSettingsPage() {
   const [bio, setBio] = useState(editableUser?.bio || '');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
+  const [detail, setDetail] = useState<Detail>(null);
+  const [privateAccount, setPrivateAccount] = useState(false);
+  const [likesComments, setLikesComments] = useState(true);
+  const [followers, setFollowers] = useState(true);
+  const [messageNotifications, setMessageNotifications] = useState(true);
 
   if (!user) return null;
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -52,9 +58,13 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const go = (id: Section) => { setMessage(''); setSection(id); };
+  const go = (id: Section) => { setMessage(''); setDetail(null); setSection(id); };
+  const openDetail = (id: Exclude<Detail, null>) => { setMessage(''); setDetail(id); };
 
-  const back = () => section === 'home' ? navigate('/profile') : setSection('home');
+  const back = () => {
+    if (detail) { setDetail(null); return; }
+    if (section === 'home') navigate('/profile'); else setSection('home');
+  };
 
   const field = (label: string, value: string, setValue: (v: string) => void, placeholder = '') => (
     <label className="settings-field">
@@ -68,7 +78,7 @@ export default function AccountSettingsPage() {
       <section className="account-settings-shell">
         <header className="settings-header">
           <button type="button" className="settings-back" onClick={back}>‹</button>
-          <div><h1>{section === 'home' ? 'الإعدادات' : rows.find(r => r.id === section)?.title}</h1><small>{section === 'home' ? 'إدارة حسابك وتجربتك' : 'إعدادات الحساب'}</small></div>
+          <div><h1>{detail ? ({password:'تغيير كلمة المرور',sessions:'الأجهزة المسجل دخولها',twoFactor:'المصادقة الثنائية',privateAccount:'الحساب الخاص',messagePrivacy:'الرسائل والردود',blocked:'الحسابات المحظورة',likesComments:'الإعجابات والتعليقات',followers:'المتابعون',messageNotifications:'إشعارات الرسائل',linkedAccounts:'الحسابات المرتبطة'} as Record<Exclude<Detail,null>,string>)[detail] : section === 'home' ? 'الإعدادات' : rows.find(r => r.id === section)?.title}</h1><small>{detail ? 'إعدادات الحساب' : section === 'home' ? 'إدارة حسابك وتجربتك' : 'إعدادات الحساب'}</small></div>
         </header>
 
         {section === 'home' && (
@@ -124,15 +134,27 @@ export default function AccountSettingsPage() {
           </div>
         )}
 
-        {section === 'security' && <div className="settings-detail settings-options"><button type="button"><span>🔑<strong>تغيير كلمة المرور</strong><small>تحديث كلمة المرور الخاصة بالحساب</small></span><b>›</b></button><button type="button"><span>📱<strong>الأجهزة التي سجلت الدخول منها</strong><small>راجع جلسات تسجيل الدخول</small></span><b>›</b></button><button type="button"><span>✓<strong>المصادقة الثنائية</strong><small>إضافة طبقة حماية إضافية</small></span><b>›</b></button></div>}
+        {section === 'security' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('password')}><span>🔑<strong>تغيير كلمة المرور</strong><small>تحديث كلمة المرور الخاصة بالحساب</small></span><b>›</b></button><button type="button" onClick={() => openDetail('sessions')}><span>📱<strong>الأجهزة التي سجلت الدخول منها</strong><small>راجع جلسات تسجيل الدخول</small></span><b>›</b></button><button type="button" onClick={() => openDetail('twoFactor')}><span>✓<strong>المصادقة الثنائية</strong><small>إضافة طبقة حماية إضافية</small></span><b>›</b></button></div>}
 
-        {section === 'privacy' && <div className="settings-detail settings-options"><button type="button"><span>🔒<strong>الحساب الخاص</strong><small>تحكم بمن يستطيع رؤية منشوراتك</small></span><b>›</b></button><button type="button"><span>💬<strong>الرسائل والردود</strong><small>تحكم بمن يستطيع مراسلتك</small></span><b>›</b></button><button type="button"><span>🚫<strong>الحسابات المحظورة</strong><small>إدارة الحسابات التي حظرتها</small></span><b>›</b></button></div>}
+        {section === 'privacy' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('privateAccount')}><span>🔒<strong>الحساب الخاص</strong><small>تحكم بمن يستطيع رؤية منشوراتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('messagePrivacy')}><span>💬<strong>الرسائل والردود</strong><small>تحكم بمن يستطيع مراسلتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('blocked')}><span>🚫<strong>الحسابات المحظورة</strong><small>إدارة الحسابات التي حظرتها</small></span><b>›</b></button></div>}
 
-        {section === 'notifications' && <div className="settings-detail settings-options"><button type="button"><span>❤️<strong>الإعجابات والتعليقات</strong><small>تنبيهات التفاعل على منشوراتك</small></span><b>›</b></button><button type="button"><span>👥<strong>المتابعون</strong><small>تنبيهات المتابعة والطلبات</small></span><b>›</b></button><button type="button"><span>✉️<strong>الرسائل</strong><small>تنبيهات الرسائل الجديدة</small></span><b>›</b></button></div>}
+        {section === 'notifications' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('likesComments')}><span>❤️<strong>الإعجابات والتعليقات</strong><small>تنبيهات التفاعل على منشوراتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('followers')}><span>👥<strong>المتابعون</strong><small>تنبيهات المتابعة والطلبات</small></span><b>›</b></button><button type="button" onClick={() => openDetail('messageNotifications')}><span>✉️<strong>الرسائل</strong><small>تنبيهات الرسائل الجديدة</small></span><b>›</b></button></div>}
 
-        {section === 'linked' && <div className="settings-detail settings-options"><button type="button"><span>🔗<strong>الحسابات المرتبطة</strong><small>إدارة الحسابات التي تربطها بمنصتك</small></span><b>›</b></button><div className="settings-info">هذا القسم مجهز للربط مستقبلاً. حالياً حسابك يعمل بشكل مستقل.</div></div>}
+        {section === 'linked' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('linkedAccounts')}><span>🔗<strong>الحسابات المرتبطة</strong><small>إدارة الحسابات التي تربطها بمنصتك</small></span><b>›</b></button><div className="settings-info">هذا القسم مجهز للربط مستقبلاً. حالياً حسابك يعمل بشكل مستقل.</div></div>}
 
-        {section === 'activity' && <div className="settings-detail settings-options"><button type="button" onClick={() => navigate('/saved')}><span>🔖<strong>المحفوظات</strong><small>المنشورات التي حفظتها</small></span><b>›</b></button><button type="button" onClick={() => navigate('/profile')}><span>📷<strong>منشوراتك</strong><small>إدارة المنشورات الموجودة في حسابك</small></span><b>›</b></button><button type="button" onClick={() => navigate('/stories')}><span>⭕<strong>القصص</strong><small>عرض القصص الفعالة حالياً</small></span><b>›</b></button></div>}
+        {section === 'activity' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => navigate('/saved')}><span>🔖<strong>المحفوظات</strong><small>المنشورات التي حفظتها</small></span><b>›</b></button><button type="button" onClick={() => navigate('/profile')}><span>📷<strong>منشوراتك</strong><small>إدارة المنشورات الموجودة في حسابك</small></span><b>›</b></button><button type="button" onClick={() => navigate('/stories')}><span>⭕<strong>القصص</strong><small>عرض القصص الفعالة حالياً</small></span><b>›</b></button></div>}
+        {detail && <div className="settings-detail settings-subdetail">
+          {detail === 'password' && <><div className="settings-info">تغيير كلمة المرور يحتاج نقطة API مخصصة في الخادم. حالياً ما راح أوهمك بأن الزر يغيّر كلمة السر وهو ما عنده مسار خلفي.</div><button className="settings-save" type="button" onClick={() => navigate('/login')}>الانتقال إلى تسجيل الدخول</button></>}
+          {detail === 'sessions' && <div className="settings-info">إدارة جلسات الأجهزة تحتاج تخزين جلسات الدخول في الخادم. هذه الصفحة أصبحت قابلة للفتح، لكن قائمة الأجهزة غير مفعلة بعد.</div>}
+          {detail === 'twoFactor' && <div className="settings-info">المصادقة الثنائية تحتاج إعدادات خادم ومفاتيح تحقق قبل تفعيلها بشكل آمن. الواجهة جاهزة للتوسع لاحقاً.</div>}
+          {detail === 'privateAccount' && <><div className="settings-switch-row"><div><strong>الحساب الخاص</strong><small>السماح للمتابعين المقبولين فقط برؤية منشوراتك.</small></div><button type="button" className={privateAccount ? 'settings-switch on' : 'settings-switch'} onClick={() => setPrivateAccount(v => !v)} aria-pressed={privateAccount}><span /></button></div><div className="settings-info">هذا المفتاح يعمل حالياً داخل الواجهة فقط، ويحتاج API لحفظه على الحساب فعلياً.</div></>}
+          {detail === 'messagePrivacy' && <div className="settings-options"><button type="button"><span>💬<strong>من يستطيع مراسلتي</strong><small>حالياً: المستخدمون القادرون على بدء محادثة</small></span><b>›</b></button><div className="settings-info">خيارات قبول الرسائل تحتاج ربطاً بسياسة رسائل في الخادم.</div></div>}
+          {detail === 'blocked' && <div className="settings-info">لا توجد قائمة حظر مرتبطة بهذا القسم حالياً. عند إضافة الحظر من الخادم ستظهر الحسابات هنا.</div>}
+          {detail === 'likesComments' && <div className="settings-switch-row"><div><strong>الإعجابات والتعليقات</strong><small>إظهار تنبيهات الإعجاب والتعليق.</small></div><button type="button" className={likesComments ? 'settings-switch on' : 'settings-switch'} onClick={() => setLikesComments(v => !v)} aria-pressed={likesComments}><span /></button></div>}
+          {detail === 'followers' && <div className="settings-switch-row"><div><strong>المتابعون</strong><small>إظهار تنبيهات المتابعة وطلبات المتابعة.</small></div><button type="button" className={followers ? 'settings-switch on' : 'settings-switch'} onClick={() => setFollowers(v => !v)} aria-pressed={followers}><span /></button></div>}
+          {detail === 'messageNotifications' && <div className="settings-switch-row"><div><strong>إشعارات الرسائل</strong><small>إظهار تنبيهات الرسائل الجديدة.</small></div><button type="button" className={messageNotifications ? 'settings-switch on' : 'settings-switch'} onClick={() => setMessageNotifications(v => !v)} aria-pressed={messageNotifications}><span /></button></div>}
+          {detail === 'linkedAccounts' && <><div className="settings-info">لا يوجد ربط خارجي مفعّل لهذا الحساب حالياً.</div><button type="button" className="settings-save" onClick={() => setMessage('الحساب يعمل بشكل مستقل حالياً.')}>إدارة الحساب</button>{message && <p className="settings-message">{message}</p>}</>}
+        </div>}
       </section>
     </main>
   );
