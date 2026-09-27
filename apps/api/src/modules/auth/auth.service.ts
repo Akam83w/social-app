@@ -90,6 +90,9 @@ export async function loginUser(input: LoginInput) {
     supporterNumber: existingUser.supporterNumber,
     supporterExpiresAt: existingUser.supporterExpiresAt,
     verifiedAt: existingUser.verifiedAt,
+    moderationStatus: existingUser.moderationStatus,
+    suspendedUntil: existingUser.suspendedUntil,
+    moderationStrikes: Number(existingUser.moderationStrikes || 0),
   };
 }
 
