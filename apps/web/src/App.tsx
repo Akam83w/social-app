@@ -19,7 +19,7 @@ import { useAuth } from "./context/AuthContext";
 function ProtectedApp(){const {isAuthenticated}=useAuth();if(!isAuthenticated)return <Navigate to="/login" replace/>;return <Layout><Routes>
 <Route path="/" element={<HomePage/>}/><Route path="/explore" element={<SimplePage title="استكشاف" description="ابحث عن حساب باسم المستخدم وتابع الحسابات من هنا." icon={<SearchIcon size={52}/>}/>}/>
 <Route path="/reels" element={<ReelsPage/>}/><Route path="/messages" element={<MessagesPage/>}/><Route path="/call" element={<CallPage/>}/>
-<Route path="/notifications" element={<NotificationsLivePage/>}}/><Route path="/saved" element={<SimplePage title="المحفوظات" description="المنشورات التي تحفظها ستظهر هنا." icon={<BookmarkIcon size={52}/>}/>}/>
+<Route path="/notifications" element={<NotificationsLivePage/>}/><Route path="/saved" element={<SimplePage title="المحفوظات" description="المنشورات التي تحفظها ستظهر هنا." icon={<BookmarkIcon size={52}/>}/>}/>
 <Route path="/create" element={<CreatePostPage/>}/><Route path="/create-story" element={<CreateStoryPage/>}/><Route path="/stories" element={<SimplePage title="القصص" description="هنا ستظهر جميع القصص." icon={<BellIcon size={52}/>}/>}/><Route path="/stories/:username" element={<SimplePage title="القصة" description="صفحة القصة." icon={<BellIcon size={52}/>}/>}/>
 <Route path="/profile" element={<ProfilePage/>}/><Route path="/profile/settings" element={<AccountSettingsPage/>}/><Route path="/u/:username" element={<ProfilePage/>}/><Route path="/post/:id" element={<PostPage/>}/><Route path="*" element={<SimplePage title="الصفحة غير موجودة" description="الرابط الذي فتحته غير موجود." icon={<SearchIcon size={52}/>}/>}/>
 </Routes></Layout>}
