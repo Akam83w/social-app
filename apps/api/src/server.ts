@@ -72,6 +72,20 @@ app.decorate('notifyUser', notifyUser);
 app.register(cors, { origin: true, credentials: true });
 app.register(jwt, { secret: process.env.JWT_SECRET || 'change_this_to_a_long_random_string_later' });
 app.register(fastifyStatic, { root: path.resolve(process.cwd(), process.cwd() === '/app' ? 'web/dist' : '../web/dist'), prefix: '/' });
+app.post('/moderation/appeal', async (request, reply) => {
+  try {
+    await request.jwtVerify();
+    const userId=(request.user as {id:string}).id;
+    const body=request.body as {reason?:string};
+    const reason=String(body.reason||'').trim().slice(0,2000);
+    if(!reason)return reply.status(400).send({error:'VALIDATION_ERROR'});
+    const existing=await db.execute(sql`SELECT id FROM moderation_appeals WHERE user_id=${userId} AND status='pending' LIMIT 1`);
+    if(existing.rows[0])return reply.status(409).send({error:'APPEAL_ALREADY_PENDING'});
+    const result=await db.execute(sql`INSERT INTO moderation_appeals(user_id,reason) VALUES(${userId},${reason}) RETURNING id,created_at`);
+    return reply.status(201).send({appeal:result.rows[0]});
+  } catch { return reply.status(401).send({error:'UNAUTHORIZED'}); }
+});
+
 app.register(authRoutes);
 app.register(postsRoutes);
 app.register(messagesRoutes);
