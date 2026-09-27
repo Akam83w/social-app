@@ -31,6 +31,9 @@ export async function getPosts(currentUserId?: string, limit = 20, cursor?: stri
         username: users.username,
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
+        supporterNumber: users.supporterNumber,
+        supporterExpiresAt: users.supporterExpiresAt,
+        verifiedAt: users.verifiedAt,
       },
       likeCount: sql<number>`(SELECT count(*)::int FROM likes WHERE likes.post_id = ${posts.id})`,
       likedByMe: currentUserId
