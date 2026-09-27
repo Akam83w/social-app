@@ -9,7 +9,7 @@ type Reel = { id:string; content:string|null; mediaUrl:string|null; mediaType:st
 export default function ReelsPage(){
   const {token}=useAuth(); const [reels,setReels]=useState<Reel[]>([]); const [index,setIndex]=useState(0); const [error,setError]=useState("");
   const touchStart=useRef<number|null>(null); const tapTimer=useRef<number|null>(null); const tapCount=useRef(0);
-  useEffect(()=>{ if(!token)return; apiRequest("/posts",token).then((d)=>setReels((d.posts??[]).filter((p:Reel)=>p.mediaType==="video"))).catch(()=>setError("تعذر تحميل الريلز.")); },[token]);
+  useEffect(()=>{ if(!token)return; apiRequest("/posts?limit=50",token).then((d)=>setReels((d.posts??[]).filter((p:Reel)=>p.mediaType==="video"))).catch(()=>setError("تعذر تحميل الريلز.")); },[token]);
   const move=(delta:number)=>setIndex(i=>Math.max(0,Math.min(reels.length-1,i+delta)));
   const toggleLike=async()=>{const r=reels[index]; if(!r||!token)return; try{if(r.likedByMe){await unlikePost(r.id,token);setReels(a=>a.map(x=>x.id===r.id?{...x,likedByMe:false,likeCount:Math.max(0,x.likeCount-1)}:x));}else{await likePost(r.id,token);setReels(a=>a.map(x=>x.id===r.id?{...x,likedByMe:true,likeCount:x.likeCount+1}:x));}}catch{}}
   const handleTap=()=>{tapCount.current+=1;if(tapCount.current===1){tapTimer.current=window.setTimeout(()=>{tapCount.current=0;const v=document.querySelector<HTMLVideoElement>(`video[data-reel="${reels[index]?.id}"]`);if(v){if(v.paused)void v.play();else v.pause();}},260);}else{if(tapTimer.current)window.clearTimeout(tapTimer.current);tapCount.current=0;void toggleLike();}};
