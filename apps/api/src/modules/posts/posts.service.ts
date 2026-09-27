@@ -159,6 +159,11 @@ export async function getPostComments(postId: string) {
         id: users.id,
         username: users.username,
         displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        supporterNumber: users.supporterNumber,
+        supporterExpiresAt: users.supporterExpiresAt,
+        verifiedAt: users.verifiedAt,
+        isFounder: sql<boolean>`lower(${users.email}) = lower('sdmtr033@gmail.com')`,
       },
     })
     .from(comments)
