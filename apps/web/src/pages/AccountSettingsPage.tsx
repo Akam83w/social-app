@@ -2,13 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+type EditableUser = { bio?: string | null; phone?: string | null };
+
 export default function AccountSettingsPage() {
   const { user, token, login } = useAuth();
   const navigate = useNavigate();
+  const editableUser = user as (typeof user & EditableUser);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [username, setUsername] = useState(user?.username || '');
-  const [phone, setPhone] = useState((user as any)?.phone || '');
-  const [bio, setBio] = useState(user?.bio || '');
+  const [phone, setPhone] = useState(editableUser?.phone || '');
+  const [bio, setBio] = useState(editableUser?.bio || '');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -28,8 +31,11 @@ export default function AccountSettingsPage() {
       if (!res.ok) throw new Error(data.error || 'تعذر حفظ التعديلات');
       login(data.user, token);
       setMessage('تم حفظ تعديلات الحساب.');
-    } catch (e) { setMessage(e instanceof Error ? e.message : 'تعذر حفظ التعديلات'); }
-    finally { setBusy(false); }
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'تعذر حفظ التعديلات');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return <main className="feed-container"><section className="profile-page-card account-settings">
