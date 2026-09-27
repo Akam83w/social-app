@@ -35,6 +35,12 @@ function setupFirebaseMessaging() {
 }
 
 async function setupRealtimeAndPush() {
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS reports (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reporter_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, target_id uuid NOT NULL, target_type varchar(20) NOT NULL, reason text NOT NULL, created_at timestamp NOT NULL DEFAULT now())`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS reports_reporter_idx ON reports(reporter_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS reports_target_idx ON reports(target_type,target_id)`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS blocks (blocker_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, blocked_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at timestamp NOT NULL DEFAULT now(), CONSTRAINT blocks_pair_unique UNIQUE(blocker_id,blocked_id))`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS blocks_blocker_idx ON blocks(blocker_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS blocks_blocked_idx ON blocks(blocked_id)`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS app_config (key text PRIMARY KEY, value text NOT NULL)`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, actor_id uuid REFERENCES users(id) ON DELETE CASCADE, type varchar(30) NOT NULL, title text NOT NULL, body text NOT NULL, data text, read_at timestamp, created_at timestamp NOT NULL DEFAULT now())`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications(user_id, created_at DESC)`);
