@@ -25,6 +25,9 @@ export async function authRoutes(app: FastifyInstance) {
       if (err.message === 'USER_ALREADY_EXISTS') {
         return reply.status(409).send({ error: 'USER_ALREADY_EXISTS' });
       }
+      if (err?.code === '23505' && String(err?.constraint || '').includes('username')) {
+        return reply.status(409).send({ error: 'USERNAME_TAKEN' });
+      }
       app.log.error(err);
       return reply.status(500).send({
         error: 'INTERNAL_ERROR',
@@ -124,6 +127,9 @@ export async function authRoutes(app: FastifyInstance) {
       if (!updatedUser) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
       return reply.send({ user: updatedUser });
     } catch (err: any) {
+      if (err?.code === '23505' && String(err?.constraint || '').includes('username')) {
+        return reply.status(409).send({ error: 'USERNAME_TAKEN' });
+      }
       app.log.error(err);
       return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
@@ -173,7 +179,7 @@ export async function authRoutes(app: FastifyInstance) {
         verifiedAt: users.verifiedAt,
       })
       .from(users)
-      .where(eq(users.username, username))
+      .where(sql`lower(${users.username}) = lower(${username})`)
       .limit(1);
 
     if (!profile) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
