@@ -132,7 +132,8 @@ export async function postsRoutes(app: FastifyInstance) {
   app.get('/posts/:id/comments', { preHandler: verifyToken }, async (request, reply) => {
     try {
       const { id } = request.params as { id: string };
-      const result = await getPostComments(id);
+      const payload = request.user as { id: string };
+      const result = await getPostComments(id, payload.id);
 
       return reply.status(200).send({
         comments: result,
