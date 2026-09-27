@@ -28,7 +28,7 @@ async function setupRealtimeAndPush() {
 }
 async function notifyUser(userId:string,type:string,title:string,body:string,actorId?:string,data:any={}) {
   const r=await db.execute(sql\`INSERT INTO notifications(user_id,actor_id,type,title,body,data) VALUES(${userId},${actorId||null},${type},${title},${body},${JSON.stringify(data)}) RETURNING id,created_at\`);
-  const item={id:(r.rows[0] as any).id,type,title,body,data,createdAt:(r.rows[0] as any).created_at};
+  const item={id:(r.rows[0] as any).id,type:'notification',notificationType:type,title,body,data,createdAt:(r.rows[0] as any).created_at};
   for(const res of realtimeClients.get(userId)||[]) res.write(`data: ${JSON.stringify(item)}\\n\\n`);
   const subs=await db.execute(sql\`SELECT id,subscription FROM push_subscriptions WHERE user_id=${userId}\`);
   for(const s of subs.rows as any[]) try{await webpush.sendNotification(JSON.parse(s.subscription),JSON.stringify({title,body,data}),{TTL:60,urgency:'high'});}catch(e:any){if(e?.statusCode===404||e?.statusCode===410)await db.execute(sql\`DELETE FROM push_subscriptions WHERE id=${s.id}\`);}
