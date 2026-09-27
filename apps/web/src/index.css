@@ -1433,3 +1433,10 @@ img {
 .people-list span{display:flex;flex-direction:column;gap:3px;min-width:0}
 .people-list small{color:#888;font-size:11px}
 @media(max-width:480px){.people-modal{max-height:78vh}.profile-stats{gap:16px}.profile-stats button{flex-direction:column;gap:2px}}
+
+/* Real supporter / verification identity */
+.supporter-name{color:#147bd1 !important}
+.supporter-star{font-size:1em;vertical-align:middle;display:inline-block}
+.supporter-label{display:inline-block;margin-right:7px;padding:3px 7px;border-radius:999px;background:#e8f3ff;color:#147bd1;font-size:10px;font-weight:800}
+.real-verified,.verified-badge-inline{display:inline-grid;place-items:center;width:18px;height:18px;margin-right:4px;border-radius:50%;background:#1877f2;color:#fff;font-size:11px;font-weight:900;vertical-align:middle}
+.verified-badge-inline{width:15px;height:15px;font-size:9px;margin-right:3px}
