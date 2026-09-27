@@ -1,4 +1,4 @@
-import { SearchIcon, BookmarkIcon, BellIcon } from "./components/icons/Icons";
+import { SearchIcon, BellIcon } from "./components/icons/Icons";
 import { Route, Routes, Navigate } from "react-router-dom";
 import "./index.css";
 import "./social-features.css";
