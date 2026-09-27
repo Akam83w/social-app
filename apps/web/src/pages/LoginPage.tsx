@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [suspendedToken, setSuspendedToken] = useState('');
+  const [appealReason, setAppealReason] = useState('');
+  const [appealSent, setAppealSent] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -17,6 +21,11 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await loginUser({ identifier, password });
+      if (data.user?.moderationStatus === 'suspended') {
+        setSuspendedToken(data.token);
+        setError('هذا الحساب موقوف بسبب مخالفات المحتوى. يمكنك تقديم استئناف.');
+        return;
+      }
       login(data.user, data.token);
       navigate('/');
     } catch (err: any) {
@@ -59,6 +68,11 @@ export default function LoginPage() {
           />
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
+      {suspendedToken && <div style={{ marginTop: 12, padding: 12, border: '1px solid #ddd', borderRadius: 10 }}>
+        <strong>طلب استئناف</strong>
+        <textarea value={appealReason} onChange={e=>setAppealReason(e.target.value)} placeholder="اكتب سبب طلب الاستئناف..." maxLength={2000} style={{ width:'100%', minHeight:100, marginTop:8 }} />
+        <button type="button" disabled={!appealReason.trim() || appealSent} onClick={async()=>{try{const r=await fetch(API_URL+'/moderation/appeal',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+suspendedToken},body:JSON.stringify({reason:appealReason.trim()})});if(!r.ok)throw new Error();setAppealSent(true);}catch{setError('تعذر إرسال الاستئناف. حاول مرة ثانية.')}}} style={{ width:'100%', padding:10, marginTop:8 }}>{appealSent?'تم إرسال الاستئناف':'إرسال الاستئناف'}</button>
+      </div>}
         <button type="submit" disabled={loading} style={{ width: '100%', padding: 10 }}>
           {loading ? 'جاري الدخول...' : 'دخول'}
         </button>
