@@ -45,7 +45,7 @@ export async function getPosts(currentUserId?: string, limit = 20, cursor?: stri
 }
 
 export async function getPostsByHashtag(currentUserId: string, tag: string, limit = 50) {
-  const cleanTag = tag.trim().replace(/^#/, '');
+  const cleanTag = tag.trim().replace(/^#/, '').toLowerCase();
   return db
     .select({
       id: posts.id,
