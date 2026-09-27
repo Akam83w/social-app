@@ -82,6 +82,12 @@ function ProtectedApp() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = React.useState(true);
+
+  if (showSplash) {
+    return <QXSplash onDone={() => setShowSplash(false)} />;
+  }
+
   return (
     <>
       <NativePushBootstrap />
