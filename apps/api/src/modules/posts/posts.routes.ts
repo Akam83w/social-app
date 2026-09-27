@@ -8,6 +8,7 @@ import {
   createPost,
   getPostById,
   getPosts,
+  getPostsByHashtag,
   getPostComments,
   getCommentById,
   createComment,
@@ -55,6 +56,18 @@ export async function postsRoutes(app: FastifyInstance) {
           ? result[result.length - 1]?.createdAt ?? null
           : null,
       });
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
+  app.get('/posts/hashtag/:tag', { preHandler: verifyToken }, async (request, reply) => {
+    try {
+      const { tag } = request.params as { tag: string };
+      const payload = request.user as { id: string };
+      const result = await getPostsByHashtag(payload.id, decodeURIComponent(tag), 50);
+      return reply.status(200).send({ posts: result });
     } catch (err) {
       app.log.error(err);
       return reply.status(500).send({ error: 'INTERNAL_ERROR' });
