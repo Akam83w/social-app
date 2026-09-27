@@ -12,6 +12,9 @@ export const users = pgTable('users', {
   supporterNumber: varchar('supporter_number', { length: 10 }),
   supporterExpiresAt: timestamp('supporter_expires_at'),
   verifiedAt: timestamp('verified_at'),
+  moderationStrikes: varchar('moderation_strikes', { length: 10 }).notNull().default('0'),
+  suspendedUntil: timestamp('suspended_until'),
+  moderationStatus: varchar('moderation_status', { length: 20 }).notNull().default('active'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -136,3 +139,19 @@ export const follows = pgTable(
     followingIdx: index('follows_following_idx').on(table.followingId),
   }),
 );
+
+
+export const moderationViolations = pgTable('moderation_violations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  targetId: uuid('target_id'),
+  targetType: varchar('target_type', { length: 20 }).notNull(),
+  violationType: varchar('violation_type', { length: 50 }).notNull(),
+  severity: varchar('severity', { length: 20 }).notNull(),
+  action: varchar('action', { length: 30 }).notNull(),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index('moderation_violations_user_idx').on(table.userId),
+  createdIdx: index('moderation_violations_created_idx').on(table.createdAt),
+}));
