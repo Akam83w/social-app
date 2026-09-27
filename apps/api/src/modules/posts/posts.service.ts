@@ -17,7 +17,7 @@ export async function createPost(userId: string, input: CreatePostInput) {
   return newPost;
 }
 
-export async function getPosts(currentUserId?: string) {
+export async function getPosts(currentUserId?: string, limit = 20, cursor?: string) {
   return db
     .select({
       id: posts.id,
@@ -40,6 +40,7 @@ export async function getPosts(currentUserId?: string) {
     .from(posts)
     .leftJoin(likes, eq(likes.postId, posts.id))
     .innerJoin(users, eq(posts.userId, users.id))
+    .where(cursor ? sql`${posts.createdAt} < ${new Date(cursor)}` : undefined)
     .groupBy(
       posts.id,
       users.id,
@@ -47,7 +48,8 @@ export async function getPosts(currentUserId?: string) {
       users.displayName,
       users.avatarUrl,
     )
-    .orderBy(desc(posts.createdAt));
+    .orderBy(desc(posts.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 50));
 }
 
 export async function getPostById(postId: string) {
