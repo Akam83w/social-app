@@ -1,4 +1,4 @@
-import { pgTable, varchar, text, timestamp, uuid, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, varchar, text, timestamp, uuid, index, uniqueIndex, boolean } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -15,6 +15,7 @@ export const users = pgTable('users', {
   moderationStrikes: varchar('moderation_strikes', { length: 10 }).notNull().default('0'),
   suspendedUntil: timestamp('suspended_until'),
   moderationStatus: varchar('moderation_status', { length: 20 }).notNull().default('active'),
+  isPrivate: boolean('is_private').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -132,6 +133,7 @@ export const follows = pgTable(
     followerId: uuid('follower_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     followingId: uuid('following_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
+    status: varchar('status', { length: 20 }).notNull().default('accepted'),
   },
   (table) => ({
     pairUnique: uniqueIndex('follows_pair_unique').on(table.followerId, table.followingId),
