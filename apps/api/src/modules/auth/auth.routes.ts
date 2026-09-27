@@ -177,6 +177,22 @@ export async function authRoutes(app: FastifyInstance) {
     }
   });
 
+  app.get('/auth/search', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const q = String((request.query as { q?: string }).q || '').trim().replace(/^@/, '').slice(0, 50);
+    if (!q) return reply.send({ users: [] });
+    const term = '%' + q + '%';
+    const rows = await db.select({
+      id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl,
+      isPrivate: users.isPrivate, supporterNumber: users.supporterNumber, verifiedAt: users.verifiedAt,
+    })
+      .from(users)
+      .where(sql\`(lower(\${users.username}) LIKE lower(\${term}) OR lower(coalesce(\${users.displayName}, '')) LIKE lower(\${term})) AND \${users.id} <> \${me}\`)
+      .orderBy(sql\`CASE WHEN lower(\${users.username}) = lower(\${q}) THEN 0 WHEN lower(\${users.username}) LIKE lower(\${term}) THEN 1 ELSE 2 END\`, desc(users.createdAt))
+      .limit(20);
+    return reply.send({ users: rows });
+  });
+
   app.get('/auth/search/users/:username', { preHandler: verifyToken }, async (request, reply) => {
     const { username } = request.params as { username: string };
     const payload = request.user as { id: string };
