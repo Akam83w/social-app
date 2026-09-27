@@ -1417,3 +1417,19 @@ img {
 .create-submit:disabled{opacity:.45;cursor:not-allowed}
 .create-login-state{padding:55px 25px;text-align:center}.create-login-state strong{font-size:17px}.create-login-state p{color:#858b90;font-size:12px}.create-login-state a{display:inline-flex;margin-top:8px;padding:10px 18px;border-radius:11px;background:#111715;color:#fff;text-decoration:none;font-size:12px;font-weight:800}
 @media(max-width:480px){.composer-card{margin-top:12px;padding:12px 11px 8px;border-radius:18px}.composer-avatar{width:42px;height:42px;flex-basis:42px}.composer-input{height:42px;font-size:12px;padding:0 14px}.composer-action{font-size:10px}.composer-action span{font-size:15px}.create-post-page{border-radius:18px}.create-post-header{padding:14px}.create-post-page form{padding:14px}.create-textarea{min-height:155px;font-size:17px}.create-author>img{width:44px;height:44px}.create-visibility{font-size:9px!important}.create-bottom{align-items:flex-end;flex-wrap:wrap}.create-error{order:3;flex-basis:100%}.create-submit{width:100%;margin-inline-start:0}}
+
+/* Profile people lists */
+.profile-stats button{display:flex;align-items:center;gap:5px;border:0;background:transparent;padding:0;font:inherit;cursor:pointer;color:inherit}
+.profile-stats button:hover span{text-decoration:underline}
+.people-modal-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.42)}
+.people-modal{width:min(430px,100%);max-height:min(620px,85vh);overflow:hidden;background:#fff;border-radius:20px;box-shadow:0 20px 70px rgba(0,0,0,.22)}
+.people-modal>header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #eee}
+.people-modal>header button{border:0;background:#f2f3f4;border-radius:50%;width:32px;height:32px;font-size:20px;cursor:pointer}
+.people-modal>p{padding:30px;text-align:center;color:#888}
+.people-list{overflow:auto;padding:8px}
+.people-list>button{width:100%;display:flex;align-items:center;gap:11px;padding:10px;border:0;background:#fff;border-radius:12px;text-align:right;cursor:pointer}
+.people-list>button:hover{background:#f6f7f7}
+.people-list img{width:46px;height:46px;border-radius:50%;object-fit:cover}
+.people-list span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.people-list small{color:#888;font-size:11px}
+@media(max-width:480px){.people-modal{max-height:78vh}.profile-stats{gap:16px}.profile-stats button{flex-direction:column;gap:2px}}
