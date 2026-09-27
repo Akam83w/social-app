@@ -156,6 +156,12 @@ const start = async () => {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS supporter_number varchar(10)`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS supporter_expires_at timestamp`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_at timestamp`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS moderation_strikes varchar(10) NOT NULL DEFAULT '0'`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_until timestamp`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS moderation_status varchar(20) NOT NULL DEFAULT 'active'`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS moderation_violations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, target_id uuid, target_type varchar(20) NOT NULL, violation_type varchar(50) NOT NULL, severity varchar(20) NOT NULL, action varchar(30) NOT NULL, reason text, created_at timestamp NOT NULL DEFAULT now())`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS moderation_violations_user_idx ON moderation_violations(user_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS moderation_violations_created_idx ON moderation_violations(created_at)`);
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_supporter_number_unique ON users(supporter_number) WHERE supporter_number IS NOT NULL`);
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_unique ON users(lower(username))`);
   await db.execute(sql`UPDATE users SET verified_at=COALESCE(verified_at, created_at) WHERE lower(email)=lower('sdmtr033@gmail.com')`);
