@@ -55,50 +55,50 @@ app.post('/calls/start',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const b=req.body as any;
   if(!b?.toUserId)return reply.status(400).send({error:'INVALID_CALL'});
   if(b.toUserId===me)return reply.status(400).send({error:'CANNOT_CALL_SELF'});
-  const u=await db.execute(sql\`SELECT id FROM users WHERE id=\${b.toUserId} LIMIT 1\`);
+  const u=await db.execute(sql`SELECT id FROM users WHERE id=${b.toUserId} LIMIT 1`);
   if(!u.rows[0])return reply.status(404).send({error:'USER_NOT_FOUND'});
-  const actor=await db.execute(sql\`SELECT username,display_name FROM users WHERE id=\${me} LIMIT 1\`);
+  const actor=await db.execute(sql`SELECT username,display_name FROM users WHERE id=${me} LIMIT 1`);
   const actorRow=(actor.rows[0] as any)||{};
-  const r=await db.execute(sql\`INSERT INTO calls(caller_id,callee_id,kind,status) VALUES(\${me},\${b.toUserId},\${b.video?'video':'audio'},'ringing') RETURNING id\`);
+  const r=await db.execute(sql`INSERT INTO calls(caller_id,callee_id,kind,status) VALUES(${me},${b.toUserId},${b.video?'video':'audio'},'ringing') RETURNING id`);
   const callId=String((r.rows[0] as any).id);
   const data={callId,username:actorRow.username||'',displayName:actorRow.display_name||actorRow.username||'مستخدم',video:Boolean(b.video),url:'/call?incoming=1&callId='+encodeURIComponent(callId)};
   await notifyUser(String(b.toUserId),'call','مكالمة واردة','@'+(actorRow.username||'مستخدم')+' يتصل بك',me,data);
   const timer=setTimeout(async()=>{try{
-    const x=await db.execute(sql\`UPDATE calls SET status='missed',ended_at=now() WHERE id=\${callId} AND status='ringing' RETURNING caller_id,callee_id\`);
+    const x=await db.execute(sql`UPDATE calls SET status='missed',ended_at=now() WHERE id=${callId} AND status='ringing' RETURNING caller_id,callee_id`);
     if(x.rows[0]){const row=x.rows[0] as any;await notifyUser(String(row.caller_id),'missed_call','مكالمة فائتة','لم يرد المستخدم على مكالمتك',String(row.callee_id),{callId});await notifyUser(String(row.callee_id),'missed_call','مكالمة فائتة','فاتتك مكالمة',String(row.caller_id),{callId});}
   }finally{callTimers.delete(callId)}},30000);
   callTimers.set(callId,timer);
-  for(const res of realtimeClients.get(String(b.toUserId))||[])res.write(\`data: \${JSON.stringify({type:'call',kind:'invite',callId,fromUserId:me,fromUsername:actorRow.username||'',fromDisplayName:actorRow.display_name||actorRow.username||'مستخدم',video:Boolean(b.video)})}\\n\\n\`);
+  for(const res of realtimeClients.get(String(b.toUserId))||[])res.write(`data: ${JSON.stringify({type:'call',kind:'invite',callId,fromUserId:me,fromUsername:actorRow.username||'',fromDisplayName:actorRow.display_name||actorRow.username||'مستخدم',video:Boolean(b.video)})}\\n\\n`);
   return reply.status(201).send({callId});
 });
 app.get('/calls/:id',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const {id}=req.params as {id:string};
-  const r=await db.execute(sql\`SELECT c.id,c.caller_id,c.callee_id,c.kind,c.status,u.username,u.display_name FROM calls c JOIN users u ON u.id=c.caller_id WHERE c.id=\${id} AND (c.caller_id=\${me} OR c.callee_id=\${me}) LIMIT 1\`);
+  const r=await db.execute(sql`SELECT c.id,c.caller_id,c.callee_id,c.kind,c.status,u.username,u.display_name FROM calls c JOIN users u ON u.id=c.caller_id WHERE c.id=${id} AND (c.caller_id=${me} OR c.callee_id=${me}) LIMIT 1`);
   if(!r.rows[0])return reply.status(404).send({error:'CALL_NOT_FOUND'}); return reply.send({call:r.rows[0]});
 });
 app.post('/calls/:id/accept',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const {id}=req.params as {id:string};
-  const r=await db.execute(sql\`UPDATE calls SET status='accepted',started_at=now() WHERE id=\${id} AND callee_id=\${me} AND status='ringing' RETURNING caller_id\`);
+  const r=await db.execute(sql`UPDATE calls SET status='accepted',started_at=now() WHERE id=${id} AND callee_id=${me} AND status='ringing' RETURNING caller_id`);
   if(!r.rows[0])return reply.status(409).send({error:'CALL_NOT_AVAILABLE'});
   const timer=callTimers.get(id); if(timer)clearTimeout(timer); callTimers.delete(id);
-  for(const res of realtimeClients.get(String((r.rows[0] as any).caller_id))||[])res.write(\`data: \${JSON.stringify({type:'call',kind:'accept',callId:id,fromUserId:me})}\\n\\n\`);
+  for(const res of realtimeClients.get(String((r.rows[0] as any).caller_id))||[])res.write(`data: ${JSON.stringify({type:'call',kind:'accept',callId:id,fromUserId:me})}\\n\\n`);
   return reply.send({ok:true});
 });
 app.post('/calls/:id/reject',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const {id}=req.params as {id:string};
-  const r=await db.execute(sql\`UPDATE calls SET status='rejected',ended_at=now() WHERE id=\${id} AND callee_id=\${me} AND status='ringing' RETURNING caller_id\`);
+  const r=await db.execute(sql`UPDATE calls SET status='rejected',ended_at=now() WHERE id=${id} AND callee_id=${me} AND status='ringing' RETURNING caller_id`);
   if(!r.rows[0])return reply.status(409).send({error:'CALL_NOT_AVAILABLE'});
   const timer=callTimers.get(id); if(timer)clearTimeout(timer); callTimers.delete(id);
-  for(const res of realtimeClients.get(String((r.rows[0] as any).caller_id))||[])res.write(\`data: \${JSON.stringify({type:'call',kind:'reject',callId:id,fromUserId:me})}\\n\\n\`);
+  for(const res of realtimeClients.get(String((r.rows[0] as any).caller_id))||[])res.write(`data: ${JSON.stringify({type:'call',kind:'reject',callId:id,fromUserId:me})}\\n\\n`);
   return reply.send({ok:true});
 });
 app.post('/calls/:id/end',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const {id}=req.params as {id:string};
-  const r=await db.execute(sql\`UPDATE calls SET status='ended',ended_at=now() WHERE id=\${id} AND (caller_id=\${me} OR callee_id=\${me}) AND status IN ('ringing','accepted') RETURNING caller_id,callee_id\`);
+  const r=await db.execute(sql`UPDATE calls SET status='ended',ended_at=now() WHERE id=${id} AND (caller_id=${me} OR callee_id=${me}) AND status IN ('ringing','accepted') RETURNING caller_id,callee_id`);
   if(!r.rows[0])return reply.send({ok:true});
   const timer=callTimers.get(id); if(timer)clearTimeout(timer); callTimers.delete(id);
   const row=r.rows[0] as any; const other=String(row.caller_id)===me?String(row.callee_id):String(row.caller_id);
-  for(const res of realtimeClients.get(other)||[])res.write(\`data: \${JSON.stringify({type:'call',kind:'hangup',callId:id,fromUserId:me})}\\n\\n\`);
+  for(const res of realtimeClients.get(other)||[])res.write(`data: ${JSON.stringify({type:'call',kind:'hangup',callId:id,fromUserId:me})}\\n\\n`);
   return reply.send({ok:true});
 });
 app.post('/calls/signal',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.toUserId||!b?.kind)return reply.status(400).send({error:'INVALID_SIGNAL'});const meRow=await db.execute(sql`SELECT username FROM users WHERE id=${me} LIMIT 1`);const fromUsername=(meRow.rows[0] as any)?.username||'';for(const res of realtimeClients.get(b.toUserId)||[])res.write(`data: ${JSON.stringify({type:"call",fromUserId:me,fromUsername,kind:b.kind,payload:b.payload})}\\n\\n`);return reply.send({ok:true});});
