@@ -5,7 +5,6 @@ import fastifyStatic from '@fastify/static';
 import path from 'path';
 import { sql } from 'drizzle-orm';
 import { Pool } from 'pg';
-import webpush from 'web-push';
 import { db } from './db';
 import { authRoutes } from './modules/auth/auth.routes';
 import { postsRoutes } from './modules/posts/posts.routes';
@@ -17,14 +16,10 @@ import { verifyToken } from './middleware/auth.middleware';
 const realtimeClients = new Map<string, Set<any>>();
 let vapidPublicKey = '';
 async function setupRealtimeAndPush() {
-  await db.execute(sql\`CREATE TABLE IF NOT EXISTS app_config (key text PRIMARY KEY, value text NOT NULL)\`);
-  await db.execute(sql\`CREATE TABLE IF NOT EXISTS notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, actor_id uuid REFERENCES users(id) ON DELETE CASCADE, type varchar(30) NOT NULL, title text NOT NULL, body text NOT NULL, data text, read_at timestamp, created_at timestamp NOT NULL DEFAULT now())\`);
-  await db.execute(sql\`CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications(user_id, created_at DESC)\`);
-  await db.execute(sql\`CREATE TABLE IF NOT EXISTS push_subscriptions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, endpoint text NOT NULL UNIQUE, subscription text NOT NULL, created_at timestamp NOT NULL DEFAULT now())\`);
-  const row=await db.execute(sql\`SELECT value FROM app_config WHERE key='vapid_keys' LIMIT 1\`);
-  let keys:any;
-  if(row.rows[0]) keys=JSON.parse(String((row.rows[0] as any).value)); else { keys=webpush.generateVAPIDKeys(); await db.execute(sql\`INSERT INTO app_config(key,value) VALUES('vapid_keys',${JSON.stringify(keys)}) ON CONFLICT(key) DO NOTHING\`); }
-  vapidPublicKey=keys.publicKey; webpush.setVapidDetails('mailto:admin@instairaq.local',keys.publicKey,keys.privateKey);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS app_config (key text PRIMARY KEY, value text NOT NULL)`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, actor_id uuid REFERENCES users(id) ON DELETE CASCADE, type varchar(30) NOT NULL, title text NOT NULL, body text NOT NULL, data text, read_at timestamp, created_at timestamp NOT NULL DEFAULT now())`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications(user_id, created_at DESC)`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS push_subscriptions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, endpoint text NOT NULL UNIQUE, subscription text NOT NULL, created_at timestamp NOT NULL DEFAULT now())`);
 }
 async function notifyUser(userId:string,type:string,title:string,body:string,actorId?:string,data:any={}) {
   const r=await db.execute(sql\`INSERT INTO notifications(user_id,actor_id,type,title,body,data) VALUES(${userId},${actorId||null},${type},${title},${body},${JSON.stringify(data)}) RETURNING id,created_at\`);
