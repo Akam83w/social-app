@@ -223,6 +223,40 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.send({ following: false });
   });
 
+  app.post('/auth/users/:username/block', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const { username } = request.params as { username: string };
+    const [target] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.username})=lower(${username})`).limit(1);
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    if (target.id === me) return reply.status(400).send({ error: 'CANNOT_BLOCK_SELF' });
+    await db.execute(sql`INSERT INTO blocks(blocker_id,blocked_id) VALUES(${me},${target.id}) ON CONFLICT(blocker_id,blocked_id) DO NOTHING`);
+    return reply.send({ blocked: true });
+  });
+
+  app.delete('/auth/users/:username/block', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const { username } = request.params as { username: string };
+    const [target] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.username})=lower(${username})`).limit(1);
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    await db.execute(sql`DELETE FROM blocks WHERE blocker_id=${me} AND blocked_id=${target.id}`);
+    return reply.send({ blocked: false });
+  });
+
+  app.get('/auth/users/:username/block', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const { username } = request.params as { username: string };
+    const [target] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.username})=lower(${username})`).limit(1);
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    const row = await db.execute(sql`SELECT 1 FROM blocks WHERE blocker_id=${me} AND blocked_id=${target.id} LIMIT 1`);
+    return reply.send({ blocked: Boolean(row.rows[0]) });
+  });
+
+  app.get('/auth/blocked', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const rows = await db.execute(sql`SELECT u.id,u.username,u.display_name,u.avatar_url,b.created_at FROM blocks b JOIN users u ON u.id=b.blocked_id WHERE b.blocker_id=${me} ORDER BY b.created_at DESC`);
+    return reply.send({ users: rows.rows });
+  });
+
   app.get('/auth/users/:username', { preHandler: verifyToken }, async (request, reply) => {
     const { username } = request.params as { username: string };
     const [profile] = await db
