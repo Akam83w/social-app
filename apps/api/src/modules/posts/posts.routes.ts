@@ -50,7 +50,7 @@ export async function postsRoutes(app: FastifyInstance) {
       }
 
       const post = await createPost(payload.id, parsed.data);
-      const followers = await db.execute(sql`SELECT follower_id FROM follows WHERE following_id=${payload.id}`);
+      const followers = await db.execute(sql`SELECT follower_id FROM follows WHERE following_id=${payload.id} AND status='accepted'`);
       const actor = await db.execute(sql`SELECT username,display_name FROM users WHERE id=${payload.id} LIMIT 1`);
       const a:any=actor.rows[0]; for(const row of followers.rows as any[]) await (app as any).notifyUser(row.follower_id,'post','منشور جديد',`@${a?.username||"مستخدم"} نشر منشوراً جديداً`,payload.id,{actorId:payload.id,url:'/post/'+post.id});
       return reply.status(201).send({ post });
@@ -70,7 +70,7 @@ export async function postsRoutes(app: FastifyInstance) {
       return reply.status(200).send({
         posts: result,
         nextCursor: result.length === Math.min(Math.max(limit, 1), 50)
-          ? result[result.length - 1]?.createdAt ?? null
+          ? (result[result.length - 1] ? `${result[result.length - 1].createdAt}__${result[result.length - 1].id}` : null)
           : null,
       });
     } catch (err) {
