@@ -71,18 +71,18 @@ export async function authRoutes(app: FastifyInstance) {
     };
 
     const displayName = typeof body.displayName === 'string' ? body.displayName.trim().slice(0, 100) : '';
-    const username = typeof body.username === 'string' ? body.username.trim().replace(/^@/, '') : '';
+    const username = typeof body.username === 'string' ? body.username.trim().replace(/^@/, '').toLowerCase() : '';
     const phone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 20) : '';
     const bio = typeof body.bio === 'string' ? body.bio.trim().slice(0, 500) : '';
 
-    if (!username || !/^[A-Za-z0-9_.]{3,50}$/.test(username)) {
+    if (!username || !/^[A-Za-z0-9_.]{2,30}$/.test(username)) {
       return reply.status(400).send({ error: 'INVALID_USERNAME' });
     }
 
     const existing = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.username, username))
+      .where(sql`lower(${users.username}) = ${username}`)
       .limit(1);
 
     if (existing[0] && existing[0].id !== payload.id) {
