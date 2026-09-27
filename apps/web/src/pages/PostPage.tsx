@@ -315,7 +315,7 @@ export default function PostPage() {
           >
             <div>
               <Link
-                to={`/profile/${comment.user.username}`}
+                to={`/u/${comment.user.username}`}
                 style={{
                   fontWeight: 700,
                   textDecoration: "none",
@@ -534,7 +534,7 @@ export default function PostPage() {
       >
         <div>
           <Link
-            to={`/profile/${post.user.username}`}
+            to={`/u/${post.user.username}`}
             style={{
               fontWeight: 700,
               color: "#111",
