@@ -191,7 +191,7 @@ export default function PostPage() {
           supporterNumber: user?.supporterNumber || null,
           supporterExpiresAt: user?.supporterExpiresAt || null,
           verifiedAt: user?.verifiedAt || null,
-          isFounder: false,
+          isFounder: user?.email?.trim().toLowerCase() === 'sdmtr033@gmail.com',
         },
       };
 
