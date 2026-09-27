@@ -95,7 +95,7 @@ export async function postsRoutes(app: FastifyInstance) {
       return reply.send({
         posts: result,
         nextCursor: result.length === safeLimit && result[result.length - 1]
-          ? \`${result[result.length - 1].createdAt}__${result[result.length - 1].id}\`
+          ? `${result[result.length - 1].createdAt}__${result[result.length - 1].id}`
           : null,
       });
     } catch (err) {
