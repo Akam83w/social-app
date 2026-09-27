@@ -198,7 +198,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (!profile) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
 
     const [relation] = await db
-      .select({ id: follows.followerId })
+      .select({ id: follows.followerId, status: follows.status })
       .from(follows)
       .where(and(eq(follows.followerId, payload.id), eq(follows.followingId, profile.id)))
       .limit(1);
@@ -210,7 +210,8 @@ export async function authRoutes(app: FastifyInstance) {
 
     return reply.send({
       user: profile,
-      isFollowing: Boolean(relation),
+      isFollowing: relation?.status === 'accepted',
+      followRequestPending: relation?.status === 'pending',
       followerCount: followersRow?.count ?? 0,
     });
   });
@@ -244,6 +245,22 @@ export async function authRoutes(app: FastifyInstance) {
     if (!requester) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
     await db.delete(follows).where(and(eq(follows.followerId, requester.id), eq(follows.followingId, me), eq(follows.status, 'pending')));
     return reply.send({ rejected: true });
+  });
+
+  app.get('/auth/follow-requests', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const rows = await db.select({
+      id: follows.followerId,
+      username: users.username,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+      createdAt: follows.createdAt,
+    })
+      .from(follows)
+      .innerJoin(users, eq(users.id, follows.followerId))
+      .where(and(eq(follows.followingId, me), eq(follows.status, 'pending')))
+      .orderBy(desc(follows.createdAt));
+    return reply.send({ requests: rows });
   });
 
   app.delete('/auth/users/:username/follow', { preHandler: verifyToken }, async (request, reply) => {
@@ -343,8 +360,8 @@ export async function authRoutes(app: FastifyInstance) {
       followRequestPending: followRelation?.status === 'pending',
       stats: {
         posts: profilePosts.length,
-        followers: Number((await db.select({ count: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followingId, profile.id)))[0]?.count ?? 0),
-        following: Number((await db.select({ count: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followerId, profile.id)))[0]?.count ?? 0),
+        followers: Number((await db.select({ count: sql<number>`count(*)::int` }).from(follows).where(and(eq(follows.followingId, profile.id), eq(follows.status, 'accepted'))))[0]?.count ?? 0),
+        following: Number((await db.select({ count: sql<number>`count(*)::int` }).from(follows).where(and(eq(follows.followerId, profile.id), eq(follows.status, 'accepted'))))[0]?.count ?? 0),
       },
     });
   });
