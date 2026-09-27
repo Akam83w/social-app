@@ -10,6 +10,7 @@ interface User {
   supporterNumber?: string | null;
   supporterExpiresAt?: string | null;
   verifiedAt?: string | null;
+  isPrivate?: boolean;
 }
 
 interface Account {
