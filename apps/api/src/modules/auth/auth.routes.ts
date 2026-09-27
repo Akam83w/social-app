@@ -64,6 +64,19 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
 
+  app.patch('/auth/privacy', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const body = request.body as { isPrivate?: unknown };
+    if (typeof body.isPrivate !== 'boolean') return reply.status(400).send({ error: 'INVALID_PRIVACY' });
+    const [updated] = await db.update(users).set({ isPrivate: body.isPrivate, updatedAt: new Date() }).where(eq(users.id, me)).returning({
+      id: users.id, username: users.username, email: users.email, phone: users.phone, displayName: users.displayName,
+      bio: users.bio, avatarUrl: users.avatarUrl, isPrivate: users.isPrivate,
+    });
+    if (!updated) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    if (!body.isPrivate) await db.update(follows).set({ status: 'accepted' }).where(and(eq(follows.followingId, me), eq(follows.status, 'pending')));
+    return reply.send({ user: updated });
+  });
+
   app.patch('/auth/profile', { preHandler: verifyToken }, async (request, reply) => {
     const payload = request.user as { id: string };
     const body = request.body as {
@@ -338,10 +351,12 @@ export async function authRoutes(app: FastifyInstance) {
     const { username } = request.params as { username: string };
     const [target] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
     if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
-    const rows = await db.select({
-      id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl,
-    }).from(follows).innerJoin(users, eq(users.id, follows.followerId))
-      .where(eq(follows.followingId, target.id)).orderBy(desc(users.username));
+    const [owner] = await db.select({ isPrivate: users.isPrivate }).from(users).where(eq(users.id, target.id)).limit(1);
+    const allowed = !owner?.isPrivate || target.id === (request.user as {id:string}).id || Boolean((await db.select({id:follows.followerId}).from(follows).where(and(eq(follows.followerId,(request.user as {id:string}).id),eq(follows.followingId,target.id),eq(follows.status,'accepted'))).limit(1))[0]);
+    if (!allowed) return reply.send({ users: [] });
+    const rows = await db.select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+      .from(follows).innerJoin(users, eq(users.id, follows.followerId))
+      .where(and(eq(follows.followingId, target.id), eq(follows.status, 'accepted'))).orderBy(desc(users.username));
     return reply.send({ users: rows });
   });
 
@@ -349,10 +364,12 @@ export async function authRoutes(app: FastifyInstance) {
     const { username } = request.params as { username: string };
     const [target] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
     if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
-    const rows = await db.select({
-      id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl,
-    }).from(follows).innerJoin(users, eq(users.id, follows.followingId))
-      .where(eq(follows.followerId, target.id)).orderBy(desc(users.username));
+    const [owner] = await db.select({ isPrivate: users.isPrivate }).from(users).where(eq(users.id, target.id)).limit(1);
+    const allowed = !owner?.isPrivate || target.id === (request.user as {id:string}).id || Boolean((await db.select({id:follows.followerId}).from(follows).where(and(eq(follows.followerId,(request.user as {id:string}).id),eq(follows.followingId,target.id),eq(follows.status,'accepted'))).limit(1))[0]);
+    if (!allowed) return reply.send({ users: [] });
+    const rows = await db.select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl })
+      .from(follows).innerJoin(users, eq(users.id, follows.followingId))
+      .where(and(eq(follows.followerId, target.id), eq(follows.status, 'accepted'))).orderBy(desc(users.username));
     return reply.send({ users: rows });
   });
 
