@@ -57,6 +57,27 @@ export async function getPosts(currentUserId?: string, limit = 20, cursor?: stri
     .limit(Math.min(Math.max(limit, 1), 50));
 }
 
+export async function getExplorePosts(currentUserId: string, limit = 30, cursor?: string) {
+  const cursorParts = cursor?.split('__') ?? [];
+  const cursorDate = cursorParts[0] ? new Date(cursorParts[0]) : null;
+  const cursorId = cursorParts[1] || null;
+  const cursorCondition = cursorDate && !Number.isNaN(cursorDate.getTime())
+    ? cursorId
+      ? sql`(${posts.createdAt} < ${cursorDate} OR (${posts.createdAt} = ${cursorDate} AND ${posts.id} < ${cursorId}))`
+      : sql`${posts.createdAt} < ${cursorDate}`
+    : sql`true`;
+  return db.select({
+    id: posts.id, content: posts.content, mediaUrl: posts.mediaUrl, mediaType: posts.mediaType,
+    createdAt: posts.createdAt, updatedAt: posts.updatedAt,
+    user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, supporterNumber: users.supporterNumber, supporterExpiresAt: users.supporterExpiresAt, verifiedAt: users.verifiedAt, isFounder: sql<boolean>`lower(${users.email}) = lower('sdmtr033@gmail.com')` },
+    likeCount: sql<number>`(SELECT count(*)::int FROM likes WHERE likes.post_id = ${posts.id})`,
+    likedByMe: sql<boolean>`EXISTS (SELECT 1 FROM likes WHERE likes.post_id = ${posts.id} AND likes.user_id = ${currentUserId})`,
+  }).from(posts).innerJoin(users, eq(posts.userId, users.id))
+    .where(sql`${cursorCondition} AND ${users.isPrivate} = false AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${currentUserId} AND b.blocked_id=${posts.userId}) OR (b.blocker_id=${posts.userId} AND b.blocked_id=${currentUserId}))`)
+    .orderBy(desc(posts.createdAt), desc(posts.id))
+    .limit(Math.min(Math.max(limit, 1), 50));
+}
+
 export async function getPostsByHashtag(currentUserId: string, tag: string, limit = 50) {
   const cleanTag = tag.trim().replace(/^#/, '').toLowerCase();
   return db
