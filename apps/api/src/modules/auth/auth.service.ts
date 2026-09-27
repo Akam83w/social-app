@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { eq, or } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { users } from '../../db/schema';
 import type { RegisterInput, LoginInput } from './auth.schema';
