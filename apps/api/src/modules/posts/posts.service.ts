@@ -34,6 +34,7 @@ export async function getPosts(currentUserId?: string, limit = 20, cursor?: stri
         supporterNumber: users.supporterNumber,
         supporterExpiresAt: users.supporterExpiresAt,
         verifiedAt: users.verifiedAt,
+        isFounder: sql<boolean>`lower(${users.email}) = lower('sdmtr033@gmail.com')`,
       },
       likeCount: sql<number>`(SELECT count(*)::int FROM likes WHERE likes.post_id = ${posts.id})`,
       likedByMe: currentUserId
@@ -57,7 +58,7 @@ export async function getPostsByHashtag(currentUserId: string, tag: string, limi
       mediaType: posts.mediaType,
       createdAt: posts.createdAt,
       updatedAt: posts.updatedAt,
-      user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, supporterNumber: users.supporterNumber, supporterExpiresAt: users.supporterExpiresAt, verifiedAt: users.verifiedAt },
+      user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, supporterNumber: users.supporterNumber, supporterExpiresAt: users.supporterExpiresAt, verifiedAt: users.verifiedAt, isFounder: sql<boolean>`lower(${users.email}) = lower('sdmtr033@gmail.com')` },
       likeCount: sql<number>`(SELECT count(*)::int FROM likes WHERE likes.post_id = ${posts.id})`,
       likedByMe: sql<boolean>`EXISTS (SELECT 1 FROM likes WHERE likes.post_id = ${posts.id} AND likes.user_id = ${currentUserId})`,
     })
@@ -81,6 +82,11 @@ export async function getPostById(postId: string) {
         id: users.id,
         username: users.username,
         displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+        supporterNumber: users.supporterNumber,
+        supporterExpiresAt: users.supporterExpiresAt,
+        verifiedAt: users.verifiedAt,
+        isFounder: sql<boolean>`lower(${users.email}) = lower('sdmtr033@gmail.com')`,
       },
     })
     .from(posts)
