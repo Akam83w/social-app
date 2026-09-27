@@ -16,6 +16,7 @@ import HashtagPage from "./pages/HashtagPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import SavedPage from "./pages/SavedPage";
 import { useAuth } from "./context/AuthContext";
 import NativePushBootstrap from "./NativePushBootstrap";
 
@@ -44,16 +45,7 @@ function ProtectedApp() {
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/call" element={<CallPage />} />
         <Route path="/notifications" element={<NotificationsLivePage />} />
-        <Route
-          path="/saved"
-          element={
-            <SimplePage
-              title="المحفوظات"
-              description="المنشورات التي تحفظها ستظهر هنا."
-              icon={<BookmarkIcon size={52} />}
-            />
-          }
-        />
+        <Route path="/saved" element={<SavedPage />} />
         <Route path="/create" element={<CreatePostPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/create-story" element={<CreateStoryPage />} />
