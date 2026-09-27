@@ -151,6 +151,7 @@ const start = async () => {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS supporter_expires_at timestamp`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified_at timestamp`);
   await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS users_supporter_number_unique ON users(supporter_number) WHERE supporter_number IS NOT NULL`);
+  await db.execute(sql`UPDATE users SET verified_at=COALESCE(verified_at, created_at) WHERE lower(email)=lower('sdmtr033@gmail.com')`);
   await db.execute(sql`WITH ranked AS (SELECT id, row_number() OVER (ORDER BY created_at ASC, id ASC) AS rn FROM users WHERE supporter_number IS NULL) UPDATE users u SET supporter_number=ranked.rn::text, supporter_expires_at=u.created_at + interval '90 days' FROM ranked WHERE u.id=ranked.id AND ranked.rn <= 1932`);
   await db.execute(sql`CREATE SEQUENCE IF NOT EXISTS supporter_number_seq START WITH 1`);
   await db.execute(sql`SELECT setval('supporter_number_seq', GREATEST(COALESCE((SELECT MAX(supporter_number::int) FROM users WHERE supporter_number ~ '^[0-9]+
