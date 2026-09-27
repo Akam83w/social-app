@@ -44,6 +44,27 @@ export async function getPosts(currentUserId?: string, limit = 20, cursor?: stri
     .limit(Math.min(Math.max(limit, 1), 50));
 }
 
+export async function getPostsByHashtag(currentUserId: string, tag: string, limit = 50) {
+  const cleanTag = tag.trim().replace(/^#/, '');
+  return db
+    .select({
+      id: posts.id,
+      content: posts.content,
+      mediaUrl: posts.mediaUrl,
+      mediaType: posts.mediaType,
+      createdAt: posts.createdAt,
+      updatedAt: posts.updatedAt,
+      user: { id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl },
+      likeCount: sql<number>`(SELECT count(*)::int FROM likes WHERE likes.post_id = ${posts.id})`,
+      likedByMe: sql<boolean>`EXISTS (SELECT 1 FROM likes WHERE likes.post_id = ${posts.id} AND likes.user_id = ${currentUserId})`,
+    })
+    .from(posts)
+    .innerJoin(users, eq(posts.userId, users.id))
+    .where(sql`lower(coalesce(${posts.content}, '')) ~ ${`(^|[^[:alnum:]_])#${cleanTag}([^[:alnum:]_]|$)`}`)
+    .orderBy(desc(posts.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 50));
+}
+
 export async function getPostById(postId: string) {
   const [post] = await db
     .select({
