@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { apiRequest } from "../lib/api";
 
 export default function CreatePostPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [content, setContent] = useState("");
@@ -38,7 +38,6 @@ export default function CreatePostPage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token || sending || (!content.trim() && !mediaUrl)) return;
-
     try {
       setSending(true);
       setError("");
@@ -58,34 +57,56 @@ export default function CreatePostPage() {
     }
   }
 
-  if (!token) return <main className="feed-container"><section className="stories-card"><div style={{padding:30,textAlign:"center"}}>يجب تسجيل الدخول لإنشاء منشور.</div></section></main>;
+  if (!token) {
+    return <main className="feed-container"><section className="create-post-page"><div className="create-login-state"><strong>سجّل دخولك أولاً</strong><p>حتى تگدر تكتب وتنشر على SDM.</p><Link to="/login">تسجيل الدخول</Link></div></section></main>;
+  }
 
   return (
     <main className="feed-container">
-      <section className="stories-card">
-        <form onSubmit={handleSubmit} style={{padding:24,display:"grid",gap:16}}>
-          <div>
-            <h1 style={{margin:0}}>إنشاء منشور</h1>
-            <p style={{color:"#777",marginTop:8}}>شارك صورة، ريلز، أو نص.</p>
+      <section className="create-post-page">
+        <header className="create-post-header">
+          <Link to="/" className="create-back" aria-label="رجوع">‹</Link>
+          <div><h1>إنشاء منشور</h1><p>شارك لحظتك ويا مجتمع SDM</p></div>
+        </header>
+
+        <form onSubmit={handleSubmit}>
+          <div className="create-author">
+            <img src={user?.avatarUrl || "https://ui-avatars.com/api/?name=User&background=078968&color=fff"} alt="" />
+            <div><strong>{user?.displayName || user?.username || "حسابك"}</strong><span>@{user?.username || "user"}</span></div>
+            <span className="create-visibility">🌐 عام</span>
           </div>
 
-          <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="شنو تريد تنشر؟" maxLength={5000} rows={6} disabled={sending}
-            style={{width:"100%",boxSizing:"border-box",resize:"vertical",padding:16,border:"1px solid #ddd",borderRadius:14,fontFamily:"inherit",fontSize:16}} />
+          <textarea
+            className="create-textarea"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="شنو ببالك؟"
+            maxLength={5000}
+            disabled={sending}
+            autoFocus
+          />
+
+          {mediaUrl && (
+            <div className="create-media-preview">
+              {mediaType === "video"
+                ? <video src={mediaUrl} controls playsInline />
+                : <img src={mediaUrl} alt="معاينة المنشور" />}
+              <button type="button" className="create-remove-media" onClick={() => { setMediaUrl(""); setMediaType(""); }} disabled={sending}>×</button>
+            </div>
+          )}
 
           <input ref={fileRef} type="file" accept="image/*,video/*" onChange={chooseMedia} hidden />
-          <button type="button" onClick={() => fileRef.current?.click()} disabled={sending} style={{padding:12,border:"1px solid #ddd",borderRadius:12}}>
-            {mediaType === "video" ? "🎬 تغيير الريلز" : mediaType === "image" ? "🖼️ تغيير الصورة" : "🖼️ إضافة صورة أو ريلز"}
-          </button>
 
-          {mediaUrl && mediaType === "image" && <img src={mediaUrl} alt="معاينة" style={{width:"100%",maxHeight:500,objectFit:"contain",borderRadius:14}} />}
-          {mediaUrl && mediaType === "video" && <video src={mediaUrl} controls style={{width:"100%",maxHeight:500,borderRadius:14}} />}
+          <div className="create-tools">
+            <button type="button" onClick={() => fileRef.current?.click()} disabled={sending}><span>▣</span><div><b>صورة أو فيديو</b><small>أضف وسائط لمنشورك</small></div><i>›</i></button>
+            <Link to="/create-story"><span>◉</span><div><b>قصة</b><small>شاركها لمدة 24 ساعة</small></div><i>›</i></Link>
+          </div>
 
-          {error && <p style={{color:"#c00",margin:0}}>{error}</p>}
-
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
-            <span style={{color:"#777",fontSize:13}}>{content.length}/5000</span>
-            <button type="submit" disabled={sending || (!content.trim() && !mediaUrl)} style={{border:0,borderRadius:12,padding:"12px 22px",background:"#111",color:"#fff",opacity:sending || (!content.trim() && !mediaUrl) ? .5 : 1}}>
-              {sending ? "جاري النشر..." : "نشر"}
+          <div className="create-bottom">
+            <span className="create-counter">{content.length.toLocaleString("ar-IQ")} / ٥٠٠٠</span>
+            {error && <p className="create-error">{error}</p>}
+            <button className="create-submit" type="submit" disabled={sending || (!content.trim() && !mediaUrl)}>
+              {sending ? "جاري النشر..." : "نشر الآن"}
             </button>
           </div>
         </form>
