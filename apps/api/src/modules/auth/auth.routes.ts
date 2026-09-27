@@ -205,12 +205,30 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/users/:username/follow', { preHandler: verifyToken }, async (request, reply) => {
     const payload = request.user as { id: string };
     const { username } = request.params as { username: string };
-    const [target] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    const [target] = await db.select({ id: users.id, isPrivate: users.isPrivate }).from(users).where(eq(users.username, username)).limit(1);
     if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
     if (target.id === payload.id) return reply.status(400).send({ error: 'CANNOT_FOLLOW_SELF' });
 
     await db.insert(follows).values({ followerId: payload.id, followingId: target.id }).onConflictDoNothing();
-    const actor=await db.execute(sql`SELECT username FROM users WHERE id=${payload.id} LIMIT 1`); const a:any=actor.rows[0]; await (app as any).notifyUser(target.id,'follow','متابع جديد',`@${a?.username||'مستخدم'} بدأ بمتابعتك`,payload.id,{actorId:payload.id,url:'/u/'+encodeURIComponent(a?.username||'')}); return reply.send({ following: true });
+    const actor=await db.execute(sql`SELECT username FROM users WHERE id=${payload.id} LIMIT 1`); const a:any=actor.rows[0]; await (app as any).notifyUser(target.id,target.isPrivate?'follow_request':'follow','متابعة جديدة',target.isPrivate?`@${a?.username||'مستخدم'} أرسل طلب متابعة`:`@${a?.username||'مستخدم'} بدأ بمتابعتك`,payload.id,{actorId:payload.id,url:'/u/'+encodeURIComponent(a?.username||'')}); return reply.send({ following: status === 'accepted', pending: status === 'pending' });
+  });
+
+  app.post('/auth/users/:username/follow/accept', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const { username } = request.params as { username: string };
+    const [requester] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!requester) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    await db.update(follows).set({ status: 'accepted' }).where(and(eq(follows.followerId, requester.id), eq(follows.followingId, me), eq(follows.status, 'pending')));
+    return reply.send({ accepted: true });
+  });
+
+  app.post('/auth/users/:username/follow/reject', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const { username } = request.params as { username: string };
+    const [requester] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!requester) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    await db.delete(follows).where(and(eq(follows.followerId, requester.id), eq(follows.followingId, me), eq(follows.status, 'pending')));
+    return reply.send({ rejected: true });
   });
 
   app.delete('/auth/users/:username/follow', { preHandler: verifyToken }, async (request, reply) => {
@@ -270,6 +288,7 @@ export async function authRoutes(app: FastifyInstance) {
         supporterNumber: users.supporterNumber,
         supporterExpiresAt: users.supporterExpiresAt,
         verifiedAt: users.verifiedAt,
+        isPrivate: users.isPrivate,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -283,8 +302,9 @@ export async function authRoutes(app: FastifyInstance) {
     const payload = request.user as { id: string };
     const blocked = await db.execute(sql`SELECT 1 FROM blocks WHERE (blocker_id=${payload.id} AND blocked_id=${profile.id}) OR (blocker_id=${profile.id} AND blocked_id=${payload.id}) LIMIT 1`);
     if (blocked.rows[0]) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
-    const [followRelation] = await db.select({ id: follows.followerId }).from(follows)
+    const [followRelation] = await db.select({ id: follows.followerId, status: follows.status }).from(follows)
       .where(and(eq(follows.followerId, payload.id), eq(follows.followingId, profile.id))).limit(1);
+    const canViewPrivate = payload.id === profile.id || (!profile.isPrivate) || followRelation?.status === 'accepted';
 
     const profilePosts = await db
       .select({
@@ -297,14 +317,15 @@ export async function authRoutes(app: FastifyInstance) {
       })
       .from(posts)
       .leftJoin(likes, eq(likes.postId, posts.id))
-      .where(eq(posts.userId, profile.id))
+      .where(canViewPrivate ? eq(posts.userId, profile.id) : sql`false`)
       .groupBy(posts.id)
       .orderBy(desc(posts.createdAt));
 
     return reply.status(200).send({
       user: profile,
       posts: profilePosts,
-      isFollowing: Boolean(followRelation),
+      isFollowing: followRelation?.status === 'accepted',
+      followRequestPending: followRelation?.status === 'pending',
       stats: {
         posts: profilePosts.length,
         followers: Number((await db.select({ count: sql<number>`count(*)::int` }).from(follows).where(eq(follows.followingId, profile.id)))[0]?.count ?? 0),
