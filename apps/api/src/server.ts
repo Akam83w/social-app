@@ -13,7 +13,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { postsRoutes } from './modules/posts/posts.routes';
 import { messagesRoutes } from './modules/messages.routes';
 import { storiesRoutes } from './modules/stories.routes';
-import { verifyToken } from './middleware/auth.middleware';
+import { passwordResetRoutes } from './modules/password-reset/password-reset.routes';import { verifyToken } from './middleware/auth.middleware';
 
 
 const realtimeClients = new Map<string, Set<any>>();
@@ -90,6 +90,7 @@ app.register(authRoutes);
 app.register(postsRoutes);
 app.register(messagesRoutes);
 app.register(storiesRoutes);
+app.register(passwordResetRoutes);
 
 app.get('/notifications/config',{preHandler:verifyToken},async(_req,reply)=>reply.send({publicKey:vapidPublicKey}));
 app.get('/notifications',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const r=await db.execute(sql`SELECT id,type,title,body,data,read_at,created_at FROM notifications WHERE user_id=${me} ORDER BY created_at DESC LIMIT 50`);return reply.send({notifications:r.rows});});
