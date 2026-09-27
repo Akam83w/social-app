@@ -281,6 +281,8 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const payload = request.user as { id: string };
+    const blocked = await db.execute(sql`SELECT 1 FROM blocks WHERE (blocker_id=${payload.id} AND blocked_id=${profile.id}) OR (blocker_id=${profile.id} AND blocked_id=${payload.id}) LIMIT 1`);
+    if (blocked.rows[0]) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
     const [followRelation] = await db.select({ id: follows.followerId }).from(follows)
       .where(and(eq(follows.followerId, payload.id), eq(follows.followingId, profile.id))).limit(1);
 
