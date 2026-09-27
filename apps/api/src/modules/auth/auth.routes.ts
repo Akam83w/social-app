@@ -340,7 +340,7 @@ export async function authRoutes(app: FastifyInstance) {
         createdAt: users.createdAt,
       })
       .from(users)
-      .where(eq(users.username, username))
+      .where(sql`lower(${users.username}) = lower(${username})`)
       .limit(1);
 
     if (!profile) {
