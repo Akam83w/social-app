@@ -11,6 +11,7 @@ import { authRoutes } from './modules/auth/auth.routes';
 import { postsRoutes } from './modules/posts/posts.routes';
 import { messagesRoutes } from './modules/messages.routes';
 import { storiesRoutes } from './modules/stories.routes';
+import { verifyToken } from './middleware/auth.middleware';
 
 
 const realtimeClients = new Map<string, Set<any>>();
