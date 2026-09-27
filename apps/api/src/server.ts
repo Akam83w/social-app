@@ -62,7 +62,7 @@ app.post('/calls/start',{preHandler:verifyToken},async(req,reply)=>{
   const r=await db.execute(sql`INSERT INTO calls(caller_id,callee_id,kind,status) VALUES(${me},${b.toUserId},${b.video?'video':'audio'},'ringing') RETURNING id`);
   const callId=String((r.rows[0] as any).id);
   const data={callId,username:actorRow.username||'',displayName:actorRow.display_name||actorRow.username||'مستخدم',video:Boolean(b.video),url:'/call?incoming=1&callId='+encodeURIComponent(callId)};
-  await notifyUser(String(b.toUserId),'call','مكالمة واردة','@'+(actorRow.username||'مستخدم')+' يتصل بك',me,data);
+  void notifyUser(String(b.toUserId),'call','مكالمة واردة','@'+(actorRow.username||'مستخدم')+' يتصل بك',me,data).catch(()=>{});
   const timer=setTimeout(async()=>{try{
     const x=await db.execute(sql`UPDATE calls SET status='missed',ended_at=now() WHERE id=${callId} AND status='ringing' RETURNING caller_id,callee_id`);
     if(x.rows[0]){const row=x.rows[0] as any;await notifyUser(String(row.caller_id),'missed_call','مكالمة فائتة','لم يرد المستخدم على مكالمتك',String(row.callee_id),{callId});await notifyUser(String(row.callee_id),'missed_call','مكالمة فائتة','فاتتك مكالمة',String(row.caller_id),{callId});}
