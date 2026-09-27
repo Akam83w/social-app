@@ -91,6 +91,7 @@ export async function loginUser(input: LoginInput) {
     supporterExpiresAt: existingUser.supporterExpiresAt,
     verifiedAt: existingUser.verifiedAt,
     moderationStatus: existingUser.moderationStatus,
+      isPrivate: existingUser.isPrivate,
     suspendedUntil: existingUser.suspendedUntil,
     moderationStrikes: Number(existingUser.moderationStrikes || 0),
   };
