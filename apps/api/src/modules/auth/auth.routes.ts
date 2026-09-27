@@ -265,6 +265,28 @@ export async function authRoutes(app: FastifyInstance) {
     });
   });
 
+  app.get('/auth/users/:username/followers', { preHandler: verifyToken }, async (request, reply) => {
+    const { username } = request.params as { username: string };
+    const [target] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    const rows = await db.select({
+      id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl,
+    }).from(follows).innerJoin(users, eq(users.id, follows.followerId))
+      .where(eq(follows.followingId, target.id)).orderBy(desc(users.username));
+    return reply.send({ users: rows });
+  });
+
+  app.get('/auth/users/:username/following', { preHandler: verifyToken }, async (request, reply) => {
+    const { username } = request.params as { username: string };
+    const [target] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    const rows = await db.select({
+      id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl,
+    }).from(follows).innerJoin(users, eq(users.id, follows.followingId))
+      .where(eq(follows.followerId, target.id)).orderBy(desc(users.username));
+    return reply.send({ users: rows });
+  });
+
   app.get('/auth/me', { preHandler: verifyToken }, async (request, reply) => {
     const payload = request.user as { id: string; username: string };
     return reply.status(200).send({ user: payload });
