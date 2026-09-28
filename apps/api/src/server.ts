@@ -165,6 +165,9 @@ app.get('/health', async (_request, reply) => { try { const result=await db.exec
 
 const start = async () => {
  try {
+  const port=Number(process.env.PORT)||3000;
+  await app.listen({port,host:'0.0.0.0'});
+  app.log.info({port},'HTTP server started');
   await setupRealtimeAndPush();
   await db.execute(sql`CREATE TABLE IF NOT EXISTS follows (follower_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, following_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at timestamp NOT NULL DEFAULT now(), CONSTRAINT follows_pair_unique UNIQUE (follower_id, following_id))`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS follows_follower_idx ON follows(follower_id)`);
@@ -198,7 +201,6 @@ const start = async () => {
   await db.execute(sql`CREATE TABLE IF NOT EXISTS stories (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, media_url text NOT NULL, media_type varchar(20) NOT NULL, content text, created_at timestamp NOT NULL DEFAULT now(), expires_at timestamp NOT NULL)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS stories_user_expires_idx ON stories(user_id, expires_at)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS stories_expires_idx ON stories(expires_at)`);
-  const port=Number(process.env.PORT)||3000; await app.listen({port,host:'0.0.0.0'});
- }catch(err){app.log.error(err);process.exit(1)}
+ }catch(err){app.log.error(err);}
 };
 start();
