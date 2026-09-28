@@ -100,7 +100,6 @@ export default function AccountSettingsPage() {
   };
 
   if (!user) return null;
-  const API_URL = API_URL;
 
   const save = async () => {
     if (!token) return;
