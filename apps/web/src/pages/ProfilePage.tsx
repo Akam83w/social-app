@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { avatar } from "../data/stories";
 import { useAuth } from "../context/AuthContext";
-const API_URL = API_URL;
 const FOUNDER_EMAIL = 'sdmtr033@gmail.com';
 type ProfileUser={id:string;username:string;isPrivate?:boolean;email?:string|null;displayName?:string|null;bio?:string|null;avatarUrl?:string|null;createdAt?:string;supporterNumber?:string|null;supporterExpiresAt?:string|null;verifiedAt?:string|null};
 type ProfilePost={id:string;content:string|null;mediaUrl:string|null;mediaType:string|null;createdAt:string;likeCount:number};
