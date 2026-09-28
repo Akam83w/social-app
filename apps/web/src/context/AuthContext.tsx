@@ -1,4 +1,4 @@
-import { API_URL } from "./lib/api";
+import { API_URL } from "../lib/api";
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
