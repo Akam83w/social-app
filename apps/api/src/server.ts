@@ -207,3 +207,5 @@ const start = async () => {
  }catch(err){app.log.error({err},'Startup database setup failed; keeping HTTP server alive'); startupReady=false; }
 };
 start();
+
+// Deplexo redeploy trigger
