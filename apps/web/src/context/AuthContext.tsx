@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
 interface User {
@@ -90,6 +90,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const currentAccount = accounts.find((a) => a.user.id === currentUserId) || null;
+
+  useEffect(() => {
+    // Always refresh the account from the server by its immutable user ID.
+    // This keeps the same account after username, display name, phone, bio, or avatar changes.
+    const account = currentAccount;
+    if (!account?.token) return;
+
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    let cancelled = false;
+
+    void fetch(API_URL + '/auth/me', {
+      headers: { Authorization: 'Bearer ' + account.token },
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'AUTH_REFRESH_FAILED');
+        return data as { user: User; token: string };
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setAccounts((prev) => {
+          const updated = prev.map((item) =>
+            item.user.id === data.user.id
+              ? { user: data.user, token: data.token }
+              : item
+          );
+          saveAccounts(updated);
+          return updated;
+        });
+        setCurrentUserId(data.user.id);
+        localStorage.setItem('currentUserId', data.user.id);
+      })
+      .catch(() => {
+        // Keep the locally stored session if the API is temporarily unavailable.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <AuthContext.Provider
