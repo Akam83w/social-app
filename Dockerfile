@@ -3,10 +3,10 @@ FROM node:22-alpine
 WORKDIR /app
 
 COPY apps/api/package*.json ./api/
-RUN cd api && npm install
+RUN cd api && npm install --include=dev
 
 COPY apps/web/package*.json ./web/
-RUN cd web && npm install
+RUN cd web && npm install --include=dev
 
 COPY apps/api ./api
 COPY apps/web ./web
