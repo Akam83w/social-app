@@ -1,9 +1,10 @@
+import { API_URL } from "./lib/api";
 import { useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import { useAuth } from "./context/AuthContext";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 
 export default function NativePushBootstrap() {
   const { token } = useAuth();
