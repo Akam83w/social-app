@@ -1,8 +1,9 @@
+import { API_URL } from "../lib/api";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 type UserResult = { id:string; username:string; displayName:string|null; avatarUrl:string|null; isPrivate:boolean };
 type Post = { id:string; content:string|null; mediaUrl:string|null; mediaType:string|null; createdAt:string; likeCount:number; user:{username:string;displayName:string|null;avatarUrl:string|null} };
 
