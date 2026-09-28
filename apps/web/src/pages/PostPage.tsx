@@ -7,6 +7,7 @@ import {
   getPostLikeStatus,
   likePost,
   unlikePost,
+  API_URL,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
@@ -80,7 +81,7 @@ export default function PostPage() {
 
         const [postResponse, commentsResponse, likeResponse] =
           await Promise.all([
-            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/posts/${postId}`, {
+            fetch(`${API_URL}/posts/${postId}`, {
               headers: {
                 Authorization: `Bearer ${authToken}`,
               },
@@ -559,7 +560,7 @@ export default function PostPage() {
           <button type="button" onClick={async () => {
             if (!token || !id || !window.confirm("تحذف هذا المنشور؟")) return;
             try {
-              const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/posts/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+              const res = await fetch(`${API_URL}/posts/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
               if (!res.ok) throw new Error();
               navigate("/");
             } catch { setError("تعذر حذف المنشور."); }
