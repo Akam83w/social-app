@@ -68,7 +68,6 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
   }
 }
 
-let startupReady = false;
 const app = Fastify({ logger: true });
 app.decorate('notifyUser', notifyUser);
 app.register(cors, { origin: true, credentials: true });
@@ -162,13 +161,10 @@ app.setNotFoundHandler(async (request, reply) => {
 app.get('/dns-test', async (_request, reply) => { try {
   await setupRealtimeAndPush(); const net = await import('node:net'); const socket = new net.Socket(); const result = await new Promise((resolve,reject)=>{socket.setTimeout(5000);socket.connect(5432,'54.64.190.72',()=>{socket.destroy();resolve({connected:true,ip:'54.64.190.72',port:5432})});socket.on('error',reject);socket.on('timeout',()=>{socket.destroy();reject(new Error('Connection timeout'))})});return reply.status(200).send({status:'ok',addresses:result}); } catch(err:any){return reply.status(500).send({status:'error',message:err?.message||String(err),code:err?.code||null})} });
 app.get('/db-test', async (_request, reply) => { try { const original=process.env.DATABASE_URL;if(!original)throw new Error('DATABASE_URL is not configured');const url=new URL(original);url.hostname='54.64.190.72';const pool=new Pool({connectionString:url.toString(),ssl:{rejectUnauthorized:false,servername:'aws-0-ap-northeast-1.pooler.supabase.com'}});try{const result=await pool.query('SELECT 1 AS ok');return reply.status(200).send({status:'ok',database:result.rows[0]})}finally{await pool.end()} }catch(err:any){app.log.error(err);return reply.status(500).send({status:'error',message:err?.message||String(err),code:err?.code||null,detail:err?.detail||null})} });
-app.get('/health', async (_request, reply) => { if(!startupReady)return reply.status(200).send({status:'starting'}); try { const result=await db.execute(sql`SELECT 1 AS ok`);return reply.status(200).send({status:'ok',database:result.rows[0]}); }catch(err:any){app.log.error(err);return reply.status(500).send({status:'error',database:{message:err?.message||String(err),code:err?.code||null,detail:err?.detail||null,hint:err?.hint||null}})} });
+app.get('/health', async (_request, reply) => { try { const result=await db.execute(sql`SELECT 1 AS ok`);return reply.status(200).send({status:'ok',database:result.rows[0]}); }catch(err:any){app.log.error(err);return reply.status(500).send({status:'error',database:{message:err?.message||String(err),code:err?.code||null,detail:err?.detail||null,hint:err?.hint||null}})} });
 
 const start = async () => {
  try {
-  const port=Number(process.env.PORT)||3000;
-  await app.listen({port,host:'0.0.0.0'});
-  app.log.info({port},'HTTP server is listening; running startup database setup');
   await setupRealtimeAndPush();
   await db.execute(sql`CREATE TABLE IF NOT EXISTS follows (follower_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, following_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at timestamp NOT NULL DEFAULT now(), CONSTRAINT follows_pair_unique UNIQUE (follower_id, following_id))`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS follows_follower_idx ON follows(follower_id)`);
@@ -202,10 +198,7 @@ const start = async () => {
   await db.execute(sql`CREATE TABLE IF NOT EXISTS stories (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, media_url text NOT NULL, media_type varchar(20) NOT NULL, content text, created_at timestamp NOT NULL DEFAULT now(), expires_at timestamp NOT NULL)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS stories_user_expires_idx ON stories(user_id, expires_at)`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS stories_expires_idx ON stories(expires_at)`);
-  startupReady=true;
-  app.log.info('Startup database setup completed; app is ready');
- }catch(err){app.log.error({err},'Startup database setup failed; keeping HTTP server alive'); startupReady=false; }
+  const port=Number(process.env.PORT)||3000; await app.listen({port,host:'0.0.0.0'});
+ }catch(err){app.log.error(err);process.exit(1)}
 };
 start();
-
-// Deplexo redeploy trigger
