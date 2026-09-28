@@ -204,6 +204,6 @@ const start = async () => {
   await db.execute(sql`CREATE INDEX IF NOT EXISTS stories_expires_idx ON stories(expires_at)`);
   startupReady=true;
   app.log.info('Startup database setup completed; app is ready');
- }catch(err){app.log.error(err);process.exit(1)}
+ }catch(err){app.log.error({err},'Startup database setup failed; keeping HTTP server alive'); startupReady=false; }
 };
 start();
