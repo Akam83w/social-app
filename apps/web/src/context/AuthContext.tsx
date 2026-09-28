@@ -1,3 +1,4 @@
+import { API_URL } from "./lib/api";
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -97,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const account = currentAccount;
     if (!account?.token) return;
 
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    
     let cancelled = false;
 
     void fetch(API_URL + '/auth/me', {
