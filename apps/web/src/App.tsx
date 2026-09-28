@@ -1,3 +1,4 @@
+import React from "react";
 import { SearchIcon, BellIcon } from "./components/icons/Icons";
 import { Route, Routes, Navigate } from "react-router-dom";
 import "./index.css";
@@ -20,6 +21,25 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import SavedPage from "./pages/SavedPage";
 import { useAuth } from "./context/AuthContext";
 import NativePushBootstrap from "./NativePushBootstrap";
+
+function QXSplash({ onDone }: { onDone: () => void }) {
+  React.useEffect(() => {
+    const timer = window.setTimeout(onDone, 2600);
+    return () => window.clearTimeout(timer);
+  }, [onDone]);
+
+  return (
+    <div className="qx-splash" dir="rtl" aria-label="QX">
+      <div className="qx-flag" aria-hidden="true">
+        <div className="qx-flag-word">الله أكبر</div>
+      </div>
+      <div className="qx-splash-content">
+        <div className="qx-logo" aria-label="QX">QX</div>
+        <div className="qx-tagline">معًا بأيادي عراقية</div>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedApp() {
   const { isAuthenticated } = useAuth();
