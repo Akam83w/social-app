@@ -999,6 +999,43 @@ img {
   border-radius: 22px;
   box-shadow: 0 9px 40px rgba(20,25,30,.045);
 }
+.profile-topbar {
+  height: 48px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 56px;
+  border-bottom: 1px solid #eceeed;
+  background: #fff;
+}
+.profile-topbar-username {
+  max-width: 70%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+  font-weight: 700;
+  color: #171918;
+}
+.profile-menu-button {
+  position: absolute;
+  right: 10px;
+  top: 6px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #171918;
+  font-size: 28px;
+  line-height: 36px;
+  text-align: center;
+  cursor: pointer;
+}
+.profile-menu-button:active {
+  opacity: .55;
+}
 .profile-cover {
   height: 115px;
   background: linear-gradient(135deg, #dfe8e5, #f4f5f5);
