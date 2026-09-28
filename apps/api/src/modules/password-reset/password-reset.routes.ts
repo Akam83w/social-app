@@ -31,7 +31,7 @@ export async function passwordResetRoutes(app: FastifyInstance) {
 
       if (result.code) {
         app.log.info(
-          { email: parsed.data.email, code: result.code },
+          { email: parsed.data.email },
           'Password reset code generated'
         );
       }
