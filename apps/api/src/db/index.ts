@@ -4,29 +4,15 @@ import * as schema from './schema';
 
 const databaseUrl = process.env.DATABASE_URL;
 
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL is not configured');
-}
-
-const url = new URL(databaseUrl);
-
-const isSupabasePooler =
-  url.hostname === 'aws-0-ap-northeast-1.pooler.supabase.com';
-
-if (isSupabasePooler) {
-  url.hostname = '54.64.190.72';
-}
+// Keep the HTTP process bootable even when the database environment variable
+// is missing. Database operations will fail normally until DATABASE_URL is set.
+const url = databaseUrl ? new URL(databaseUrl) : null;
 
 const pool = new Pool({
-  connectionString: url.toString(),
-  ssl: isSupabasePooler
-    ? {
-        rejectUnauthorized: false,
-        servername: 'aws-0-ap-northeast-1.pooler.supabase.com',
-      }
-    : {
-        rejectUnauthorized: false,
-      },
+  connectionString: url?.toString(),
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 export const db = drizzle(pool, { schema });
