@@ -1,7 +1,11 @@
 node_modules/
 dist/
 .env
+.env.*
+!.env.example
 *.log
 android/app/build/
 android/.gradle/
 android/local.properties
+apps/web/android/app/google-services.json
+**/google-services.json
