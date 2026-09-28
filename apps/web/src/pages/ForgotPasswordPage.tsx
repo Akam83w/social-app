@@ -2,7 +2,6 @@ import { API_URL } from "../lib/api";
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = API_URL;
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
