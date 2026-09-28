@@ -409,7 +409,26 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   app.get('/auth/me', { preHandler: verifyToken }, async (request, reply) => {
-    const payload = request.user as { id: string; username: string };
-    return reply.status(200).send({ user: payload });
+    const payload = request.user as { id: string };
+    const [user] = await db.select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      phone: users.phone,
+      displayName: users.displayName,
+      bio: users.bio,
+      avatarUrl: users.avatarUrl,
+      supporterNumber: users.supporterNumber,
+      supporterExpiresAt: users.supporterExpiresAt,
+      verifiedAt: users.verifiedAt,
+      isPrivate: users.isPrivate,
+    }).from(users).where(eq(users.id, payload.id)).limit(1);
+
+    if (!user) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+
+    // The user ID is immutable, so a username/name change never creates a new local account.
+    // Re-issue the token with the current username so old JWT data cannot linger.
+    const token = app.jwt.sign({ id: user.id, username: user.username });
+    return reply.status(200).send({ user, token });
   });
 }
