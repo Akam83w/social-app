@@ -2,18 +2,25 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY apps/api/package*.json ./api/
-RUN cd api && npm install
+# Copy package files
+COPY package*.json ./
+COPY apps/api/package*.json ./apps/api/
+COPY apps/web/package*.json ./apps/web/
 
-COPY apps/web/package*.json ./web/
-RUN cd web && npm install
+# Install dependencies
+RUN npm install --legacy-peer-deps
+RUN cd apps/api && npm install --legacy-peer-deps
+RUN cd apps/web && npm install --legacy-peer-deps
 
-COPY apps/api ./api
-COPY apps/web ./web
+# Copy source code
+COPY . .
 
-RUN cd api && npm run build
-RUN cd web && npm run build
+# Build both apps
+RUN cd apps/api && npm run build
+RUN cd apps/web && npm run build
 
+# Expose port
 EXPOSE 3000
 
-CMD ["node", "api/dist/server.js"]
+# Start the API server
+CMD ["node", "apps/api/dist/server.js"]
