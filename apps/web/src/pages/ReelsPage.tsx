@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { HeartIcon, CommentIcon, SendIcon, BookmarkIcon } from "../components/icons/Icons";
-import { apiRequest, createComment, getPostComments, likePost, unlikePost , API_URL} from "../lib/api";
+import { apiRequest, createComment, getPostComments, likePost, unlikePost, API_URL } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
 type BadgeUser = {
@@ -13,7 +13,6 @@ type Reel = {
 };
 type Comment = { id:string; parentCommentId:string|null; content:string; createdAt:string; user:BadgeUser; };
 
-const API_URL = API_URL;
 
 function BadgeName({ user }: { user: BadgeUser }) {
   const supporter = Boolean(user.supporterNumber && user.supporterExpiresAt && new Date(user.supporterExpiresAt).getTime() > Date.now());
