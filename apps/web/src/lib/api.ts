@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? window.location.origin : 'http://localhost:3000');
 
 export async function registerUser(data: {
   username: string;
@@ -112,7 +112,7 @@ export async function deleteComment(commentId: string, token: string) {
 }
 
 
-export function connectRealtime(token:string,onEvent:(event:any)=>void){const API_URL=import.meta.env.VITE_API_URL||'http://localhost:3000';const es=new EventSource(API_URL+'/realtime?token='+encodeURIComponent(token));es.onmessage=e=>{try{const data=JSON.parse(e.data);if(data.type==='ready')return;onEvent(data)}catch{}};return()=>es.close()}
+export function connectRealtime(token:string,onEvent:(event:any)=>void){const baseUrl=API_URL;const es=new EventSource(baseUrl+'/realtime?token='+encodeURIComponent(token));es.onmessage=e=>{try{const data=JSON.parse(e.data);if(data.type==='ready')return;onEvent(data)}catch{}};return()=>es.close()}
 export function startCall(token:string,toUserId:string,video:boolean){return apiRequest('/calls/start',token,{method:'POST',body:JSON.stringify({toUserId,video})})}
 export function getCall(token:string,callId:string){return apiRequest('/calls/'+encodeURIComponent(callId),token)}
 export function acceptCall(token:string,callId:string){return apiRequest('/calls/'+encodeURIComponent(callId)+'/accept',token,{method:'POST'})}
