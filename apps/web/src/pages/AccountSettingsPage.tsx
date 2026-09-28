@@ -123,7 +123,7 @@ export default function AccountSettingsPage() {
   };
 
   const go = (id: Section) => { setMessage(''); setDetail(null); setSection(id); };
-  const openDetail = (id: Exclude<Detail, null>) => { setMessage(''); setDetail(id); };
+  const openDetail = (id: Exclude<Detail, null>) => { setMessage(''); setDetail(id); if (id === 'blocked') void loadBlockedUsers(); };
 
   const back = () => {
     if (detail) { setDetail(null); return; }
