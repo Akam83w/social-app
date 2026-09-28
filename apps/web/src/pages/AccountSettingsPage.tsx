@@ -35,6 +35,8 @@ export default function AccountSettingsPage() {
   const [messageNotifications, setMessageNotifications] = useState(true);
   const [followRequests, setFollowRequests] = useState<Array<{id:string;username:string;displayName:string|null;avatarUrl:string|null;createdAt:string}>>([]);
   const [followRequestsLoading, setFollowRequestsLoading] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState<Array<{id:string;username:string;displayName:string|null;avatarUrl:string|null;createdAt:string}>>([]);
+  const [blockedLoading, setBlockedLoading] = useState(false);
 
   const loadFollowRequests = async () => {
     if (!token) return;
@@ -48,6 +50,37 @@ export default function AccountSettingsPage() {
       setFollowRequests([]);
     } finally {
       setFollowRequestsLoading(false);
+    }
+  };
+
+  const loadBlockedUsers = async () => {
+    if (!token) return;
+    setBlockedLoading(true);
+    try {
+      const r = await fetch(API_URL + '/auth/blocked', { headers: { Authorization: 'Bearer ' + token } });
+      const d = await r.json();
+      if (!r.ok) throw new Error();
+      setBlockedUsers(d.users ?? []);
+    } catch {
+      setBlockedUsers([]);
+      setMessage('تعذر تحميل الحسابات المحظورة.');
+    } finally {
+      setBlockedLoading(false);
+    }
+  };
+
+  const unblockUser = async (username: string) => {
+    if (!token) return;
+    try {
+      const r = await fetch(API_URL + '/auth/users/' + encodeURIComponent(username) + '/block', {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer ' + token },
+      });
+      if (!r.ok) throw new Error();
+      setBlockedUsers(prev => prev.filter(item => item.username !== username));
+      setMessage('تم إلغاء الحظر.');
+    } catch {
+      setMessage('تعذر إلغاء الحظر.');
     }
   };
 
@@ -182,7 +215,10 @@ export default function AccountSettingsPage() {
           {detail === 'twoFactor' && <div className="settings-info">المصادقة الثنائية تحتاج إعدادات خادم ومفاتيح تحقق قبل تفعيلها بشكل آمن. الواجهة جاهزة للتوسع لاحقاً.</div>}
           {detail === 'privateAccount' && <><div className="settings-switch-row"><div><strong>الحساب الخاص</strong><small>السماح للمتابعين المقبولين فقط برؤية منشوراتك.</small></div><button type="button" className={privateAccount ? 'settings-switch on' : 'settings-switch'} onClick={async () => { if (!token) return; const next=!privateAccount; setPrivateAccount(next); setMessage(''); try { const r=await fetch(API_URL+'/auth/privacy',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({isPrivate:next})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'تعذر حفظ الخصوصية'); login(d.user,token); setMessage('تم حفظ إعداد الخصوصية.'); } catch(e) { setPrivateAccount(!next); setMessage(e instanceof Error?e.message:'تعذر حفظ إعداد الخصوصية'); } }} aria-pressed={privateAccount}><span /></button></div><div className="settings-info">الحساب الخاص يمنع غير المتابعين المقبولين من رؤية منشوراتك وقوائم المتابعين والمتابَعين.</div>{message&&<p className="settings-message">{message}</p>}</>}
           {detail === 'messagePrivacy' && <div className="settings-options"><button type="button"><span>💬<strong>من يستطيع مراسلتي</strong><small>حالياً: المستخدمون القادرون على بدء محادثة</small></span><b>›</b></button><div className="settings-info">خيارات قبول الرسائل تحتاج ربطاً بسياسة رسائل في الخادم.</div></div>}
-          {detail === 'blocked' && <div className="settings-info">لا توجد قائمة حظر مرتبطة بهذا القسم حالياً. عند إضافة الحظر من الخادم ستظهر الحسابات هنا.</div>}
+          {detail === 'blocked' && <div className="settings-detail">
+            {blockedLoading ? <p className="settings-info">جاري تحميل الحسابات المحظورة...</p> : blockedUsers.length === 0 ? <p className="settings-info">ماكو حسابات محظورة حالياً.</p> : <div className="settings-options">{blockedUsers.map(item => <div key={item.id} className="settings-switch-row"><div style={{display:'flex',alignItems:'center',gap:10}}><img src={item.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username)}`} alt="" style={{width:42,height:42,borderRadius:'50%',objectFit:'cover'}}/><span><strong>{item.displayName || item.username}</strong><small>@{item.username}</small></span></div><button type="button" className="settings-save" onClick={() => void unblockUser(item.username)}>إلغاء الحظر</button></div>)}</div>}
+            {!blockedLoading && <button type="button" className="settings-save" onClick={() => void loadBlockedUsers()}>تحديث القائمة</button>}
+          </div>
           {detail === 'likesComments' && <div className="settings-switch-row"><div><strong>الإعجابات والتعليقات</strong><small>إظهار تنبيهات الإعجاب والتعليق.</small></div><button type="button" className={likesComments ? 'settings-switch on' : 'settings-switch'} onClick={() => setLikesComments(v => !v)} aria-pressed={likesComments}><span /></button></div>}
           {detail === 'followers' && <div className="settings-detail">
             <div className="settings-switch-row"><div><strong>المتابعون</strong><small>إظهار تنبيهات المتابعة وطلبات المتابعة.</small></div><button type="button" className={followers ? 'settings-switch on' : 'settings-switch'} onClick={() => setFollowers(v => !v)} aria-pressed={followers}><span /></button></div>
