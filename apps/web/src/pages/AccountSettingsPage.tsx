@@ -1,3 +1,4 @@
+import { API_URL } from "../lib/api";
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -99,7 +100,7 @@ export default function AccountSettingsPage() {
   };
 
   if (!user) return null;
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const API_URL = API_URL;
 
   const save = async () => {
     if (!token) return;
