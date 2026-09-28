@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser } from '../lib/api';
+import { loginUser, API_URL } from "../lib/api";
 import { useAuth } from '../context/AuthContext';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
