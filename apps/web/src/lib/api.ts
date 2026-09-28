@@ -118,4 +118,4 @@ export function getCall(token:string,callId:string){return apiRequest('/calls/'+
 export function acceptCall(token:string,callId:string){return apiRequest('/calls/'+encodeURIComponent(callId)+'/accept',token,{method:'POST'})}
 export function rejectCall(token:string,callId:string){return apiRequest('/calls/'+encodeURIComponent(callId)+'/reject',token,{method:'POST'})}
 export function endCall(token:string,callId:string){return apiRequest('/calls/'+encodeURIComponent(callId)+'/end',token,{method:'POST'})}
-export function sendSignal(token:string,toUserId:string,kind:string,payload:unknown){const API_URL=import.meta.env.VITE_API_URL||'http://localhost:3000';return fetch(API_URL+'/calls/signal',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({toUserId,kind,payload})})}
+export function sendSignal(token:string,toUserId:string,kind:string,payload:unknown){return fetch(API_URL+'/calls/signal',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({toUserId,kind,payload})})}
