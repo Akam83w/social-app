@@ -29,14 +29,7 @@ export async function authRoutes(app: FastifyInstance) {
         return reply.status(409).send({ error: 'USERNAME_TAKEN' });
       }
       app.log.error(err);
-      return reply.status(500).send({
-        error: 'INTERNAL_ERROR',
-        debug: {
-          message: err instanceof Error ? err.message : String(err),
-          name: err instanceof Error ? err.name : typeof err,
-          cause: err instanceof Error && err.cause ? String(err.cause) : undefined,
-        },
-      });
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
   });
 
