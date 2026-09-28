@@ -2,18 +2,16 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy apps package files only (no root package.json exists)
 COPY apps/api/package*.json ./apps/api/
 COPY apps/web/package*.json ./apps/web/
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
+# Install dependencies for both apps with legacy peer deps support
 RUN cd apps/api && npm install --legacy-peer-deps
 RUN cd apps/web && npm install --legacy-peer-deps
 
-# Copy source code
-COPY . .
+# Copy full source code
+COPY apps ./apps
 
 # Build both apps
 RUN cd apps/api && npm run build
