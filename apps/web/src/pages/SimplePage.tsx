@@ -1,10 +1,11 @@
+import { API_URL } from "../lib/api";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "../context/AuthContext";
 
 type SimplePageProps = { title: string; description: string; icon: ReactNode; };
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
 type ReelPost = { id:string; content:string|null; mediaUrl:string|null; mediaType:string|null; likeCount:number; user:{id:string;username:string;displayName:string|null;avatarUrl:string|null} };
 type Story = {id:string;media_url:string;media_type:string;content:string|null;created_at:string;expires_at:string;user_id:string;username:string;display_name:string|null;avatar_url:string|null};
 
