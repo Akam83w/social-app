@@ -8,6 +8,7 @@ import webpush from 'web-push';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging, type Messaging } from 'firebase-admin/messaging';
 import { db } from './db';
+import { ensureAuthSchema } from './db/ensure-auth-schema';
 import { authRoutes } from './modules/auth/auth.routes';
 import { postsRoutes } from './modules/posts/posts.routes';
 import { messagesRoutes } from './modules/messages.routes';
@@ -160,6 +161,7 @@ app.get('/health', async (_request, reply) => { try { const result=await db.exec
 
 const start = async () => {
  try {
+  await ensureAuthSchema();
   const port=Number(process.env.PORT)||3000;
   await app.listen({port,host:'0.0.0.0'});
   app.log.info({port},'HTTP server started');
