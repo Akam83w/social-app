@@ -1895,3 +1895,7 @@ img {
 .profile-instagram-stats>div strong{display:block!important;visibility:visible!important;opacity:1!important;font-size:18px!important;font-weight:800!important;line-height:1.2!important;color:#171918!important}
 .profile-instagram-stats>div span{display:block!important;visibility:visible!important;opacity:1!important;font-size:12px!important;font-weight:600!important;line-height:1.2!important;color:#6d7471!important}
 @media(max-width:480px){.profile-instagram-stats{min-height:68px!important;padding:10px 6px!important}.profile-instagram-stats>div strong{font-size:17px!important}.profile-instagram-stats>div span{font-size:11px!important}}
+
+/* Profile edit button spacing */
+.profile-edit-own{margin-top:20px!important;position:relative;z-index:2!important;white-space:nowrap!important}
+@media(max-width:480px){.profile-edit-own{margin-top:20px!important}}
