@@ -352,6 +352,7 @@ export async function authRoutes(app: FastifyInstance) {
         content: posts.content,
         mediaUrl: posts.mediaUrl,
         mediaType: posts.mediaType,
+        mediaPoster: posts.mediaPoster,
         createdAt: posts.createdAt,
         likeCount: sql<number>`count(${likes.id})::int`,
       })
