@@ -1912,6 +1912,15 @@ img {
 .profile-instagram-stats{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:19!important;clear:both!important;min-height:72px!important}
 .profile-instagram-stats>div{display:flex!important;visibility:visible!important;opacity:1!important}
 
+/* FIX: profile header wrapper must occupy its content height.
+   The profile header is rendered inside .profile-cover; height:0 caused
+   the stats section to overlap and hide the upper part of other profiles. */
+.profile-cover{
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+}
+
 /* FINAL PROFILE REDESIGN — one clean social profile, no stacked pages */
 .profile-page-card{
   width:100%!important;max-width:680px!important;margin:0 auto!important;padding:0!important;
