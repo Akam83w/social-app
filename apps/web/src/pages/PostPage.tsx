@@ -585,7 +585,7 @@ export default function PostPage() {
         {post.mediaUrl && (
           <div style={{ marginTop: 16 }}>
             {post.mediaType === "video" ? (
-              <VideoPlayer src={post.mediaUrl} poster={undefined} />
+              <VideoPlayer src={post.mediaUrl} poster={post.mediaPoster} />
             ) : (
               <img src={post.mediaUrl} alt="" style={{ width: "100%", borderRadius: 14, display: "block" }} />
             )}
