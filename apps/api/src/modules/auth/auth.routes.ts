@@ -141,6 +141,28 @@ export async function authRoutes(app: FastifyInstance) {
     }
   });
 
+  const requireFounder = async (request: any, reply: any) => {
+    const requester = request.user as { id: string };
+    const [owner] = await db.select({ email: users.email }).from(users).where(eq(users.id, requester.id)).limit(1);
+    if (!owner || owner.email?.trim().toLowerCase() !== 'sdmtr033@gmail.com') {
+      return reply.status(403).send({ error: 'FOUNDER_ONLY' });
+    }
+  };
+
+  app.post('/auth/users/:username/verify', { preHandler: [verifyToken, requireFounder] }, async (request, reply) => {
+    const { username } = request.params as { username: string };
+    const [target] = await db.update(users).set({ verifiedAt: new Date(), updatedAt: new Date() }).where(sql`lower(${users.username}) = lower(${username})`).returning({ id: users.id, username: users.username, verifiedAt: users.verifiedAt });
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    return reply.send({ user: target, verified: true });
+  });
+
+  app.delete('/auth/users/:username/verify', { preHandler: [verifyToken, requireFounder] }, async (request, reply) => {
+    const { username } = request.params as { username: string };
+    const [target] = await db.update(users).set({ verifiedAt: null, updatedAt: new Date() }).where(sql`lower(${users.username}) = lower(${username})`).returning({ id: users.id, username: users.username, verifiedAt: users.verifiedAt });
+    if (!target) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    return reply.send({ user: target, verified: false });
+  });
+
   app.patch('/auth/avatar', { preHandler: verifyToken }, async (request, reply) => {
     const payload = request.user as { id: string; username: string };
     const body = request.body as { avatarUrl?: unknown };
