@@ -17,9 +17,7 @@ export async function videoRoutes(app: FastifyInstance) {
     if (!part || !part.mimetype.startsWith('video/')) {
       return reply.status(400).send({ error: 'VIDEO_REQUIRED' });
     }
-    const contentField = part.fields?.content;
-    const contentValue = Array.isArray(contentField) ? contentField[0]?.value : contentField?.value;
-    const content = String(contentValue || '').trim().slice(0, 5000);
+    const content = getTextFieldValue(part.fields?.content).trim().slice(0, 5000);
     const tempPath = path.join(os.tmpdir(), `sdm-upload-${cryptoRandom()}.video`);
     try {
       await pipeline(part.file, fs.createWriteStream(tempPath));
@@ -43,9 +41,7 @@ export async function videoRoutes(app: FastifyInstance) {
     const userId = (request.user as { id: string }).id;
     const part = await request.file();
     if (!part || !part.mimetype.startsWith('video/')) return reply.status(400).send({ error: 'VIDEO_REQUIRED' });
-    const contentField = part.fields?.content;
-    const contentValue = Array.isArray(contentField) ? contentField[0]?.value : contentField?.value;
-    const content = String(contentValue || '').trim().slice(0, 500);
+    const content = getTextFieldValue(part.fields?.content).trim().slice(0, 500);
     const tempPath = path.join(os.tmpdir(), `sdm-story-${cryptoRandom()}.video`);
     try {
       await pipeline(part.file, fs.createWriteStream(tempPath));
@@ -63,6 +59,18 @@ export async function videoRoutes(app: FastifyInstance) {
       await fsPromises.rm(tempPath, { force: true }).catch(() => {});
     }
   });
+}
+
+function getTextFieldValue(field: unknown): string {
+  if (Array.isArray(field)) {
+    const first = field[0];
+    return getTextFieldValue(first);
+  }
+  if (field && typeof field === 'object' && 'value' in field) {
+    const value = (field as { value?: unknown }).value;
+    return typeof value === 'string' ? value : '';
+  }
+  return '';
 }
 
 function cryptoRandom() {
