@@ -25,7 +25,7 @@ export async function storiesRoutes(app:FastifyInstance){
   if(!auth && accept.includes('text/html')) return reply.type('text/html').sendFile('index.html');
   try{await verifyToken(request,reply)}catch{return} if(reply.sent)return;
   const me=(request.user as {id:string}).id;
-  const r=await db.execute(sql`SELECT s.id,s.media_url,s.media_type,s.content,s.created_at,s.expires_at,u.id AS user_id,u.username,u.display_name,u.avatar_url FROM stories s JOIN users u ON u.id=s.user_id WHERE s.expires_at>now() AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${me} AND b.blocked_id=s.user_id) OR (b.blocker_id=s.user_id AND b.blocked_id=${me})) ORDER BY s.created_at DESC LIMIT 30`);
+  const r=await db.execute(sql`SELECT s.id,s.media_url,s.media_type,s.media_poster,s.content,s.created_at,s.expires_at,u.id AS user_id,u.username,u.display_name,u.avatar_url FROM stories s JOIN users u ON u.id=s.user_id WHERE s.expires_at>now() AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${me} AND b.blocked_id=s.user_id) OR (b.blocker_id=s.user_id AND b.blocked_id=${me})) ORDER BY s.created_at DESC LIMIT 30`);
   return {stories:r.rows};
  });
 }
