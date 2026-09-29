@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
+import multipart from '@fastify/multipart';
 import path from 'path';
 import { sql } from 'drizzle-orm';
 import webpush from 'web-push';
@@ -15,6 +16,7 @@ import { messagesRoutes } from './modules/messages.routes';
 import { storiesRoutes } from './modules/stories.routes';
 import { passwordResetRoutes } from './modules/password-reset/password-reset.routes';
 import { verifyToken } from './middleware/auth.middleware';
+import { videoRoutes } from './modules/video.routes';
 
 
 const realtimeClients = new Map<string, Set<any>>();
@@ -70,6 +72,7 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
 const app = Fastify({ logger: true });
 app.decorate('notifyUser', notifyUser);
 app.register(cors, { origin: true, credentials: true });
+app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
 app.register(jwt, { secret: process.env.JWT_SECRET || 'change_this_to_a_long_random_string_later' });
 app.register(fastifyStatic, { root: path.resolve(process.cwd(), process.cwd() === '/app' ? 'web/dist' : '../web/dist'), prefix: '/' });
 app.post('/moderation/appeal', async (request, reply) => {
@@ -88,6 +91,7 @@ app.post('/moderation/appeal', async (request, reply) => {
 
 app.register(authRoutes);
 app.register(postsRoutes);
+app.register(videoRoutes);
 app.register(messagesRoutes);
 app.register(storiesRoutes);
 app.register(passwordResetRoutes);
