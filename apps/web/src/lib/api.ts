@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 
-const API_URL = import.meta.env.VITE_API_URL || (Capacitor.isNativePlatform() ? 'https://lush-topaz-3759.de.deplexo.com' : (import.meta.env.PROD ? window.location.origin : 'http://localhost:3000'));
+const API_URL = Capacitor.isNativePlatform() ? (import.meta.env.VITE_API_URL || 'https://lush-topaz-3759.de.deplexo.com') : (import.meta.env.PROD ? window.location.origin : (import.meta.env.VITE_API_URL || 'http://localhost:3000'));
 
 export { API_URL };
 
