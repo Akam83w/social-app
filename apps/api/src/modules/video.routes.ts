@@ -17,7 +17,9 @@ export async function videoRoutes(app: FastifyInstance) {
     if (!part || !part.mimetype.startsWith('video/')) {
       return reply.status(400).send({ error: 'VIDEO_REQUIRED' });
     }
-    const content = String(part.fields?.content?.value || '').trim().slice(0, 5000);
+    const contentField = part.fields?.content;
+    const contentValue = Array.isArray(contentField) ? contentField[0]?.value : contentField?.value;
+    const content = String(contentValue || '').trim().slice(0, 5000);
     const tempPath = path.join(os.tmpdir(), `sdm-upload-${cryptoRandom()}.video`);
     try {
       await pipeline(part.file, fs.createWriteStream(tempPath));
@@ -41,7 +43,9 @@ export async function videoRoutes(app: FastifyInstance) {
     const userId = (request.user as { id: string }).id;
     const part = await request.file();
     if (!part || !part.mimetype.startsWith('video/')) return reply.status(400).send({ error: 'VIDEO_REQUIRED' });
-    const content = String(part.fields?.content?.value || '').trim().slice(0, 500);
+    const contentField = part.fields?.content;
+    const contentValue = Array.isArray(contentField) ? contentField[0]?.value : contentField?.value;
+    const content = String(contentValue || '').trim().slice(0, 500);
     const tempPath = path.join(os.tmpdir(), `sdm-story-${cryptoRandom()}.video`);
     try {
       await pipeline(part.file, fs.createWriteStream(tempPath));
