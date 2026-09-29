@@ -1911,3 +1911,84 @@ img {
 .profile-action-row .profile-edit-own{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;margin:20px auto 0!important;padding:10px 22px!important;min-height:40px!important;background:#f7f7f7!important;color:#111!important;border:1px solid #d8d8d8!important;border-radius:9px!important;font-size:13px!important;font-weight:800!important}
 .profile-instagram-stats{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:19!important;clear:both!important;min-height:72px!important}
 .profile-instagram-stats>div{display:flex!important;visibility:visible!important;opacity:1!important}
+
+/* FINAL PROFILE REDESIGN — one clean social profile, no stacked pages */
+.profile-page-card{
+  width:100%!important;max-width:680px!important;margin:0 auto!important;padding:0!important;
+  background:#fff!important;border:0!important;border-radius:0!important;box-shadow:none!important;
+  overflow:hidden!important;
+}
+.profile-cover{
+  background:#fff!important;border:0!important;padding:0!important;margin:0!important;
+}
+.profile-main{
+  display:flex!important;align-items:flex-start!important;gap:16px!important;
+  padding:22px 20px 12px!important;min-height:0!important;background:#fff!important;
+}
+.profile-avatar-wrap{flex:0 0 auto!important;width:88px!important;height:88px!important}
+.profile-avatar{width:88px!important;height:88px!important;border-radius:50%!important;border:3px solid #fff!important;box-shadow:0 1px 5px rgba(0,0,0,.12)!important}
+.profile-identity{min-width:0!important;flex:1!important;padding:3px 0 0!important}
+.profile-name-line{margin:0!important;font-size:21px!important;line-height:1.25!important;font-weight:800!important}
+.profile-username{margin:3px 0 0!important;color:#6b7075!important;font-size:14px!important}
+.profile-badge-row{margin-top:8px!important;gap:6px!important}
+.profile-badge{font-size:11px!important;padding:4px 8px!important;border-radius:999px!important}
+.profile-bio{margin:9px 0 0!important;font-size:14px!important;line-height:1.55!important;color:#303438!important}
+.profile-instagram-stats{
+  display:flex!important;align-items:center!important;justify-content:space-around!important;
+  width:100%!important;min-height:70px!important;padding:5px 10px!important;
+  border-top:1px solid #eef0f2!important;border-bottom:1px solid #eef0f2!important;
+  background:#fff!important;box-sizing:border-box!important;
+}
+.profile-instagram-stats>div{
+  flex:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;
+  justify-content:center!important;gap:2px!important;cursor:pointer!important;
+}
+.profile-instagram-stats strong{font-size:17px!important;line-height:1.2!important;color:#111!important}
+.profile-instagram-stats span{font-size:12px!important;color:#70757a!important}
+.profile-action-row{
+  display:flex!important;justify-content:center!important;align-items:center!important;
+  width:100%!important;padding:12px 16px!important;background:#fff!important;
+  border-bottom:1px solid #eef0f2!important;box-sizing:border-box!important;
+}
+.profile-action-row>.profile-edit-own{
+  width:100%!important;max-width:360px!important;margin:0!important;height:40px!important;
+  padding:0 18px!important;border:1px solid #d5d8db!important;border-radius:9px!important;
+  background:#fff!important;color:#17191b!important;font-size:13px!important;font-weight:800!important;
+}
+.profile-action-row>.profile-actions{display:flex!important;width:100%!important;max-width:420px!important;gap:8px!important}
+.profile-action-row>.profile-actions .profile-edit{
+  flex:1!important;height:40px!important;margin:0!important;border-radius:9px!important;
+  background:#111!important;color:#fff!important;border:0!important;font-weight:800!important;
+}
+.profile-posts-title{
+  height:48px!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  margin:0!important;padding:0!important;background:#fff!important;border:0!important;
+  border-bottom:1px solid #dfe2e5!important;font-size:13px!important;font-weight:800!important;
+  position:relative!important;color:#111!important;
+}
+.profile-posts-title:after{
+  content:"";position:absolute;bottom:-1px;left:25%;width:50%;height:2px;background:#111;border-radius:2px;
+}
+.profile-posts{
+  display:flex!important;flex-direction:column!important;gap:0!important;
+  padding:0!important;margin:0!important;background:#fff!important;border:0!important;
+}
+.profile-post{
+  width:100%!important;margin:0!important;border:0!important;border-bottom:1px solid #eceef0!important;
+  border-radius:0!important;background:#fff!important;overflow:hidden!important;
+}
+.profile-post img,.profile-post video{display:block!important;width:100%!important;max-height:680px!important;object-fit:cover!important}
+.profile-post>p{padding:12px 16px!important;margin:0!important;font-size:14px!important;line-height:1.6!important}
+.profile-post>span{display:block!important;padding:0 16px 12px!important;font-size:12px!important;color:#6b7075!important}
+.profile-empty{padding:50px 20px!important;text-align:center!important;color:#777!important}
+.profile-more-button{top:14px!important;inset-inline-end:14px!important;width:36px!important;height:36px!important;border-radius:50%!important}
+.profile-camera{width:30px!important;height:30px!important;border-radius:50%!important}
+@media(max-width:600px){
+  .feed-container{padding:0!important;margin:0!important}
+  .profile-page-card{max-width:none!important}
+  .profile-main{padding:18px 15px 12px!important;gap:13px!important}
+  .profile-avatar-wrap,.profile-avatar{width:78px!important;height:78px!important}
+  .profile-name-line{font-size:19px!important}
+  .profile-instagram-stats{min-height:64px!important}
+  .profile-instagram-stats strong{font-size:16px!important}
+}
