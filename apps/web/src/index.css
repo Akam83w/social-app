@@ -2001,3 +2001,89 @@ img {
   .profile-instagram-stats{min-height:64px!important}
   .profile-instagram-stats strong{font-size:16px!important}
 }
+
+
+/* DIJLA FOUNDER PROFILE — premium identity */
+.founder-profile-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid rgba(7,137,104,.28) !important;
+  background: linear-gradient(180deg,#f2fffb 0%,#ffffff 42%,#ffffff 100%) !important;
+  box-shadow: 0 18px 55px rgba(7,137,104,.13), 0 2px 8px rgba(0,0,0,.04) !important;
+}
+.founder-profile-card::before {
+  content:"";
+  position:absolute;
+  width:260px;
+  height:260px;
+  top:-150px;
+  right:-80px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(94,232,205,.28),rgba(94,232,205,0) 68%);
+  pointer-events:none;
+  z-index:-1;
+}
+.founder-profile-card .profile-cover {
+  height:155px !important;
+  min-height:155px !important;
+  overflow:hidden !important;
+  background:
+    radial-gradient(circle at 82% 25%,rgba(255,255,255,.32),transparent 18%),
+    radial-gradient(circle at 18% 75%,rgba(77,230,197,.24),transparent 24%),
+    linear-gradient(135deg,#031f1b 0%,#064d41 38%,#078968 72%,#69dfc5 100%) !important;
+}
+.founder-profile-card .profile-cover::after {
+  content:"";
+  position:absolute;
+  inset:-80px;
+  background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.16) 48%,transparent 61%);
+  transform:translateX(-35%);
+  animation:founder-cover-shine 5s ease-in-out infinite;
+  pointer-events:none;
+}
+.founder-profile-card .profile-main { position:relative; z-index:2; }
+.founder-profile-card .profile-avatar-wrap {
+  padding:5px !important;
+  background:linear-gradient(135deg,#fff,#bff9eb 48%,#078968) !important;
+  box-shadow:0 0 0 3px rgba(255,255,255,.9),0 8px 30px rgba(0,76,61,.28) !important;
+}
+.founder-profile-card .profile-avatar {
+  border:3px solid #fff !important;
+}
+.founder-profile-card .profile-name-line > span:first-child {
+  color:#064f40 !important;
+  text-shadow:0 1px 0 #fff;
+}
+.founder-profile-card .profile-username { color:#16836d !important; }
+.founder-profile-card .profile-badge-founder {
+  background:linear-gradient(135deg,#032d25,#078968) !important;
+  color:#fff !important;
+  border-color:transparent !important;
+  box-shadow:0 5px 14px rgba(7,137,104,.2);
+}
+.founder-profile-card .verified-badge.real-verified {
+  box-shadow:0 0 0 3px rgba(255,255,255,.72),0 3px 12px rgba(24,119,242,.3);
+}
+.founder-profile-card .profile-instagram-stats {
+  margin-inline:12px;
+  border:1px solid rgba(7,137,104,.12);
+  border-radius:16px;
+  background:rgba(246,255,252,.9);
+  box-shadow:0 6px 22px rgba(7,137,104,.06);
+}
+.founder-profile-card .profile-action-row { position:relative; z-index:3; }
+.founder-profile-card .profile-edit-own {
+  background:linear-gradient(135deg,#063d33,#078968) !important;
+  color:#fff !important;
+  border-color:transparent !important;
+  box-shadow:0 8px 20px rgba(7,137,104,.2);
+}
+@keyframes founder-cover-shine {
+  0%,55% { transform:translateX(-45%); opacity:0; }
+  68% { opacity:1; }
+  82%,100% { transform:translateX(45%); opacity:0; }
+}
+@media(max-width:480px){
+  .founder-profile-card .profile-cover { height:125px !important; min-height:125px !important; }
+}
