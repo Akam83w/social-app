@@ -57,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="topbar-inner">
           <Link to="/" className="brand">
             <span className="brand-mark">ع</span>
-            <span>إنستعراق</span>
+            <span>دجلة سوشيال</span>
           </Link>
 
           <div className="top-actions">
