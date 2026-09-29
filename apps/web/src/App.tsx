@@ -1,6 +1,6 @@
 import React from "react";
 import { SearchIcon, BellIcon } from "./components/icons/Icons";
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import "./index.css";
 import "./social-features.css";
 import Layout from "./components/layout/Layout";
@@ -41,6 +41,27 @@ function QXSplash({ onDone }: { onDone: () => void }) {
   );
 }
 
+function PersistentTabs() {
+  const location = useLocation();
+  const path = location.pathname;
+  const visible = (target: string) => path === target || (target === "/profile" && path === "/profile");
+  const style = (target: string): React.CSSProperties => ({
+    display: visible(target) ? "block" : "none",
+  });
+
+  return (
+    <>
+      <div style={style("/") }><HomePage /></div>
+      <div style={style("/explore")}><ExplorePage /></div>
+      <div style={style("/reels")}><ReelsPage /></div>
+      <div style={style("/messages")}><MessagesPage /></div>
+      <div style={style("/notifications")}><NotificationsLivePage /></div>
+      <div style={style("/saved")}><SavedPage /></div>
+      <div style={style("/profile")}><ProfilePage /></div>
+    </>
+  );
+}
+
 function ProtectedApp() {
   const { isAuthenticated } = useAuth();
 
@@ -50,14 +71,9 @@ function ProtectedApp() {
 
   return (
     <Layout>
+      <PersistentTabs />
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/explore" element={<ExplorePage />} />
-        <Route path="/reels" element={<ReelsPage />} />
-        <Route path="/messages" element={<MessagesPage />} />
         <Route path="/call" element={<CallPage />} />
-        <Route path="/notifications" element={<NotificationsLivePage />} />
-        <Route path="/saved" element={<SavedPage />} />
         <Route path="/create" element={<CreatePostPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/create-story" element={<CreateStoryPage />} />
@@ -81,7 +97,6 @@ function ProtectedApp() {
             />
           }
         />
-        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/hashtag/:tag" element={<HashtagPage />} />
         <Route path="/profile/settings" element={<AccountSettingsPage />} />
         <Route path="/u/:username" element={<ProfilePage />} />
