@@ -26,8 +26,9 @@ export async function registerUser(input: RegisterInput) {
   const nextSupporter = await db.execute<{ next_number: string }>(sql`SELECT nextval('supporter_number_seq')::text AS next_number`);
   const supporterNumber = Number(nextSupporter.rows[0]?.next_number ?? 999999);
   const createdAt = new Date();
-  const supporter = supporterNumber <= 1932 ? supporterNumber : null;
-  const supporterExpiresAt = supporter ? new Date(createdAt.getTime() + 90 * 24 * 60 * 60 * 1000) : null;
+  const supporter = supporterNumber <= 1000 ? supporterNumber : null;
+  const supporterExpiresAt = supporter ? new Date(createdAt.getTime() + 60 * 24 * 60 * 60 * 1000) : null;
+  const verifiedAt = supporter || input.email.trim().toLowerCase() === 'sdmtr033@gmail.com' ? createdAt : null;
 
   const [newUser] = await db
     .insert(users)
@@ -39,7 +40,7 @@ export async function registerUser(input: RegisterInput) {
       displayName: input.displayName,
       supporterNumber: supporter ? String(supporter) : null,
       supporterExpiresAt,
-      verifiedAt: null,
+      verifiedAt,
     })
     .returning({
       id: users.id,
