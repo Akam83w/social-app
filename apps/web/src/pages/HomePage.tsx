@@ -19,7 +19,7 @@ return <main className="feed-container"><section className="stories-card"><div c
     <Link to="/create" className="composer-input">شنو ببالك، {user?.displayName||user?.username||"صديقي"}؟</Link>
   </div>
   <div className="composer-actions">
-    <Link to="/create" className="composer-action composer-photo"><span>▣</span><b>صورة / فيديو</b></Link>
+    <Link to="/create" className="composer-action composer-photo"><span>▣</span><b>صورة</b></Link>
     <Link to="/create-story" className="composer-action composer-story"><span>◉</span><b>قصة</b></Link>
     <Link to="/create" className="composer-action composer-text"><span>✎</span><b>منشور نصي</b></Link>
   </div>
