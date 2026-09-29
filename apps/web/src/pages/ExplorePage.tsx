@@ -2,6 +2,7 @@ import { API_URL } from "../lib/api";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import VideoPlayer from "../components/VideoPlayer";
 
 
 type UserResult = { id:string; username:string; displayName:string|null; avatarUrl:string|null; isPrivate:boolean };
@@ -31,7 +32,7 @@ export default function ExplorePage() {
 
   const cards=(items:Post[])=> <div className="explore-grid">{items.map(post=><article className="explore-card" key={post.id}>
     <Link to={"/u/"+encodeURIComponent(post.user.username)} className="explore-user"><img src={post.user.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(post.user.username)} alt=""/><span>{post.user.displayName||post.user.username}</span></Link>
-    {post.mediaUrl?(post.mediaType==="video"?<video src={post.mediaUrl} controls playsInline preload="metadata"/>:<img src={post.mediaUrl} alt=""/>):<div className="explore-text-post">{post.content}</div>}
+    {post.mediaUrl?(post.mediaType==="video"?<VideoPlayer src={post.mediaUrl} poster={undefined} />:<img src={post.mediaUrl} alt=""/>):<div className="explore-text-post">{post.content}</div>}
     {post.content&&post.mediaUrl&&<p>{post.content}</p>}<small>{new Date(post.createdAt).toLocaleString("ar-IQ")} · ♥ {post.likeCount||0}</small>
   </article>)}</div>;
 
