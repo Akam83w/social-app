@@ -1905,3 +1905,9 @@ img {
 .profile-action-row>.profile-edit-own{display:block!important;width:min(100%,340px)!important;margin:20px auto 0!important;text-align:center!important;visibility:visible!important;opacity:1!important}
 .profile-action-row>.profile-actions{display:flex!important;gap:10px!important;width:100%!important}
 .profile-action-row>.profile-actions .profile-edit{flex:1!important}
+
+/* FINAL FORCE: profile controls must be visible */
+.profile-action-row{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:20!important;clear:both!important;min-height:62px!important}
+.profile-action-row .profile-edit-own{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;margin:20px auto 0!important;padding:10px 22px!important;min-height:40px!important;background:#f7f7f7!important;color:#111!important;border:1px solid #d8d8d8!important;border-radius:9px!important;font-size:13px!important;font-weight:800!important}
+.profile-instagram-stats{display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:19!important;clear:both!important;min-height:72px!important}
+.profile-instagram-stats>div{display:flex!important;visibility:visible!important;opacity:1!important}
