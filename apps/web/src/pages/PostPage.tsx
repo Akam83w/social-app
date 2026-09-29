@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
 import VideoPlayer from "../components/VideoPlayer";
+import {
   createComment,
   deleteComment,
   getPostComments,
