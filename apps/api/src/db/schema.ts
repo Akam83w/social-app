@@ -30,6 +30,7 @@ export const posts = pgTable(
     content: text('content'),
     mediaUrl: text('media_url'),
     mediaType: varchar('media_type', { length: 20 }),
+    mediaPoster: text('media_poster'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
