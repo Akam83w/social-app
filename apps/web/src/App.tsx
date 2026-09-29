@@ -24,7 +24,7 @@ import NativePushBootstrap from "./NativePushBootstrap";
 
 function QXSplash({ onDone }: { onDone: () => void }) {
   React.useEffect(() => {
-    const timer = window.setTimeout(onDone, 2600);
+    const timer = window.setTimeout(onDone, 650);
     return () => window.clearTimeout(timer);
   }, [onDone]);
 
