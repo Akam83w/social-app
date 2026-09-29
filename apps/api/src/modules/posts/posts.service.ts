@@ -33,6 +33,7 @@ export async function getPosts(currentUserId?: string, limit = 20, cursor?: stri
       content: posts.content,
       mediaUrl: posts.mediaUrl,
       mediaType: posts.mediaType,
+      mediaPoster: posts.mediaPoster,
       createdAt: posts.createdAt,
       updatedAt: posts.updatedAt,
       user: {
