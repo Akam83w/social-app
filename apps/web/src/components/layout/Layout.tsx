@@ -142,11 +142,6 @@ export default function Layout({ children }: LayoutProps) {
             <span>إنشاء منشور</span>
           </Link>
 
-          <div className="sidebar-footer">
-            <span>إنستعراق</span>
-            <span>•</span>
-            <span>نسخة تجريبية</span>
-          </div>
         </aside>
 
         {children}
