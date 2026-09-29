@@ -1887,3 +1887,9 @@ img {
 .profile-stats>button span{display:block!important;color:#707875!important;font-size:11px;font-weight:650;line-height:1.2}
 .profile-private-notice{padding:14px 16px;color:#707875;background:#fff;border-top:1px solid #eef1ef;font-size:12px;line-height:1.7}
 .profile-posts-title{display:block!important;visibility:visible!important;color:#222725!important}
+
+/* Instagram-like profile stats */
+.profile-instagram-stats{width:100%!important;display:flex;align-items:center;justify-content:space-around;gap:8px;padding:14px 12px 12px;margin:0;border-top:1px solid #f0f1f2;border-bottom:1px solid #f0f1f2;background:#fff;box-sizing:border-box}
+.profile-instagram-stats>button{flex:1;min-width:0;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:2px 6px!important;border:0!important;background:transparent!important;color:#262626!important;font:inherit!important;line-height:1.2!important}
+.profile-instagram-stats>button strong{display:block!important;font-size:17px!important;font-weight:800!important;color:#171918!important}
+.profile-instagram-stats>button span{display:block!important;font-size:12px!important;font-weight:600!important;color:#6d7471!important}
