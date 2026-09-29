@@ -44,15 +44,23 @@ function QXSplash({ onDone }: { onDone: () => void }) {
 function PersistentTabs() {
   const location = useLocation();
   const path = location.pathname;
-  const [visited, setVisited] = React.useState<string[]>(() => {
-    const initial = ["/", "/explore", "/reels", "/messages", "/notifications", "/saved", "/profile"];
-    return initial.includes(path) ? [path] : [];
-  });
+  const tabs = ["/", "/explore", "/reels", "/messages", "/notifications", "/saved", "/profile"];
+  const [visited, setVisited] = React.useState<string[]>(() => tabs.includes(path) ? [path] : []);
+  const scrollPositions = React.useRef<Record<string, number>>({});
+  const previousPath = React.useRef(path);
 
   React.useEffect(() => {
-    const tabs = ["/", "/explore", "/reels", "/messages", "/notifications", "/saved", "/profile"];
     if (tabs.includes(path)) {
       setVisited((current) => current.includes(path) ? current : [...current, path]);
+
+      const from = previousPath.current;
+      if (tabs.includes(from)) {
+        scrollPositions.current[from] = window.scrollY;
+      }
+      previousPath.current = path;
+
+      const savedY = scrollPositions.current[path] ?? 0;
+      window.requestAnimationFrame(() => window.scrollTo(0, savedY));
     }
   }, [path]);
 
@@ -72,6 +80,21 @@ function PersistentTabs() {
   );
 }
 
+function RouteScrollReset() {
+  const { pathname } = useLocation();
+  const previousPath = React.useRef(pathname);
+
+  React.useEffect(() => {
+    const persistentTabs = ["/", "/explore", "/reels", "/messages", "/notifications", "/saved", "/profile"];
+    if (!persistentTabs.includes(pathname)) {
+      window.scrollTo(0, 0);
+    }
+    previousPath.current = pathname;
+  }, [pathname]);
+
+  return null;
+}
+
 function ProtectedApp() {
   const { isAuthenticated } = useAuth();
 
@@ -81,6 +104,7 @@ function ProtectedApp() {
 
   return (
     <Layout>
+      <RouteScrollReset />
       <PersistentTabs />
       <Routes>
         <Route path="/call" element={<CallPage />} />
