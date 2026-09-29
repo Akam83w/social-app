@@ -324,7 +324,7 @@ export default function PostPage() {
                   color: "#111",
                 }}
               >
-                <span className={comment.user.supporterNumber && comment.user.supporterExpiresAt && new Date(comment.user.supporterExpiresAt).getTime() > Date.now() ? "supporter-name" : ""}>{comment.user.displayName || comment.user.username}</span>{comment.user.verifiedAt&&<span className="real-verified" title="حساب موثّق">✓</span>}
+                <span className={comment.user.supporterNumber && comment.user.supporterExpiresAt && new Date(comment.user.supporterExpiresAt).getTime() > Date.now() ? "supporter-name" : ""}>{comment.user.displayName || comment.user.username}</span>{comment.user.verifiedAt&&(comment.user.isFounder||(comment.user.supporterNumber&&comment.user.supporterExpiresAt&&new Date(comment.user.supporterExpiresAt).getTime()>Date.now()))&&<span className="real-verified" title="حساب موثّق">✓</span>}
               </Link>
 
               <div
@@ -543,7 +543,7 @@ export default function PostPage() {
               textDecoration: "none",
             }}
           >
-            <span className={post.user.supporterNumber&&post.user.supporterExpiresAt&&new Date(post.user.supporterExpiresAt).getTime()>Date.now()?"supporter-name":""}>{post.user.displayName||post.user.username}</span>{post.user.verifiedAt&&<span className="real-verified" title="حساب موثّق">✓</span>}
+            <span className={post.user.supporterNumber&&post.user.supporterExpiresAt&&new Date(post.user.supporterExpiresAt).getTime()>Date.now()?"supporter-name":""}>{post.user.displayName||post.user.username}</span>{post.user.verifiedAt&&(post.user.isFounder||(post.user.supporterNumber&&post.user.supporterExpiresAt&&new Date(post.user.supporterExpiresAt).getTime()>Date.now()))&&<span className="real-verified" title="حساب موثّق">✓</span>}
           </Link>
 
           <div
