@@ -23,4 +23,7 @@ export async function ensureAuthSchema() {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_private boolean NOT NULL DEFAULT false`);
   await db.execute(sql`UPDATE users SET supporter_expires_at = created_at + interval '60 days', verified_at = COALESCE(verified_at, created_at) WHERE supporter_number IS NOT NULL AND supporter_number::int BETWEEN 1 AND 1000`);
   await db.execute(sql`UPDATE users SET verified_at = COALESCE(verified_at, now()) WHERE lower(email) = lower('sdmtr033@gmail.com')`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS posts_feed_cursor_idx ON posts (created_at DESC, id DESC)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS posts_video_cursor_idx ON posts (media_type, created_at DESC, id DESC)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS posts_user_created_idx ON posts (user_id, created_at DESC, id DESC)`);
 }
