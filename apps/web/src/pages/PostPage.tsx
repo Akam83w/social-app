@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+import VideoPlayer from "../components/VideoPlayer";
   createComment,
   deleteComment,
   getPostComments,
@@ -15,7 +16,7 @@ type Post = {
   id: string;
   content: string | null;
   mediaUrl: string | null;
-  mediaType: string | null;
+  mediaType: string | null; mediaPoster?: string | null;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -584,7 +585,7 @@ export default function PostPage() {
         {post.mediaUrl && (
           <div style={{ marginTop: 16 }}>
             {post.mediaType === "video" ? (
-              <video src={post.mediaUrl} controls playsInline preload="metadata" style={{ width: "100%", maxHeight: 680, borderRadius: 14, display: "block", background: "#111" }} />
+              <VideoPlayer src={post.mediaUrl} poster={undefined} />
             ) : (
               <img src={post.mediaUrl} alt="" style={{ width: "100%", borderRadius: 14, display: "block" }} />
             )}
