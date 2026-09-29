@@ -1888,8 +1888,10 @@ img {
 .profile-private-notice{padding:14px 16px;color:#707875;background:#fff;border-top:1px solid #eef1ef;font-size:12px;line-height:1.7}
 .profile-posts-title{display:block!important;visibility:visible!important;color:#222725!important}
 
-/* Instagram-like profile stats */
-.profile-instagram-stats{width:100%!important;display:flex;align-items:center;justify-content:space-around;gap:8px;padding:14px 12px 12px;margin:0;border-top:1px solid #f0f1f2;border-bottom:1px solid #f0f1f2;background:#fff;box-sizing:border-box}
-.profile-instagram-stats>button{flex:1;min-width:0;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:2px 6px!important;border:0!important;background:transparent!important;color:#262626!important;font:inherit!important;line-height:1.2!important}
-.profile-instagram-stats>button strong{display:block!important;font-size:17px!important;font-weight:800!important;color:#171918!important}
-.profile-instagram-stats>button span{display:block!important;font-size:12px!important;font-weight:600!important;color:#6d7471!important}
+/* Profile stats: always visible in a dedicated Instagram-like row */
+.profile-instagram-stats{width:100%!important;min-height:72px!important;display:flex!important;align-items:center!important;justify-content:space-around!important;gap:8px!important;padding:12px 10px!important;margin:0!important;border-top:1px solid #eeeeee!important;border-bottom:1px solid #eeeeee!important;background:#ffffff!important;box-sizing:border-box!important;visibility:visible!important;opacity:1!important}
+.profile-instagram-stats[hidden]{display:none!important}
+.profile-instagram-stats>div{flex:1 1 0!important;min-width:0!important;min-height:48px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:3px!important;padding:4px 8px!important;background:#ffffff!important;color:#171918!important;cursor:pointer!important;box-sizing:border-box!important}
+.profile-instagram-stats>div strong{display:block!important;visibility:visible!important;opacity:1!important;font-size:18px!important;font-weight:800!important;line-height:1.2!important;color:#171918!important}
+.profile-instagram-stats>div span{display:block!important;visibility:visible!important;opacity:1!important;font-size:12px!important;font-weight:600!important;line-height:1.2!important;color:#6d7471!important}
+@media(max-width:480px){.profile-instagram-stats{min-height:68px!important;padding:10px 6px!important}.profile-instagram-stats>div strong{font-size:17px!important}.profile-instagram-stats>div span{font-size:11px!important}}
