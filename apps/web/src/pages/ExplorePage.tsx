@@ -6,7 +6,7 @@ import VideoPlayer from "../components/VideoPlayer";
 
 
 type UserResult = { id:string; username:string; displayName:string|null; avatarUrl:string|null; isPrivate:boolean };
-type Post = { id:string; content:string|null; mediaUrl:string|null; mediaType:string|null; createdAt:string; likeCount:number; user:{username:string;displayName:string|null;avatarUrl:string|null} };
+type Post = { id:string; content:string|null; mediaUrl:string|null; mediaType:string|null; mediaPoster?:string|null; createdAt:string; likeCount:number; user:{username:string;displayName:string|null;avatarUrl:string|null} };
 
 export default function ExplorePage() {
   const { token } = useAuth();
