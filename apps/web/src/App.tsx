@@ -44,20 +44,30 @@ function QXSplash({ onDone }: { onDone: () => void }) {
 function PersistentTabs() {
   const location = useLocation();
   const path = location.pathname;
-  const visible = (target: string) => path === target || (target === "/profile" && path === "/profile");
-  const style = (target: string): React.CSSProperties => ({
-    display: visible(target) ? "block" : "none",
+  const [visited, setVisited] = React.useState<string[]>(() => {
+    const initial = ["/", "/explore", "/reels", "/messages", "/notifications", "/saved", "/profile"];
+    return initial.includes(path) ? [path] : [];
   });
+
+  React.useEffect(() => {
+    const tabs = ["/", "/explore", "/reels", "/messages", "/notifications", "/saved", "/profile"];
+    if (tabs.includes(path)) {
+      setVisited((current) => current.includes(path) ? current : [...current, path]);
+    }
+  }, [path]);
+
+  const isVisited = (target: string) => visited.includes(target);
+  const isVisible = (target: string) => path === target;
 
   return (
     <>
-      <div style={style("/") }><HomePage /></div>
-      <div style={style("/explore")}><ExplorePage /></div>
-      <div style={style("/reels")}><ReelsPage /></div>
-      <div style={style("/messages")}><MessagesPage /></div>
-      <div style={style("/notifications")}><NotificationsLivePage /></div>
-      <div style={style("/saved")}><SavedPage /></div>
-      <div style={style("/profile")}><ProfilePage /></div>
+      {isVisited("/") && <div style={{display:isVisible("/") ? "block" : "none"}}><HomePage /></div>}
+      {isVisited("/explore") && <div style={{display:isVisible("/explore") ? "block" : "none"}}><ExplorePage /></div>}
+      {isVisited("/reels") && <div style={{display:isVisible("/reels") ? "block" : "none"}}><ReelsPage /></div>}
+      {isVisited("/messages") && <div style={{display:isVisible("/messages") ? "block" : "none"}}><MessagesPage /></div>}
+      {isVisited("/notifications") && <div style={{display:isVisible("/notifications") ? "block" : "none"}}><NotificationsLivePage /></div>}
+      {isVisited("/saved") && <div style={{display:isVisible("/saved") ? "block" : "none"}}><SavedPage /></div>}
+      {isVisited("/profile") && <div style={{display:isVisible("/profile") ? "block" : "none"}}><ProfilePage /></div>}
     </>
   );
 }
