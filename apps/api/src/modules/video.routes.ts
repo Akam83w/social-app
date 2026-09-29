@@ -37,6 +37,59 @@ export async function videoRoutes(app: FastifyInstance) {
       await fsPromises.rm(tempPath, { force: true }).catch(() => {});
     }
   });
+
+  app.get('/reels', { preHandler: verifyToken }, async (request, reply) => {
+    try {
+      const userId = (request.user as { id: string }).id;
+      const query = request.query as { limit?: string; cursor?: string };
+      const requestedLimit = Number(query.limit || 10);
+      const limit = Math.min(Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 10, 1), 20);
+      const cursorParts = query.cursor?.split('__') ?? [];
+      const cursorDate = cursorParts[0] ? new Date(cursorParts[0]) : null;
+      const cursorId = cursorParts[1] || null;
+      const cursorCondition = cursorDate && !Number.isNaN(cursorDate.getTime())
+        ? cursorId
+          ? sql`(${posts.createdAt} < ${cursorDate} OR (${posts.createdAt} = ${cursorDate} AND ${posts.id} < ${cursorId}))`
+          : sql`${posts.createdAt} < ${cursorDate}`
+        : sql`true`;
+
+      const rows = await db.select({
+        id: posts.id,
+        content: posts.content,
+        mediaUrl: posts.mediaUrl,
+        mediaType: posts.mediaType,
+        mediaPoster: posts.mediaPoster,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
+        user: {
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          supporterNumber: users.supporterNumber,
+          supporterExpiresAt: users.supporterExpiresAt,
+          verifiedAt: users.verifiedAt,
+        },
+        likeCount: sql<number>`(SELECT count(*)::int FROM likes WHERE likes.post_id = ${posts.id})`,
+        likedByMe: sql<boolean>`EXISTS (SELECT 1 FROM likes WHERE likes.post_id = ${posts.id} AND likes.user_id = ${userId})`,
+      })
+        .from(posts)
+        .innerJoin(users, sql`${posts.userId} = ${users.id}`)
+        .where(sql`${cursorCondition} AND ${posts.mediaType} = 'video' AND (${users.isPrivate} = false OR ${users.id} = ${userId} OR EXISTS (SELECT 1 FROM follows f WHERE f.follower_id=${userId} AND f.following_id=${users.id} AND f.status='accepted')) AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${userId} AND b.blocked_id=${posts.userId}) OR (b.blocker_id=${posts.userId} AND b.blocked_id=${userId}))`)
+        .orderBy(sql`${posts.createdAt} DESC`, sql`${posts.id} DESC`)
+        .limit(limit);
+
+      const last = rows[rows.length - 1];
+      return reply.send({
+        reels: rows,
+        nextCursor: rows.length === limit && last ? `${last.createdAt}__${last.id}` : null,
+      });
+    } catch (error) {
+      app.log.error(error);
+      return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
   app.post('/stories/video', { preHandler: verifyToken }, async (request, reply) => {
     const userId = (request.user as { id: string }).id;
     const part = await request.file();
