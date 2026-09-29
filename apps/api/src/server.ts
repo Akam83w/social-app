@@ -159,10 +159,7 @@ app.setNotFoundHandler(async (request, reply) => {
   return reply.status(404).send({ error: 'NOT_FOUND' });
 });
 
-app.get('/dns-test', async (_request, reply) => { try {
-  await setupRealtimeAndPush(); const net = await import('node:net'); const socket = new net.Socket(); const result = await new Promise((resolve,reject)=>{socket.setTimeout(5000);socket.connect(5432,'54.64.190.72',()=>{socket.destroy();resolve({connected:true,ip:'54.64.190.72',port:5432})});socket.on('error',reject);socket.on('timeout',()=>{socket.destroy();reject(new Error('Connection timeout'))})});return reply.status(200).send({status:'ok',addresses:result}); } catch(err:any){return reply.status(500).send({status:'error',message:err?.message||String(err),code:err?.code||null})} });
-app.get('/db-test', async (_request, reply) => { try { const original=process.env.DATABASE_URL;if(!original)throw new Error('DATABASE_URL is not configured');const url=new URL(original);url.hostname='54.64.190.72';const pool=new Pool({connectionString:url.toString(),ssl:{rejectUnauthorized:false,servername:'aws-0-ap-northeast-1.pooler.supabase.com'}});try{const result=await pool.query('SELECT 1 AS ok');return reply.status(200).send({status:'ok',database:result.rows[0]})}finally{await pool.end()} }catch(err:any){app.log.error(err);return reply.status(500).send({status:'error',message:err?.message||String(err),code:err?.code||null,detail:err?.detail||null})} });
-app.get('/health', async (_request, reply) => { if(!startupReady)return reply.status(200).send({status:'starting'}); try { const result=await db.execute(sql`SELECT 1 AS ok`);return reply.status(200).send({status:'ok',database:result.rows[0]}); }catch(err:any){app.log.error(err);return reply.status(500).send({status:'error',database:{message:err?.message||String(err),code:err?.code||null,detail:err?.detail||null,hint:err?.hint||null}})} });
+app.get('/health', async (_request, reply) => { if(!startupReady)return reply.status(200).send({status:'starting'}); try { const result=await db.execute(sql`SELECT 1 AS ok`);return reply.status(200).send({status:'ok',database:result.rows[0]}); }catch(err:any){app.log.error(err);return reply.status(503).send({status:'error'})} });
 
 const start = async () => {
  try {
