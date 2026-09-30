@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
 import multipart from '@fastify/multipart';
+import compress from '@fastify/compress';
 import path from 'path';
 import { sql } from 'drizzle-orm';
 import webpush from 'web-push';
@@ -72,6 +73,7 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
 const app = Fastify({ logger: true });
 app.decorate('notifyUser', notifyUser);
 app.register(cors, { origin: true, credentials: true });
+app.register(compress, { global: true, encodings: ['br', 'gzip'] });
 app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
 app.register(jwt, { secret: process.env.JWT_SECRET || 'change_this_to_a_long_random_string_later' });
 app.register(fastifyStatic, { root: path.resolve(process.cwd(), process.cwd() === '/app' ? 'web/dist' : '../web/dist'), prefix: '/' });
