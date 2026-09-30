@@ -28,7 +28,7 @@ export default function CreateStoryPage(){
     try{
       if(video){
         const form=new FormData(); form.append("content",text.trim()); form.append("file",video,video.name);
-        setVideoProgress(0); setVideoStage("جاري رفع الفيديو من الهاتف إلى السيرفر...");
+        setVideoProgress(0); setVideoStage("جاري رفع الفيديو مباشرة إلى التخزين الآمن...");
         await uploadVideo("/stories/video",token,form,setVideoProgress,()=>setVideoStage("تم رفع الملف، جاري معالجة الفيديو وإنشاء الجودات..."));
       }else{
         await apiRequest("/stories",token,{method:"POST",body:JSON.stringify({mediaUrl:url,mediaType:"image",content:text.trim()||undefined})});
