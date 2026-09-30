@@ -50,3 +50,19 @@ export function endCall(token: string, callId: string) { return apiRequest('/cal
 export function sendSignal(token: string, toUserId: string, kind: string, payload: unknown) {
   return fetch(API_URL + '/calls/signal', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ toUserId, kind, payload }) });
 }
+
+
+const CACHE_PREFIX = 'dijla-cache:';
+export const readCache = <T,>(key: string, maxAgeMs = 5 * 60 * 1000): T | null => {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const item = JSON.parse(raw) as { savedAt: number; data: T };
+    if (!item || typeof item.savedAt !== 'number' || Date.now() - item.savedAt > maxAgeMs) return null;
+    return item.data ?? null;
+  } catch { return null; }
+};
+export const writeCache = <T,>(key: string, data: T) => {
+  try { localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ savedAt: Date.now(), data })); } catch {}
+};
+export const removeCache = (key: string) => { try { localStorage.removeItem(CACHE_PREFIX + key); } catch {} };
