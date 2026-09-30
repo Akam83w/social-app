@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiRequest } from "../lib/api";
+import { apiRequest, readCache, writeCache } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 
