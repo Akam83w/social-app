@@ -1,3 +1,4 @@
+import OptimizedImage from "../components/OptimizedImage";
 import { API_URL, readCache, writeCache } from "../lib/api";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -31,8 +32,8 @@ export default function ExplorePage() {
   }
 
   const cards=(items:Post[])=> <div className="explore-grid">{items.map(post=><article className="explore-card" key={post.id}>
-    <Link to={"/u/"+encodeURIComponent(post.user.username)} className="explore-user"><img src={post.user.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(post.user.username)} alt=""/><span>{post.user.displayName||post.user.username}</span></Link>
-    {post.mediaUrl?(post.mediaType==="video"?<VideoPlayer src={post.mediaUrl} poster={post.mediaPoster} />:<img src={post.mediaUrl} alt=""/>):<div className="explore-text-post">{post.content}</div>}
+    <Link to={"/u/"+encodeURIComponent(post.user.username)} className="explore-user"><OptimizedImage src={post.user.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(post.user.username)} alt=""/><span>{post.user.displayName||post.user.username}</span></Link>
+    {post.mediaUrl?(post.mediaType==="video"?<VideoPlayer src={post.mediaUrl} poster={post.mediaPoster} />:<OptimizedImage src={post.mediaUrl} alt=""/>):<div className="explore-text-post">{post.content}</div>}
     {post.content&&post.mediaUrl&&<p>{post.content}</p>}<small>{new Date(post.createdAt).toLocaleString("ar-IQ")} · ♥ {post.likeCount||0}</small>
   </article>)}</div>;
 
@@ -41,7 +42,7 @@ export default function ExplorePage() {
     <form className="explore-search" onSubmit={search}><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={mode==="users"?"اسم المستخدم أو الاسم":"#الهاشتاق"}/><button type="submit" disabled={searching||!query.trim()}>{searching?"جاري...":"بحث"}</button></form>
     <div className="explore-tabs"><button className={mode==="users"?"active":""} onClick={()=>setMode("users")} type="button">مستخدمون</button><button className={mode==="hashtag"?"active":""} onClick={()=>setMode("hashtag")} type="button">هاشتاق</button></div>
     {error&&<p className="search-error">{error}</p>}
-    {mode==="users"&&users.length>0&&<div className="explore-users">{users.map(u=><Link to={"/u/"+encodeURIComponent(u.username)} className="explore-user-row" key={u.id}><img src={u.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(u.username)} alt=""/><div><strong>{u.displayName||u.username}</strong><span>@{u.username}{u.isPrivate?" · 🔒 خاص":""}</span></div></Link>)}</div>}
+    {mode==="users"&&users.length>0&&<div className="explore-users">{users.map(u=><Link to={"/u/"+encodeURIComponent(u.username)} className="explore-user-row" key={u.id}><OptimizedImage src={u.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(u.username)} alt=""/><div><strong>{u.displayName||u.username}</strong><span>@{u.username}{u.isPrivate?" · 🔒 خاص":""}</span></div></Link>)}</div>}
     {mode==="hashtag"&&posts.length>0&&cards(posts)}
     {!searching&&mode==="users"&&query.trim()&&!users.length&&!error&&<p className="explore-empty">ماكو مستخدمين مطابقين.</p>}
     {!searching&&mode==="hashtag"&&query.trim()&&!posts.length&&!error&&<p className="explore-empty">ماكو منشورات بهذا الهاشتاق.</p>}
