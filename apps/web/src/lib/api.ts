@@ -18,6 +18,39 @@ export async function loginUser(data: { identifier: string; password: string }) 
   return json;
 }
 
+export function uploadVideo(
+  path: string,
+  token: string,
+  form: FormData,
+  onProgress?: (percent: number) => void,
+  onUploadComplete?: () => void,
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_URL}${path}`);
+    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.upload.onprogress = event => {
+      if (event.lengthComputable) {
+        onProgress?.(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      }
+    };
+    xhr.upload.onload = () => onUploadComplete?.();
+    xhr.onerror = () => reject(new Error('VIDEO_NETWORK_ERROR'));
+    xhr.onabort = () => reject(new Error('VIDEO_UPLOAD_ABORTED'));
+    xhr.onload = () => {
+      const text = xhr.responseText || '';
+      let json: any = {};
+      try { json = text ? JSON.parse(text) : {}; } catch { reject(new Error('VIDEO_API_INVALID_RESPONSE')); return; }
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(json.error || 'VIDEO_PROCESSING_FAILED'));
+        return;
+      }
+      resolve(json);
+    };
+    xhr.send(form);
+  });
+}
+
 const inflight = new Map<string, Promise<unknown>>();
 
 export async function apiRequest(path: string, token: string | null, options: RequestInit = {}) {
