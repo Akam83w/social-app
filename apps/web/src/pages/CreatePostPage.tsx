@@ -1,4 +1,17 @@
 import OptimizedImage from "../components/OptimizedImage";
+
+async function compressImage(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("IMAGE_PROCESSING_FAILED");
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return canvas.toDataURL("image/webp", 0.82);
+}
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -42,10 +55,7 @@ export default function CreatePostPage() {
     setVideoFile(null);
     if (videoPreview) URL.revokeObjectURL(videoPreview);
     setVideoPreview("");
-    const reader = new FileReader();
-    reader.onload = () => { setMediaUrl(String(reader.result)); setError(""); };
-    reader.onerror = () => setError("تعذر قراءة الصورة");
-    reader.readAsDataURL(file);
+    compressImage(file).then(url => { setMediaUrl(url); setError(""); }).catch(() => setError("تعذر ضغط الصورة"));
   }
 
   function clearMedia() {
