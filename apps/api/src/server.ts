@@ -20,6 +20,20 @@ import { verifyToken } from './middleware/auth.middleware';
 import { videoRoutes } from './modules/video.routes';
 
 
+const performanceRate = new Map<string, { count: number; resetAt: number }>();
+
+function allowPerformanceSample(ip: string) {
+  const now = Date.now();
+  const current = performanceRate.get(ip);
+  if (!current || current.resetAt <= now) {
+    performanceRate.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (current.count >= 30) return false;
+  current.count += 1;
+  return true;
+}
+
 const realtimeClients = new Map<string, Set<any>>();
 const callTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let vapidPublicKey = '';
@@ -97,6 +111,17 @@ app.register(videoRoutes);
 app.register(messagesRoutes);
 app.register(storiesRoutes);
 app.register(passwordResetRoutes);
+
+app.post('/performance', async (request, reply) => {
+  if (!allowPerformanceSample(request.ip)) return reply.status(204).send();
+  const body = request.body as any;
+  const name = String(body?.name || '').slice(0, 20);
+  const value = Number(body?.value);
+  const path = String(body?.path || '').slice(0, 200);
+  if (!name || !Number.isFinite(value) || value < 0 || value > 120_000) return reply.status(204).send();
+  request.log.info({ metric: name, value: Math.round(value * 100) / 100, path, connection: String(body?.connection || '').slice(0, 20) }, 'performance_metric');
+  return reply.status(204).send();
+});
 
 app.get('/notifications/config',{preHandler:verifyToken},async(_req,reply)=>reply.send({publicKey:vapidPublicKey}));
 app.get('/notifications',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const r=await db.execute(sql`SELECT id,type,title,body,data,read_at,created_at FROM notifications WHERE user_id=${me} ORDER BY created_at DESC LIMIT 50`);return reply.send({notifications:r.rows});});
