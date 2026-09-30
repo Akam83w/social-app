@@ -131,7 +131,7 @@ function uploadTusChunk(
   signature: string,
   chunk: Blob,
   offset: number,
-  total: number,
+  _total: number,
   onProgress: (uploaded: number) => void,
 ): Promise<number> {
   return new Promise((resolve, reject) => {
