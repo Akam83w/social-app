@@ -50,6 +50,19 @@ async function uploadFile(client: SupabaseClient, localPath: string, remotePath:
   return client.storage.from(BUCKET).getPublicUrl(remotePath).data.publicUrl;
 }
 
+export async function uploadOriginalVideo(inputPath: string, ownerId: string, contentType: string, extension = 'mp4') {
+  await ensureBucket();
+  const id = crypto.randomUUID();
+  const remotePath = `videos/${ownerId}/originals/${id}.${extension.replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'mp4'}`;
+  const mediaUrl = await uploadFile(getStorageClient(), inputPath, remotePath, contentType || 'video/mp4');
+  return { mediaUrl, remotePath };
+}
+
+export async function removeStorageFile(remotePath: string) {
+  const { error } = await getStorageClient().storage.from(BUCKET).remove([remotePath]);
+  if (error) throw error;
+}
+
 export async function processVideo(inputPath: string, ownerId: string) {
   const stat = await fs.stat(inputPath);
   if (stat.size > MAX_VIDEO_BYTES) throw new Error('VIDEO_TOO_LARGE');
