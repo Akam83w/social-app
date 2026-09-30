@@ -18,14 +18,37 @@ export async function loginUser(data: { identifier: string; password: string }) 
   return json;
 }
 
+const inflight = new Map<string, Promise<unknown>>();
+
 export async function apiRequest(path: string, token: string | null, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
   if (options.body) headers.set('Content-Type', 'application/json');
   if (token) headers.set('Authorization', `Bearer ${token}`);
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'REQUEST_FAILED');
-  return json;
+  const method = (options.method || 'GET').toUpperCase();
+  const key = method === 'GET' ? method + ':' + path + ':' + (token || '') : '';
+  if (key && inflight.has(key)) return inflight.get(key);
+
+  const request = (async () => {
+    const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    const text = await res.text();
+    let json: any = {};
+    try { json = text ? JSON.parse(text) : {}; } catch { throw new Error('INVALID_SERVER_RESPONSE'); }
+    if (!res.ok) throw new Error(json.error || 'REQUEST_FAILED');
+    return json;
+  })();
+
+  if (!key) return request;
+  inflight.set(key, request);
+  try { return await request; } finally { inflight.delete(key); }
+}
+
+export function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || location.protocol !== 'https:') return;
+  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(reg => {
+    const schedule = () => reg.sync?.register('sdm-refresh').catch(() => {});
+    schedule();
+    window.addEventListener('online', schedule);
+  }).catch(() => {});
 }
 
 export async function getPostLikeStatus(postId: string, token: string) { return apiRequest(`/posts/${postId}/like`, token); }
