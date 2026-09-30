@@ -116,7 +116,7 @@ export default function CreatePostPage() {
       }) as { post: { id: string } };
       navigate(`/post/${response.post.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذر نشر المنشور");
+      setError(err instanceof Error && err.message === "VIDEO_UPLOAD_DISABLED" ? "رفع الفيديو غير متاح مؤقتاً" : err instanceof Error ? err.message : "تعذر نشر المنشور");
     } finally {
       setSending(false);
     }

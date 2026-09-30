@@ -32,7 +32,7 @@ export default function CreateStoryPage(){
         await apiRequest("/stories",token,{method:"POST",body:JSON.stringify({mediaUrl:url,mediaType:"image",content:text.trim()||undefined})});
       }
       nav("/");
-    }catch(err){setError(err instanceof Error?err.message:"تعذر نشر القصة")}finally{setBusy(false)}
+    }catch(err){setError(err instanceof Error&&err.message==="VIDEO_UPLOAD_DISABLED"?"رفع الفيديو غير متاح مؤقتاً":err instanceof Error?err.message:"تعذر نشر القصة")}finally{setBusy(false)}
   }
 
   return <main className="feed-container"><section className="stories-card"><form className="story-create" onSubmit={submit}>
