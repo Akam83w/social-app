@@ -60,7 +60,7 @@ export default function CreatePostPage() {
         if (!token) throw new Error("UNAUTHORIZED");
         const blob = await (await fetch(dataUrl)).blob();
         const form = new FormData();
-        form.append("file", blob, file.name.replace(/\\.[^.]+$/, "") + ".webp");
+        form.append("file", blob, file.name.replace(/\.[^.]+$/, "") + ".webp");
         const response = await fetch(`${API_URL}/posts/image`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
