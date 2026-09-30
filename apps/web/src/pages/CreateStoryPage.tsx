@@ -1,3 +1,4 @@
+import OptimizedImage from "../components/OptimizedImage";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiRequest, API_URL } from "../lib/api";
@@ -38,7 +39,7 @@ export default function CreateStoryPage(){
     <h1>إنشاء قصة</h1><p>الصورة أو الفيديو يبقى 24 ساعة. الفيديو ينضغط تلقائيًا.</p>
     <input ref={ref} hidden type="file" accept="image/*,video/*" onChange={choose}/>
     <button type="button" onClick={()=>ref.current?.click()}>إضافة صورة أو فيديو</button>
-    {url&&video?<VideoPlayer src={url} className="story-preview" controls/>:url&&<img src={url} className="story-preview" alt="معاينة القصة"/>}
+    {url&&video?<VideoPlayer src={url} className="story-preview" controls/>:url&&<OptimizedImage src={url} className="story-preview" alt="معاينة القصة"/>}
     <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="أضف نصاً إلى قصتك..." maxLength={500}/>
     {error&&<p className="search-error">{error}</p>}
     <button className="story-publish" disabled={!url||busy}>{busy?(video?"جاري ضغط الفيديو ونشره...":"جاري النشر..."):"نشر القصة"}</button>
