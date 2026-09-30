@@ -84,12 +84,16 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
   }
 }
 
+const jwtSecret = process.env.JWT_SECRET;
+if (!jwtSecret || jwtSecret.length < 32) throw new Error('JWT_SECRET must be configured with at least 32 characters');
+
 const app = Fastify({ logger: true });
 app.decorate('notifyUser', notifyUser);
-app.register(cors, { origin: true, credentials: true });
+const corsOrigin = process.env.CORS_ORIGIN || true;
+app.register(cors, { origin: corsOrigin, credentials: true });
 app.register(compress, { global: true, encodings: ['br', 'gzip'] });
 app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
-app.register(jwt, { secret: process.env.JWT_SECRET || 'change_this_to_a_long_random_string_later' });
+app.register(jwt, { secret: jwtSecret });
 app.register(fastifyStatic, { root: path.resolve(process.cwd(), process.cwd() === '/app' ? 'web/dist' : '../web/dist'), prefix: '/' });
 app.post('/moderation/appeal', async (request, reply) => {
   try {
