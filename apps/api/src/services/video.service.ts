@@ -28,7 +28,7 @@ async function ensureBucket() {
     if (error && !/already exists/i.test(error.message)) throw error;
   }
 }
-\nexport async function createDirectVideoUpload(ownerId: string, contentType: string, extension: string, size: number) {
+export async function createDirectVideoUpload(ownerId: string, contentType: string, extension: string, size: number) {
   if (size > MAX_VIDEO_BYTES) throw new Error('VIDEO_TOO_LARGE');
   await ensureBucket();
   const safeExtension = extension.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'mp4';
