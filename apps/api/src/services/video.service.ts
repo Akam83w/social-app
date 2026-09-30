@@ -28,6 +28,33 @@ async function ensureBucket() {
     if (error && !/already exists/i.test(error.message)) throw error;
   }
 }
+\nexport async function createDirectVideoUpload(ownerId: string, contentType: string, extension: string, size: number) {
+  if (size > MAX_VIDEO_BYTES) throw new Error('VIDEO_TOO_LARGE');
+  await ensureBucket();
+  const safeExtension = extension.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 5) || 'mp4';
+  const remotePath = `videos/${ownerId}/originals/${crypto.randomUUID()}.${safeExtension}`;
+  const { data, error } = await getStorageClient().storage.from(BUCKET).createSignedUploadUrl(remotePath, { upsert: false });
+  if (error || !data?.token) throw error || new Error('VIDEO_UPLOAD_INIT_FAILED');
+  const configuredUrl = process.env.SUPABASE_URL || 'https://beytuhfnhksgwdcsjdzs.supabase.co';
+  const parsed = new URL(configuredUrl);
+  const storageHost = parsed.hostname.endsWith('.supabase.co')
+    ? parsed.hostname.replace(/\.supabase\.co$/i, '.storage.supabase.co')
+    : parsed.hostname;
+  const endpoint = `${parsed.protocol}//${storageHost}/storage/v1/upload/resumable`;
+  return { bucketName: BUCKET, objectName: remotePath, token: data.token, endpoint };
+}
+
+export function getPublicVideoUrl(remotePath: string) {
+  return getStorageClient().storage.from(BUCKET).getPublicUrl(remotePath).data.publicUrl;
+}
+
+export async function downloadVideoToFile(remotePath: string, localPath: string) {
+  const response = await fetch(getPublicVideoUrl(remotePath), { cache: 'no-store' });
+  if (!response.ok || !response.body) throw new Error('VIDEO_SOURCE_DOWNLOAD_FAILED');
+  const { Readable } = await import('node:stream');
+  const { pipeline } = await import('node:stream/promises');
+  await pipeline(Readable.fromWeb(response.body as any), (await import('node:fs')).createWriteStream(localPath));
+}
 
 function runFfmpeg(args: string[], cwd: string) {
   return new Promise<void>((resolve, reject) => {
