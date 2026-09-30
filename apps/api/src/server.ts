@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
+import multipart from '@fastify/multipart';
 import compress from '@fastify/compress';
 import path from 'path';
 import { sql } from 'drizzle-orm';
@@ -91,6 +92,7 @@ app.decorate('notifyUser', notifyUser);
 const corsOrigin = process.env.CORS_ORIGIN || true;
 app.register(cors, { origin: corsOrigin, credentials: true });
 app.register(compress, { global: true, encodings: ['br', 'gzip'] });
+app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
 app.register(jwt, { secret: jwtSecret });
 app.register(fastifyStatic, { root: path.resolve(process.cwd(), process.cwd() === '/app' ? 'web/dist' : '../web/dist'), prefix: '/' });
 app.post('/moderation/appeal', async (request, reply) => {
