@@ -55,7 +55,26 @@ export default function CreatePostPage() {
     setVideoFile(null);
     if (videoPreview) URL.revokeObjectURL(videoPreview);
     setVideoPreview("");
-    compressImage(file).then(url => { setMediaUrl(url); setError(""); }).catch(() => setError("تعذر ضغط الصورة"));
+    compressImage(file).then(async (dataUrl) => {
+      try {
+        if (!token) throw new Error("UNAUTHORIZED");
+        const blob = await (await fetch(dataUrl)).blob();
+        const form = new FormData();
+        form.append("file", blob, file.name.replace(/\\.[^.]+$/, "") + ".webp");
+        const response = await fetch(`${API_URL}/posts/image`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+        const json = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(json.error || "IMAGE_UPLOAD_FAILED");
+        setMediaUrl(json.mediaUrl);
+        setError("");
+      } catch (error) {
+        setMediaUrl("");
+        setError(error instanceof Error && error.message === "IMAGE_STORAGE_NOT_CONFIGURED" ? "تخزين الصور غير مفعّل على السيرفر" : "تعذر رفع الصورة");
+      }
+    }).catch(() => setError("تعذر ضغط الصورة"));
   }
 
   function clearMedia() {
