@@ -1,3 +1,4 @@
+import OptimizedImage from "../components/OptimizedImage";
 import React,{useEffect} from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -74,7 +75,7 @@ export default function Layout({ children }: LayoutProps) {
               className="profile-mini"
               onClick={() => navigate("/profile")}
             >
-              <img src={user?.avatarUrl || avatar} alt="حسابي" />
+              <OptimizedImage src={user?.avatarUrl || avatar} alt="حسابي" />
             </button>
           </div>
         </div>
@@ -131,7 +132,7 @@ export default function Layout({ children }: LayoutProps) {
               }
             >
               <span className="side-avatar">
-                <img src={user?.avatarUrl || avatar} alt="" />
+                <OptimizedImage src={user?.avatarUrl || avatar} alt="" />
               </span>
               <span>حسابي</span>
             </NavLink>
@@ -154,7 +155,7 @@ export default function Layout({ children }: LayoutProps) {
         <aside className="right-panel">
           <div className="profile-card">
             <div className="profile-row">
-              <img src={user?.avatarUrl || avatar} alt={user?.displayName || user?.username || "حسابي"} />
+              <OptimizedImage src={user?.avatarUrl || avatar} alt={user?.displayName || user?.username || "حسابي"} />
 
               <div>
                 <strong>{user?.displayName || user?.username || "مستخدم"}</strong>
@@ -173,7 +174,7 @@ export default function Layout({ children }: LayoutProps) {
 
             {stories.slice(1).map((story) => (
               <div className="suggestion" key={story.name}>
-                <img src={story.image} alt={story.name} />
+                <OptimizedImage src={story.image} alt={story.name} />
 
                 <div>
                   <strong>{story.name}</strong>
@@ -205,7 +206,7 @@ export default function Layout({ children }: LayoutProps) {
           <span>البحث</span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}>
-          <span className="nav-avatar"><img src={user?.avatarUrl || avatar} alt="" /></span>
+          <span className="nav-avatar"><OptimizedImage src={user?.avatarUrl || avatar} alt="" /></span>
           <span>حسابي</span>
         </NavLink>
       </nav>    </div>
