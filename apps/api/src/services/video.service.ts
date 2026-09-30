@@ -330,10 +330,7 @@ export async function processVideo(inputPath: string, ownerId: string) {
     let renditions = getRenditions(dimensions.width, dimensions.height);
 
     if (renditions.length === 0) {
-      const portrait = dimensions.height > dimensions.width;
-      renditions = portrait
-        ? [{ name: 'source', width: dimensions.width, height: dimensions.height, bitrate: 1200000 }]
-        : [{ name: 'source', width: dimensions.width, height: dimensions.height, bitrate: 1200000 }];
+      renditions = [{ name: 'source', width: dimensions.width, height: dimensions.height, bitrate: 1200000 }];
     }
 
     await fs.mkdir(outputDir, { recursive: true });
