@@ -11,7 +11,9 @@ const ExplorePage = React.lazy(() => import("./pages/ExplorePage"));
 const CreatePostPage = React.lazy(() => import("./pages/CreatePostPage"));
 const CreateStoryPage = React.lazy(() => import("./pages/CreateStoryPage"));
 const ReelsPage = React.lazy(() => import("./pages/ReelsPage"));
-const MessagesModule = React.lazy(() => import("./pages/MessagesPage"));
+const MessagesPage = React.lazy(() => import("./pages/MessagesPage"));
+const CallPage = React.lazy(() => import("./pages/MessagesPage").then(m => ({ default: m.CallPage })));
+const NotificationsLivePage = React.lazy(() => import("./pages/MessagesPage").then(m => ({ default: m.NotificationsLivePage })));
 const ProfilePage = React.lazy(() => import("./pages/ProfilePage"));
 const AccountSettingsPage = React.lazy(() => import("./pages/AccountSettingsPage"));
 const HashtagPage = React.lazy(() => import("./pages/HashtagPage"));
@@ -21,9 +23,6 @@ const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage")
 const SavedPage = React.lazy(() => import("./pages/SavedPage"));
 import { useAuth } from "./context/AuthContext";
 import NativePushBootstrap from "./NativePushBootstrap";
-
-const CallPage = (props: any) => <MessagesModule {...props} mode="call" />;
-const NotificationsLivePage = (props: any) => <MessagesModule {...props} mode="notifications" />;
 
 function QXSplash({ onDone }: { onDone: () => void }) {
   React.useEffect(() => {
