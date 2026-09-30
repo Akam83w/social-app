@@ -15,7 +15,17 @@ function getStorageClient() {
   const url = process.env.SUPABASE_URL || 'https://beytuhfnhksgwdcsjdzs.supabase.co';
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) throw new Error('SUPABASE_SERVICE_ROLE_KEY_MISSING');
-  storageClient = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  storageClient = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: async (input, init) => {
+        const headers = new Headers(init?.headers);
+        headers.delete('authorization');
+        headers.set('apikey', key);
+        return fetch(input, { ...init, headers });
+      },
+    },
+  });
   return storageClient;
 }
 
