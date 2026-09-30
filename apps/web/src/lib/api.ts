@@ -18,36 +18,139 @@ export async function loginUser(data: { identifier: string; password: string }) 
   return json;
 }
 
-export function uploadVideo(
+export async function uploadVideo(
   path: string,
   token: string,
   form: FormData,
   onProgress?: (percent: number) => void,
   onUploadComplete?: () => void,
 ): Promise<any> {
+  const file = form.get('file');
+  if (!(file instanceof File)) throw new Error('VIDEO_REQUIRED');
+  const content = String(form.get('content') || '');
+  const preparePath = path + '/upload';
+  const completePath = path + '/complete';
+
+  const prepare = await apiRequest(preparePath, token, {
+    method: 'POST',
+    body: JSON.stringify({ contentType: file.type || 'video/mp4', extension: file.name.split('.').pop() || 'mp4', size: file.size }),
+  }) as { bucketName: string; objectName: string; token: string; endpoint: string };
+
+  const uploadKey = 'sdm-video-upload:' + btoa(unescape(encodeURIComponent(
+    [path, file.name, file.size, file.lastModified, file.type].join('|')
+  ))).replace(/=+$/g, '');
+  let uploadUrl = '';
+  let offset = 0;
+  const metadata = [
+    ['bucketName', prepare.bucketName],
+    ['objectName', prepare.objectName],
+    ['contentType', file.type || 'video/mp4'],
+    ['cacheControl', '31536000'],
+  ].map(([key, value]) => key + ' ' + btoa(unescape(encodeURIComponent(value)))).join(',');
+
+  const saved = localStorage.getItem(uploadKey);
+  if (saved) {
+    try {
+      const previous = JSON.parse(saved) as { url?: string; offset?: number; token?: string };
+      if (previous.url && previous.token === prepare.token) {
+        uploadUrl = previous.url;
+        offset = Math.max(0, Math.min(file.size, previous.offset || 0));
+      }
+    } catch {}
+  }
+
+  if (!uploadUrl) {
+    const created = await createTusUpload(prepare.endpoint, prepare.token, file.size, metadata);
+    uploadUrl = created.url;
+    offset = created.offset;
+    localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
+  }
+
+  const updateProgress = (value: number) => onProgress?.(Math.min(100, Math.round((value / file.size) * 100)));
+
+  while (offset < file.size) {
+    try {
+      offset = await uploadTusChunk(uploadUrl, prepare.token, file.slice(offset, Math.min(offset + 6 * 1024 * 1024, file.size)), offset, file.size, updateProgress);
+      localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
+    } catch {
+      offset = await tusHead(uploadUrl, prepare.token);
+      localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
+    }
+  }
+
+  onProgress?.(100);
+  onUploadComplete?.();
+  localStorage.removeItem(uploadKey);
+
+  return apiRequest(completePath, token, {
+    method: 'POST',
+    body: JSON.stringify({ objectName: prepare.objectName, content, contentType: file.type || 'video/mp4' }),
+  });
+}
+
+function tusHeaders(signature: string, extra: Record<string, string> = {}) {
+  return { 'Tus-Resumable': '1.0.0', 'x-signature': signature, ...extra };
+}
+
+function createTusUpload(endpoint: string, signature: string, size: number, metadata: string): Promise<{ url: string; offset: number }> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_URL}${path}`);
-    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    xhr.upload.onprogress = event => {
-      if (event.lengthComputable) {
-        onProgress?.(Math.min(100, Math.round((event.loaded / event.total) * 100)));
-      }
-    };
-    xhr.upload.onload = () => onUploadComplete?.();
-    xhr.onerror = () => reject(new Error('VIDEO_NETWORK_ERROR'));
-    xhr.onabort = () => reject(new Error('VIDEO_UPLOAD_ABORTED'));
+    xhr.open('POST', endpoint);
+    for (const [key, value] of Object.entries(tusHeaders(signature, {
+      'Upload-Length': String(size),
+      'Upload-Metadata': metadata,
+      'x-upsert': 'false',
+    }))) xhr.setRequestHeader(key, value);
     xhr.onload = () => {
-      const text = xhr.responseText || '';
-      let json: any = {};
-      try { json = text ? JSON.parse(text) : {}; } catch { reject(new Error('VIDEO_API_INVALID_RESPONSE')); return; }
-      if (xhr.status < 200 || xhr.status >= 300) {
-        reject(new Error(json.error || 'VIDEO_PROCESSING_FAILED'));
-        return;
-      }
-      resolve(json);
+      if (xhr.status < 200 || xhr.status >= 300) { reject(new Error('VIDEO_UPLOAD_INIT_FAILED')); return; }
+      const location = xhr.getResponseHeader('Location');
+      if (!location) { reject(new Error('VIDEO_UPLOAD_INIT_FAILED')); return; }
+      resolve({ url: new URL(location, endpoint).toString(), offset: Number(xhr.getResponseHeader('Upload-Offset') || 0) });
     };
-    xhr.send(form);
+    xhr.onerror = () => reject(new Error('VIDEO_NETWORK_ERROR'));
+    xhr.send();
+  });
+}
+
+function tusHead(url: string, signature: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('HEAD', url);
+    for (const [key, value] of Object.entries(tusHeaders(signature))) xhr.setRequestHeader(key, value);
+    xhr.onload = () => {
+      if (xhr.status < 200 || xhr.status >= 300) { reject(new Error('VIDEO_UPLOAD_RESUME_FAILED')); return; }
+      resolve(Number(xhr.getResponseHeader('Upload-Offset') || 0));
+    };
+    xhr.onerror = () => reject(new Error('VIDEO_NETWORK_ERROR'));
+    xhr.send();
+  });
+}
+
+function uploadTusChunk(
+  url: string,
+  signature: string,
+  chunk: Blob,
+  offset: number,
+  _total: number,
+  onProgress: (uploaded: number) => void,
+): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PATCH', url);
+    for (const [key, value] of Object.entries(tusHeaders(signature, {
+      'Content-Type': 'application/offset+octet-stream',
+      'Upload-Offset': String(offset),
+    }))) xhr.setRequestHeader(key, value);
+    xhr.upload.onprogress = event => {
+      if (event.lengthComputable) onProgress(offset + event.loaded);
+      else onProgress(offset);
+    };
+    xhr.onload = () => {
+      if (xhr.status < 200 || xhr.status >= 300) { reject(new Error('VIDEO_UPLOAD_CHUNK_FAILED')); return; }
+      resolve(Number(xhr.getResponseHeader('Upload-Offset') || (offset + chunk.size)));
+    };
+    xhr.onerror = () => reject(new Error('VIDEO_NETWORK_ERROR'));
+    xhr.send(chunk);
   });
 }
 
