@@ -15,6 +15,23 @@ type Props = React.ImgHTMLAttributes<HTMLImageElement> & {
   quality?: number;
 };
 
-export default function OptimizedImage({ src = "", widthHint = 800, quality = 78, loading = "lazy", decoding = "async", ...props }: Props) {
-  return <img {...props} src={optimizeImageUrl(src, widthHint, quality)} loading={loading} decoding={decoding} />;
+export default function OptimizedImage({ src = "", widthHint = 800, quality = 78, loading = "lazy", decoding = "async", onError, ...props }: Props) {
+  const [fallback, setFallback] = React.useState(false);
+  const optimized = optimizeImageUrl(src, widthHint, quality);
+  const actualSrc = fallback ? src : optimized;
+  return (
+    <img
+      {...props}
+      src={actualSrc}
+      loading={loading}
+      decoding={decoding}
+      onError={event => {
+        if (!fallback && optimized !== src) {
+          setFallback(true);
+          return;
+        }
+        onError?.(event);
+      }}
+    />
+  );
 }
