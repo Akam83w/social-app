@@ -109,7 +109,7 @@ export default function CreatePostPage() {
         form.append("content", content.trim());
         form.append("file", videoFile, videoFile.name);
         setVideoProgress(0);
-        setVideoStage("جاري رفع الفيديو من الهاتف إلى السيرفر...");
+        setVideoStage("جاري رفع الفيديو مباشرة إلى التخزين الآمن...");
         const json = await uploadVideo("/posts/video", token, form, setVideoProgress, () => {
           setVideoStage("تم رفع الملف، جاري معالجة الفيديو وإنشاء الجودات...");
         }) as { error?: string; post?: { id: string } };
