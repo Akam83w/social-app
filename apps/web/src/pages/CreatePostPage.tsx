@@ -12,10 +12,10 @@ async function compressImage(file: File): Promise<string> {
   bitmap.close();
   return canvas.toDataURL("image/webp", 0.82);
 }
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { apiRequest, API_URL } from "../lib/api";
+import { apiRequest, API_URL, uploadVideo } from "../lib/api";
 import VideoPlayer from "../components/VideoPlayer";
 
 export default function CreatePostPage() {
@@ -28,6 +28,16 @@ export default function CreatePostPage() {
   const [videoPreview, setVideoPreview] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoStage, setVideoStage] = useState("");
+  const [videoElapsed, setVideoElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!sending || !videoFile) return;
+    const started = Date.now();
+    const timer = window.setInterval(() => setVideoElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => window.clearInterval(timer);
+  }, [sending, videoFile]);
 
   function chooseMedia(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -90,24 +100,19 @@ export default function CreatePostPage() {
     try {
       setSending(true);
       setError("");
+      setVideoProgress(0);
+      setVideoStage("");
+      setVideoElapsed(0);
 
       if (videoFile) {
         const form = new FormData();
         form.append("content", content.trim());
         form.append("file", videoFile, videoFile.name);
-        const res = await fetch(`${API_URL}/posts/video`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        });
-        const text = await res.text();
-        let json: { error?: string; post?: { id: string } } = {};
-        try {
-          json = text ? JSON.parse(text) : {};
-        } catch {
-          throw new Error("VIDEO_API_INVALID_RESPONSE");
-        }
-        if (!res.ok) throw new Error(json.error || "VIDEO_PROCESSING_FAILED");
+        setVideoProgress(0);
+        setVideoStage("جاري رفع الفيديو من الهاتف إلى السيرفر...");
+        const json = await uploadVideo("/posts/video", token, form, setVideoProgress, () => {
+          setVideoStage("تم رفع الملف، جاري معالجة الفيديو وإنشاء الجودات...");
+        }) as { error?: string; post?: { id: string } };
         if (!json.post?.id) throw new Error("VIDEO_PROCESSING_FAILED");
         navigate(`/post/${json.post.id}`);
         return;
@@ -123,6 +128,7 @@ export default function CreatePostPage() {
       }) as { post: { id: string } };
       navigate(`/post/${response.post.id}`);
     } catch (err) {
+      setVideoStage("");
       setError(
         err instanceof Error && err.message === "VIDEO_API_INVALID_RESPONSE"
           ? "سيرفر الفيديو رجّع استجابة غير صحيحة"
@@ -165,7 +171,7 @@ export default function CreatePostPage() {
           <div className="create-bottom">
             <span className="create-counter">{content.length.toLocaleString("ar-IQ")} / ٥٠٠٠</span>
             {error && <p className="create-error">{error}</p>}
-            <button className="create-submit" type="submit" disabled={sending || (!content.trim() && !mediaUrl && !videoFile)}>{sending ? (videoFile ? "جاري ضغط الفيديو ونشره..." : "جاري النشر...") : "نشر الآن"}</button>
+            <button className="create-submit" type="submit" disabled={sending || (!content.trim() && !mediaUrl && !videoFile)}>{sending ? (videoFile ? `${videoStage || "جاري تجهيز الفيديو..."}${videoProgress > 0 && videoProgress < 100 ? ` ${videoProgress}%` : ""}${videoElapsed ? ` · ${videoElapsed}ث` : ""}` : "جاري النشر...") : "نشر الآن"}</button>
           </div>
         </form>
       </section>
