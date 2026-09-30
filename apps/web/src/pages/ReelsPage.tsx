@@ -1,3 +1,4 @@
+import OptimizedImage from "../components/OptimizedImage";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest, readCache, writeCache } from "../lib/api";
@@ -23,7 +24,7 @@ export default function ReelsPage() {
     {error&&<p className="search-error">{error}</p>}
     {!error&&!reels.length&&<div className="reels-empty">ماكو فيديوهات منشورة حالياً.</div>}
     <div className="reels-list">{reels.map(r=><article className="reel-card" key={r.id}>
-      <Link to={"/u/"+encodeURIComponent(r.user.username)} className="explore-user"><img src={r.user.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(r.user.username)} alt=""/><span>{r.user.displayName||r.user.username}</span></Link>
+      <Link to={"/u/"+encodeURIComponent(r.user.username)} className="explore-user"><OptimizedImage src={r.user.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(r.user.username)} alt=""/><span>{r.user.displayName||r.user.username}</span></Link>
       {r.mediaUrl&&<VideoPlayer src={r.mediaUrl} poster={r.mediaPoster} className="post-video" controls/>}
       {r.content&&<p>{r.content}</p>}<small>♥ {r.likeCount||0}</small>
     </article>)}</div>
