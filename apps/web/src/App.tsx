@@ -4,23 +4,26 @@ import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import "./index.css";
 import "./social-features.css";
 import Layout from "./components/layout/Layout";
-import HomePage from "./pages/HomePage";
-import PostPage from "./pages/PostPage";
-import SimplePage from "./pages/SimplePage";
-import ExplorePage from "./pages/ExplorePage";
-import CreatePostPage from "./pages/CreatePostPage";
-import CreateStoryPage from "./pages/CreateStoryPage";
-import ReelsPage from "./pages/ReelsPage";
-import MessagesPage, { CallPage, NotificationsLivePage } from "./pages/MessagesPage";
-import ProfilePage from "./pages/ProfilePage";
-import AccountSettingsPage from "./pages/AccountSettingsPage";
-import HashtagPage from "./pages/HashtagPage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import SavedPage from "./pages/SavedPage";
+const HomePage = React.lazy(() => import("./pages/HomePage"));
+const PostPage = React.lazy(() => import("./pages/PostPage"));
+const SimplePage = React.lazy(() => import("./pages/SimplePage"));
+const ExplorePage = React.lazy(() => import("./pages/ExplorePage"));
+const CreatePostPage = React.lazy(() => import("./pages/CreatePostPage"));
+const CreateStoryPage = React.lazy(() => import("./pages/CreateStoryPage"));
+const ReelsPage = React.lazy(() => import("./pages/ReelsPage"));
+const MessagesModule = React.lazy(() => import("./pages/MessagesPage"));
+const ProfilePage = React.lazy(() => import("./pages/ProfilePage"));
+const AccountSettingsPage = React.lazy(() => import("./pages/AccountSettingsPage"));
+const HashtagPage = React.lazy(() => import("./pages/HashtagPage"));
+const LoginPage = React.lazy(() => import("./pages/LoginPage"));
+const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
+const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
+const SavedPage = React.lazy(() => import("./pages/SavedPage"));
 import { useAuth } from "./context/AuthContext";
 import NativePushBootstrap from "./NativePushBootstrap";
+
+const CallPage = (props: any) => <MessagesModule {...props} mode="call" />;
+const NotificationsLivePage = (props: any) => <MessagesModule {...props} mode="notifications" />;
 
 function QXSplash({ onDone }: { onDone: () => void }) {
   React.useEffect(() => {
@@ -68,7 +71,8 @@ function PersistentTabs() {
   const isVisible = (target: string) => path === target;
 
   return (
-    <>
+    <React.Suspense fallback={<main className="feed-container"><section className="stories-card"><p>جاري تحميل الصفحة...</p></section></main>}>
+      <>
       {isVisited("/") && <div style={{display:isVisible("/") ? "block" : "none"}}><HomePage /></div>}
       {isVisited("/explore") && <div style={{display:isVisible("/explore") ? "block" : "none"}}><ExplorePage /></div>}
       {isVisited("/reels") && <div style={{display:isVisible("/reels") ? "block" : "none"}}><ReelsPage /></div>}
@@ -76,7 +80,8 @@ function PersistentTabs() {
       {isVisited("/notifications") && <div style={{display:isVisible("/notifications") ? "block" : "none"}}><NotificationsLivePage /></div>}
       {isVisited("/saved") && <div style={{display:isVisible("/saved") ? "block" : "none"}}><SavedPage /></div>}
       {isVisited("/profile") && <div style={{display:isVisible("/profile") ? "block" : "none"}}><ProfilePage /></div>}
-    </>
+      </>
+    </React.Suspense>
   );
 }
 
@@ -103,6 +108,7 @@ function ProtectedApp() {
   }
 
   return (
+    <React.Suspense fallback={<main className="feed-container"><section className="stories-card"><p>جاري تحميل الصفحة...</p></section></main>}>
     <Layout>
       <RouteScrollReset />
       <PersistentTabs />
@@ -147,6 +153,7 @@ function ProtectedApp() {
         />
       </Routes>
     </Layout>
+    </React.Suspense>
   );
 }
 
