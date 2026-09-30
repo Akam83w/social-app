@@ -45,7 +45,7 @@ export async function apiRequest(path: string, token: string | null, options: Re
 export function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || location.protocol !== 'https:') return;
   navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(reg => {
-    const schedule = () => reg.sync?.register('sdm-refresh').catch(() => {});
+    const schedule = () => (reg as ServiceWorkerRegistration & { sync?: { register(tag: string): Promise<void> } }).sync?.register('sdm-refresh').catch(() => {});
     schedule();
     window.addEventListener('online', schedule);
   }).catch(() => {});
