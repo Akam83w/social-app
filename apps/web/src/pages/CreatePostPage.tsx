@@ -1,3 +1,4 @@
+import OptimizedImage from "../components/OptimizedImage";
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -105,13 +106,13 @@ export default function CreatePostPage() {
         </header>
         <form onSubmit={handleSubmit}>
           <div className="create-author">
-            <img src={user?.avatarUrl || "https://ui-avatars.com/api/?name=User&background=078968&color=fff"} alt="" />
+            <OptimizedImage src={user?.avatarUrl || "https://ui-avatars.com/api/?name=User&background=078968&color=fff"} alt="" />
             <div><strong>{user?.displayName || user?.username || "حسابك"}</strong><span>@{user?.username || "user"}</span></div>
             <span className="create-visibility">🌐 عام</span>
           </div>
           <textarea className="create-textarea" value={content} onChange={(e) => setContent(e.target.value)} placeholder="شنو ببالك؟" maxLength={5000} disabled={sending} autoFocus />
           {(mediaUrl || videoPreview) && <div className="create-media-preview">
-            {videoPreview ? <VideoPlayer src={videoPreview} controls muted className="post-video" /> : <img src={mediaUrl} alt="معاينة المنشور" />}
+            {videoPreview ? <VideoPlayer src={videoPreview} controls muted className="post-video" /> : <OptimizedImage src={mediaUrl} alt="معاينة المنشور" />}
             <button type="button" className="create-remove-media" onClick={clearMedia} disabled={sending}>×</button>
           </div>}
           <input ref={fileRef} type="file" accept="image/*,video/*" onChange={chooseMedia} hidden />
