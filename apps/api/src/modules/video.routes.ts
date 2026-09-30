@@ -12,9 +12,6 @@ import { processVideo } from '../services/video.service';
 
 export async function videoRoutes(app: FastifyInstance) {
   app.post('/posts/video', { preHandler: verifyToken }, async (request, reply) => {
-    if (process.env.VIDEO_UPLOAD_ENABLED !== 'true') {
-      return reply.status(503).send({ error: 'VIDEO_UPLOAD_DISABLED' });
-    }
     const userId = (request.user as { id: string }).id;
     const part = await request.file();
     if (!part || !part.mimetype.startsWith('video/')) {
@@ -41,9 +38,6 @@ export async function videoRoutes(app: FastifyInstance) {
     }
   });
   app.post('/stories/video', { preHandler: verifyToken }, async (request, reply) => {
-    if (process.env.VIDEO_UPLOAD_ENABLED !== 'true') {
-      return reply.status(503).send({ error: 'VIDEO_UPLOAD_DISABLED' });
-    }
     const userId = (request.user as { id: string }).id;
     const part = await request.file();
     if (!part || !part.mimetype.startsWith('video/')) return reply.status(400).send({ error: 'VIDEO_REQUIRED' });

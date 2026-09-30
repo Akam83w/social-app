@@ -100,8 +100,15 @@ export default function CreatePostPage() {
           headers: { Authorization: `Bearer ${token}` },
           body: form,
         });
-        const json = await res.json();
+        const text = await res.text();
+        let json: { error?: string; post?: { id: string } } = {};
+        try {
+          json = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error("VIDEO_API_INVALID_RESPONSE");
+        }
         if (!res.ok) throw new Error(json.error || "VIDEO_PROCESSING_FAILED");
+        if (!json.post?.id) throw new Error("VIDEO_PROCESSING_FAILED");
         navigate(`/post/${json.post.id}`);
         return;
       }
@@ -116,7 +123,13 @@ export default function CreatePostPage() {
       }) as { post: { id: string } };
       navigate(`/post/${response.post.id}`);
     } catch (err) {
-      setError(err instanceof Error && err.message === "VIDEO_UPLOAD_DISABLED" ? "رفع الفيديو غير متاح مؤقتاً" : err instanceof Error ? err.message : "تعذر نشر المنشور");
+      setError(
+        err instanceof Error && err.message === "VIDEO_API_INVALID_RESPONSE"
+          ? "سيرفر الفيديو رجّع استجابة غير صحيحة"
+          : err instanceof Error
+            ? err.message
+            : "تعذر نشر المنشور"
+      );
     } finally {
       setSending(false);
     }
