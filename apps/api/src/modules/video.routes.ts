@@ -92,7 +92,7 @@ function isOwnedOriginal(objectName: string, userId: string) {
   return objectName.startsWith(`videos/${userId}/originals/`) &&
     objectName.length < 300 &&
     !objectName.includes('..') &&
-    /.(mp4|mov|webm)$/i.test(objectName);
+    /\.(mp4|mov|webm)$/i.test(objectName);
 }
 
 async function processUploadedVideoInBackground(
