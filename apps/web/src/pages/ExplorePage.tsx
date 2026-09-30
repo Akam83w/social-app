@@ -1,4 +1,4 @@
-import { API_URL } from "../lib/api";
+import { API_URL, readCache, writeCache } from "../lib/api";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -16,7 +16,7 @@ export default function ExplorePage() {
 
   async function loadExplore() {
     if (!token) return; setLoading(true); setError("");
-    try { const r=await fetch(API_URL+"/posts/explore?limit=30",{headers:{Authorization:"Bearer "+token}}); const d=await r.json(); if(!r.ok) throw new Error(); setExplore(d.posts??[]); }
+    try { const r=await fetch(API_URL+"/posts/explore?limit=30",{headers:{Authorization:"Bearer "+token}}); const d=await r.json(); if(!r.ok) throw new Error(); const next=d.posts??[]; setExplore(next); writeCache(key,{posts:next}); }
     catch { setError("تعذر تحميل الاستكشاف."); } finally { setLoading(false); }
   }
   useEffect(()=>{void loadExplore();},[token]);
