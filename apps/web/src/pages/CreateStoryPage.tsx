@@ -27,9 +27,9 @@ export default function CreateStoryPage(){
       if(video){
         const form=new FormData(); form.append("content",text.trim()); form.append("file",video,video.name);
         const res=await fetch(API_URL+"/stories/video",{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
-        const text=await res.text();
+        const responseText=await res.text();
         let data:{error?:string}={};
-        try{data=text?JSON.parse(text):{}}catch{throw new Error("VIDEO_API_INVALID_RESPONSE")}
+        try{data=responseText?JSON.parse(responseText):{}}catch{throw new Error("VIDEO_API_INVALID_RESPONSE")}
         if(!res.ok)throw new Error(data.error||"VIDEO_PROCESSING_FAILED");
       }else{
         await apiRequest("/stories",token,{method:"POST",body:JSON.stringify({mediaUrl:url,mediaType:"image",content:text.trim()||undefined})});
