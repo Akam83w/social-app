@@ -37,6 +37,7 @@ export const posts = pgTable(
   (table) => ({
     userIdIdx: index('posts_user_id_idx').on(table.userId),
     createdAtIdx: index('posts_created_at_idx').on(table.createdAt),
+    userCreatedAtIdx: index('posts_user_created_at_idx').on(table.userId, table.createdAt),
   })
 );
 
@@ -102,6 +103,7 @@ export const comments = pgTable(
     userIdIdx: index('comments_user_id_idx').on(table.userId),
     postIdIdx: index('comments_post_id_idx').on(table.postId),
     createdAtIdx: index('comments_created_at_idx').on(table.createdAt),
+    postCreatedAtIdx: index('comments_post_created_at_idx').on(table.postId, table.createdAt),
   }),
 );
 
@@ -140,6 +142,7 @@ export const follows = pgTable(
     pairUnique: uniqueIndex('follows_pair_unique').on(table.followerId, table.followingId),
     followerIdx: index('follows_follower_idx').on(table.followerId),
     followingIdx: index('follows_following_idx').on(table.followingId),
+    followingStatusIdx: index('follows_following_status_idx').on(table.followingId, table.status),
   }),
 );
 
