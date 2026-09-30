@@ -1,5 +1,5 @@
 import OptimizedImage from "../components/OptimizedImage";
-import { API_URL, readCache, writeCache } from "../lib/api";
+import { API_URL, writeCache } from "../lib/api";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -14,6 +14,7 @@ export default function ExplorePage() {
   const [query,setQuery]=useState(""); const [mode,setMode]=useState<"users"|"hashtag">("users");
   const [users,setUsers]=useState<UserResult[]>([]); const [posts,setPosts]=useState<Post[]>([]); const [explore,setExplore]=useState<Post[]>([]);
   const [loading,setLoading]=useState(true); const [searching,setSearching]=useState(false); const [error,setError]=useState("");
+  const key = "explore:public";
 
   async function loadExplore() {
     if (!token) return; setLoading(true); setError("");
