@@ -1,3 +1,4 @@
+import OptimizedImage from "../components/OptimizedImage";
 import { API_URL } from "../lib/api";
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -148,7 +149,7 @@ export default function AccountSettingsPage() {
         {section === 'home' && (
           <>
             <div className="settings-profile-card">
-              <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`} alt="" />
+              <OptimizedImage src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`} alt="" />
               <div><strong>{user.displayName || user.username}</strong><span>@{user.username}</span></div>
               <button type="button" onClick={() => go('edit')}>تعديل</button>
             </div>
@@ -179,7 +180,7 @@ export default function AccountSettingsPage() {
         {section === 'edit' && (
           <div className="settings-detail">
             <div className="settings-avatar-editor">
-              <img src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`} alt="" />
+              <OptimizedImage src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`} alt="" />
               <button type="button" onClick={() => navigate('/profile')}>تغيير صورة الملف الشخصي</button>
             </div>
             {field('الاسم', displayName, setDisplayName, 'اسمك الظاهر')}
@@ -216,7 +217,7 @@ export default function AccountSettingsPage() {
           {detail === 'privateAccount' && <><div className="settings-switch-row"><div><strong>الحساب الخاص</strong><small>السماح للمتابعين المقبولين فقط برؤية منشوراتك.</small></div><button type="button" className={privateAccount ? 'settings-switch on' : 'settings-switch'} onClick={async () => { if (!token) return; const next=!privateAccount; setPrivateAccount(next); setMessage(''); try { const r=await fetch(API_URL+'/auth/privacy',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({isPrivate:next})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'تعذر حفظ الخصوصية'); login(d.user,token); setMessage('تم حفظ إعداد الخصوصية.'); } catch(e) { setPrivateAccount(!next); setMessage(e instanceof Error?e.message:'تعذر حفظ إعداد الخصوصية'); } }} aria-pressed={privateAccount}><span /></button></div><div className="settings-info">الحساب الخاص يمنع غير المتابعين المقبولين من رؤية منشوراتك وقوائم المتابعين والمتابَعين.</div>{message&&<p className="settings-message">{message}</p>}</>}
           {detail === 'messagePrivacy' && <div className="settings-options"><button type="button"><span>💬<strong>من يستطيع مراسلتي</strong><small>حالياً: المستخدمون القادرون على بدء محادثة</small></span><b>›</b></button><div className="settings-info">خيارات قبول الرسائل تحتاج ربطاً بسياسة رسائل في الخادم.</div></div>}
           {detail === 'blocked' && <div className="settings-detail">
-            {blockedLoading ? <p className="settings-info">جاري تحميل الحسابات المحظورة...</p> : blockedUsers.length === 0 ? <p className="settings-info">ماكو حسابات محظورة حالياً.</p> : <div className="settings-options">{blockedUsers.map(item => <div key={item.id} className="settings-switch-row"><div style={{display:'flex',alignItems:'center',gap:10}}><img src={item.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username)}`} alt="" style={{width:42,height:42,borderRadius:'50%',objectFit:'cover'}}/><span><strong>{item.displayName || item.username}</strong><small>@{item.username}</small></span></div><button type="button" className="settings-save" onClick={() => void unblockUser(item.username)}>إلغاء الحظر</button></div>)}</div>}
+            {blockedLoading ? <p className="settings-info">جاري تحميل الحسابات المحظورة...</p> : blockedUsers.length === 0 ? <p className="settings-info">ماكو حسابات محظورة حالياً.</p> : <div className="settings-options">{blockedUsers.map(item => <div key={item.id} className="settings-switch-row"><div style={{display:'flex',alignItems:'center',gap:10}}><OptimizedImage src={item.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username)}`} alt="" style={{width:42,height:42,borderRadius:'50%',objectFit:'cover'}}/><span><strong>{item.displayName || item.username}</strong><small>@{item.username}</small></span></div><button type="button" className="settings-save" onClick={() => void unblockUser(item.username)}>إلغاء الحظر</button></div>)}</div>}
             {!blockedLoading && <button type="button" className="settings-save" onClick={() => void loadBlockedUsers()}>تحديث القائمة</button>}
           </div>}
           {detail === 'likesComments' && <div className="settings-switch-row"><div><strong>الإعجابات والتعليقات</strong><small>إظهار تنبيهات الإعجاب والتعليق.</small></div><button type="button" className={likesComments ? 'settings-switch on' : 'settings-switch'} onClick={() => setLikesComments(v => !v)} aria-pressed={likesComments}><span /></button></div>}
