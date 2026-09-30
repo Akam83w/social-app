@@ -1,3 +1,4 @@
+import OptimizedImage from "../components/OptimizedImage";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
@@ -587,7 +588,7 @@ export default function PostPage() {
             {post.mediaType === "video" ? (
               <VideoPlayer src={post.mediaUrl} poster={post.mediaPoster} />
             ) : (
-              <img src={post.mediaUrl} alt="" style={{ width: "100%", borderRadius: 14, display: "block" }} />
+              <OptimizedImage src={post.mediaUrl} alt="" style={{ width: "100%", borderRadius: 14, display: "block" }} />
             )}
           </div>
         )}
