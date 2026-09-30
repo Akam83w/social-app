@@ -28,7 +28,7 @@ export async function uploadVideo(
   const file = form.get('file');
   if (!(file instanceof File)) throw new Error('VIDEO_REQUIRED');
   const content = String(form.get('content') || '');
-  const preparePath = path.replace(/\\/g, '').replace(/\\/g, '') + '/upload';
+  const preparePath = path + '/upload';
   const completePath = path + '/complete';
 
   const prepare = await apiRequest(preparePath, token, {
