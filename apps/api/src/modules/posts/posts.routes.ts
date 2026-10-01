@@ -4,7 +4,7 @@ import { db } from '../../db';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { moderateMedia, registerModerationViolation } from '../../services/moderation.service';
 import { createPostSchema } from './posts.schema';
-import { uploadPostImage } from '../../services/image.service';
+import { createDirectImageUpload } from '../../services/image.service';
 import {
   getPostLikeStatus,
   createPost,
@@ -27,22 +27,25 @@ async function ensurePostAccessible(userId: string, postId: string) {
 }
 
 export async function postsRoutes(app: FastifyInstance) {
-  app.post('/posts/image', { preHandler: verifyToken }, async (request, reply) => {
+  app.post('/posts/image/upload', { preHandler: verifyToken }, async (request, reply) => {
     try {
       const payload = request.user as { id: string };
-      const part = await request.file();
-      if (!part || part.type !== 'file') return reply.status(400).send({ error: 'IMAGE_REQUIRED' });
-      if (!part.mimetype.startsWith('image/')) return reply.status(415).send({ error: 'INVALID_IMAGE_TYPE' });
-      const buffer = await part.toBuffer();
-      const mediaUrl = await uploadPostImage(buffer, payload.id, part.mimetype);
-      return reply.status(201).send({ mediaUrl, mediaType: 'image' });
+      const body = request.body as { contentType?: string; size?: number };
+      const upload = await createDirectImageUpload(
+        payload.id,
+        String(body.contentType || ''),
+        Number(body.size || 0),
+      );
+      return reply.status(200).send(upload);
     } catch (err) {
-      const code = err instanceof Error ? err.message : 'IMAGE_UPLOAD_FAILED';
+      const code = err instanceof Error ? err.message : 'IMAGE_UPLOAD_URL_FAILED';
       if (code === 'IMAGE_TOO_LARGE') return reply.status(413).send({ error: code });
       if (code === 'INVALID_IMAGE_TYPE') return reply.status(415).send({ error: code });
-      if (code === 'SUPABASE_SERVICE_ROLE_KEY_MISSING') return reply.status(503).send({ error: 'IMAGE_STORAGE_NOT_CONFIGURED' });
+      if (code === 'SUPABASE_SERVICE_ROLE_KEY_MISSING') {
+        return reply.status(503).send({ error: 'IMAGE_STORAGE_NOT_CONFIGURED' });
+      }
       app.log.error(err);
-      return reply.status(500).send({ error: 'IMAGE_UPLOAD_FAILED' });
+      return reply.status(500).send({ error: 'IMAGE_UPLOAD_URL_FAILED' });
     }
   });
 

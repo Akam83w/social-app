@@ -330,10 +330,7 @@ export async function processVideo(inputPath: string, ownerId: string) {
     let renditions = getRenditions(dimensions.width, dimensions.height);
 
     if (renditions.length === 0) {
-      const portrait = dimensions.height > dimensions.width;
-      renditions = portrait
-        ? [{ name: 'source', width: dimensions.width, height: dimensions.height, bitrate: 1200000 }]
-        : [{ name: 'source', width: dimensions.width, height: dimensions.height, bitrate: 1200000 }];
+      renditions = [{ name: 'source', width: dimensions.width, height: dimensions.height, bitrate: 1200000 }];
     }
 
     await fs.mkdir(outputDir, { recursive: true });
@@ -387,27 +384,6 @@ export async function processVideo(inputPath: string, ownerId: string) {
   } finally {
     await fs.rm(work, { recursive: true, force: true }).catch(() => {});
   }
-}
-
-export async function uploadOriginalVideo(
-  inputPath: string,
-  ownerId: string,
-  contentType: string,
-  extension = 'mp4',
-) {
-  await ensureBucket();
-
-  const remotePath =
-    'videos/' + ownerId + '/originals/' + crypto.randomUUID() + '.' + safeExtension(extension);
-
-  const mediaUrl = await uploadFile(
-    getStorageClient(),
-    inputPath,
-    remotePath,
-    contentType || 'video/mp4',
-  );
-
-  return { mediaUrl, remotePath };
 }
 
 export async function removeStorageFile(remotePath: string) {
