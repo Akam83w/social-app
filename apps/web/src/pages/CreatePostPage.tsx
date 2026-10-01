@@ -69,16 +69,32 @@ export default function CreatePostPage() {
       try {
         if (!token) throw new Error("UNAUTHORIZED");
         const blob = await (await fetch(dataUrl)).blob();
-        const form = new FormData();
-        form.append("file", blob, file.name.replace(/\.[^.]+$/, "") + ".webp");
-        const response = await fetch(`${API_URL}/posts/image`, {
+        const prepareResponse = await fetch(`${API_URL}/posts/image/upload`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contentType: "image/webp",
+            size: blob.size,
+          }),
         });
-        const json = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(json.error || "IMAGE_UPLOAD_FAILED");
-        setMediaUrl(json.mediaUrl);
+        const prepare = await prepareResponse.json().catch(() => ({}));
+        if (!prepareResponse.ok || !prepare.signedUrl || !prepare.mediaUrl) {
+          throw new Error(prepare.error || "IMAGE_UPLOAD_URL_FAILED");
+        }
+
+        const uploadResponse = await fetch(prepare.signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "image/webp" },
+          body: blob,
+        });
+        if (!uploadResponse.ok) {
+          throw new Error("IMAGE_UPLOAD_FAILED");
+        }
+
+        setMediaUrl(prepare.mediaUrl);
         setError("");
       } catch (error) {
         setMediaUrl("");
