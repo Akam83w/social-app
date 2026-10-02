@@ -40,7 +40,7 @@ export default function ReelsPage() {
           (post: Reel) => post.mediaType === "video" && post.mediaUrl
         );
         setReels(videos);
-        setLikedIds(new Set(videos.filter((post) => post.likedByMe).map((post) => post.id)));
+        setLikedIds(new Set(videos.filter((post: Reel) => post.likedByMe).map((post: Reel) => post.id)));
         setActiveId(videos[0]?.id ?? null);
       })
       .catch(() => {
