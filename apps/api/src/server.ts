@@ -20,6 +20,19 @@ import { verifyToken } from './middleware/auth.middleware';
 import { videoRoutes } from './modules/video.routes';
 
 
+const authRate = new Map<string, { count: number; resetAt: number }>();
+function allowAuthRequest(ip: string) {
+  const now = Date.now();
+  const current = authRate.get(ip);
+  if (!current || current.resetAt <= now) {
+    authRate.set(ip, { count: 1, resetAt: now + 60_000 });
+    return true;
+  }
+  if (current.count >= 20) return false;
+  current.count += 1;
+  return true;
+}
+
 const performanceRate = new Map<string, { count: number; resetAt: number }>();
 
 function allowPerformanceSample(ip: string) {
@@ -89,6 +102,12 @@ if (!jwtSecret || jwtSecret.length < 32) throw new Error('JWT_SECRET must be con
 
 const app = Fastify({ logger: true });
 app.decorate('notifyUser', notifyUser);
+app.addHook('onRequest', async (request, reply) => {
+  if (request.method !== 'POST' || !request.url.startsWith('/auth/')) return;
+  if (allowAuthRequest(request.ip)) return;
+  reply.header('Retry-After', '60').status(429).send({ error: 'RATE_LIMITED' });
+});
+
 const corsOrigins = (process.env.CORS_ORIGIN || 'https://lush-topaz-3759.de.deplexo.com,https://localhost,capacitor://localhost,http://localhost').split(',').map(value => value.trim()).filter(Boolean);
 app.register(cors, { origin: corsOrigins, credentials: true });
 app.register(compress, { global: true, encodings: ['br', 'gzip'] });
