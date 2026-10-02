@@ -31,7 +31,7 @@ export async function registerUser(input: RegisterInput) {
   const supporterNumber = Number(nextSupporter.rows[0]?.next_number ?? 999999);
   const createdAt = new Date();
   const isFounder = email === 'sdmtr033@gmail.com';
-  const supporter = isFounder ? null : supporterNumber;
+  const supporter = isFounder || supporterNumber > 1932 ? null : supporterNumber;
   const supporterExpiresAt = supporter ? new Date(createdAt.getTime() + 90 * 24 * 60 * 60 * 1000) : null;
   const verifiedAt = isFounder || supporter ? createdAt : null;
 
