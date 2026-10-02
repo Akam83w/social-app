@@ -1,0 +1,32 @@
+name: Refresh lockfiles
+
+on:
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Refresh API lockfile
+        working-directory: apps/api
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Refresh Web lockfile
+        working-directory: apps/web
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Commit lockfiles
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/api/package-lock.json apps/web/package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfiles already synchronized."
+            exit 0
+          fi
+          git commit -m "chore(deps): synchronize npm lockfiles"
+          git push
