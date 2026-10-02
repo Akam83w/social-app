@@ -1,4 +1,4 @@
-import { pgTable, varchar, text, timestamp, uuid, index, uniqueIndex, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, varchar, text, timestamp, uuid, index, uniqueIndex, boolean, primaryKey } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -111,7 +111,7 @@ export const comments = pgTable(
     postId: uuid('post_id')
       .notNull()
       .references(() => posts.id, { onDelete: 'cascade' }),
-    parentCommentId: uuid('parent_comment_id'),
+    parentCommentId: uuid('parent_comment_id').references(() => comments.id, { onDelete: 'cascade' }),
     content: text('content').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -120,6 +120,7 @@ export const comments = pgTable(
     userIdIdx: index('comments_user_id_idx').on(table.userId),
     postIdIdx: index('comments_post_id_idx').on(table.postId),
     createdAtIdx: index('comments_created_at_idx').on(table.createdAt),
+    parentCommentIdIdx: index('comments_parent_comment_id_idx').on(table.parentCommentId),
     postCreatedAtIdx: index('comments_post_created_at_idx').on(table.postId, table.createdAt),
   }),
 );
@@ -156,6 +157,7 @@ export const follows = pgTable(
     status: varchar('status', { length: 20 }).notNull().default('accepted'),
   },
   (table) => ({
+    pk: primaryKey({ columns: [table.followerId, table.followingId] }),
     pairUnique: uniqueIndex('follows_pair_unique').on(table.followerId, table.followingId),
     followerIdx: index('follows_follower_idx').on(table.followerId),
     followingIdx: index('follows_following_idx').on(table.followingId),
