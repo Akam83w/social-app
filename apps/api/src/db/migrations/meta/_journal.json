@@ -99,6 +99,13 @@
       "when": 1790967600000,
       "tag": "0013_revoke_social_identity_api_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790968200000,
+      "tag": "0014_social_identities_reconciled",
+      "breakpoints": true
     }
   ]
 }
