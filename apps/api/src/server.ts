@@ -102,13 +102,20 @@ if (!jwtSecret || jwtSecret.length < 32) throw new Error('JWT_SECRET must be con
 
 const app = Fastify({ logger: true });
 app.decorate('notifyUser', notifyUser);
+app.addHook('onSend', async (_request, reply) => {
+  reply.header('X-Content-Type-Options', 'nosniff');
+  reply.header('X-Frame-Options', 'DENY');
+  reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  reply.header('Permissions-Policy', 'camera=(self), microphone=(self)');
+});
+
 app.addHook('onRequest', async (request, reply) => {
   if (request.method !== 'POST' || !request.url.startsWith('/auth/')) return;
   if (allowAuthRequest(request.ip)) return;
   reply.header('Retry-After', '60').status(429).send({ error: 'RATE_LIMITED' });
 });
 
-const corsOrigins = (process.env.CORS_ORIGIN || 'https://lush-topaz-3759.de.deplexo.com,https://localhost,capacitor://localhost,http://localhost').split(',').map(value => value.trim()).filter(Boolean);
+const corsOrigins = (process.env.CORS_ORIGIN || 'https://lush-topaz-3759.de.deplexo.com,https://localhost,capacitor://localhost,http://localhost,http://localhost:5173,http://127.0.0.1:5173').split(',').map(value => value.trim()).filter(Boolean);
 app.register(cors, { origin: corsOrigins, credentials: true });
 app.register(compress, { global: true, encodings: ['br', 'gzip'] });
 app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
