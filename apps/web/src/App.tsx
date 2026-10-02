@@ -18,6 +18,7 @@ const ProfilePage = React.lazy(() => import("./pages/ProfilePage"));
 const AccountSettingsPage = React.lazy(() => import("./pages/AccountSettingsPage"));
 const HashtagPage = React.lazy(() => import("./pages/HashtagPage"));
 const LoginPage = React.lazy(() => import("./pages/LoginPage"));
+const OAuthCallbackPage = React.lazy(() => import("./pages/OAuthCallbackPage"));
 const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
 const SavedPage = React.lazy(() => import("./pages/SavedPage"));
@@ -168,6 +169,7 @@ function App() {
       <NativePushBootstrap />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<OAuthCallbackPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="*" element={<ProtectedApp />} />

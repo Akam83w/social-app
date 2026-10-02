@@ -4,11 +4,29 @@ const API_URL = Capacitor.isNativePlatform() ? (import.meta.env.VITE_API_URL || 
 
 export { API_URL };
 
-export async function registerUser(data: { username: string; email: string; password: string }) {
+export async function registerUser(data: { username: string; email: string; phone?: string; password: string; passwordConfirmation: string }) {
   const res = await fetch(`${API_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
   const json = await res.json();
   if (!res.ok) throw new Error(json.error || 'REGISTER_FAILED');
   return json;
+}
+
+export async function exchangeOAuthToken(data: { accessToken: string; provider: 'facebook' | 'twitter'; username?: string; phone?: string }) {
+  const res = await fetch(`${API_URL}/auth/oauth/exchange`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  const json = await res.json();
+  if (!res.ok) { const error = new Error(json.error || 'OAUTH_EXCHANGE_FAILED') as Error & { code?: string }; error.code = json.error; throw error; }
+  return json;
+}
+
+export function startSocialLogin(provider: 'facebook' | 'twitter') {
+  const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
+  const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '');
+  if (!supabaseUrl || !publishableKey) throw new Error('SOCIAL_LOGIN_NOT_CONFIGURED');
+  const url = new URL(`${supabaseUrl}/auth/v1/authorize`);
+  url.searchParams.set('provider', provider === 'twitter' ? 'x' : 'facebook');
+  url.searchParams.set('redirect_to', window.location.origin + '/auth/callback?provider=' + encodeURIComponent(provider));
+  url.searchParams.set('apikey', publishableKey);
+  window.location.assign(url.toString());
 }
 
 export async function loginUser(data: { identifier: string; password: string }) {
