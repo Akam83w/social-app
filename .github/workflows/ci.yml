@@ -19,7 +19,7 @@ jobs:
             apps/api/package.json
             apps/web/package.json
       - name: Install API
-        run: npm install --include=dev
+        run: npm ci --include=dev
         working-directory: apps/api
       - name: Build API
         run: npm run build
