@@ -139,14 +139,15 @@ export async function loginWithOAuth(input: { accessToken: string; provider: 'fa
 }
 
 export async function loginUser(input: LoginInput) {
+  const identifier = input.identifier.trim();
   const [existingUser] = await db
     .select()
     .from(users)
     .where(
       or(
-        eq(users.email, input.identifier),
+        sql`lower(${users.email}) = lower(${identifier})`,
         sql`lower(${users.username}) = lower(${input.identifier})`,
-        eq(users.phone, input.identifier)
+        eq(users.phone, identifier)
       )
     )
     .limit(1);
