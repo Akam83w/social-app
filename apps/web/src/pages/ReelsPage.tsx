@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { apiRequest } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
+import { likePost } from "../lib/api";
 
 type Reel = {
   id: string;
@@ -12,6 +13,7 @@ type Reel = {
   mediaType: string | null;
   mediaPoster?: string | null;
   likeCount: number;
+  likedByMe?: boolean;
   user: {
     username: string;
     displayName: string | null;
@@ -24,6 +26,7 @@ export default function ReelsPage() {
   const [reels, setReels] = useState<Reel[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const listRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -37,13 +40,26 @@ export default function ReelsPage() {
           (post: Reel) => post.mediaType === "video" && post.mediaUrl
         );
         setReels(videos);
+        setLikedIds(new Set(videos.filter((post) => post.likedByMe).map((post) => post.id)));
         setActiveId(videos[0]?.id ?? null);
       })
       .catch(() => {
         if (active) setError("تعذر تحميل الريلز.");
       });
 
-    return () => {
+    const handleDoubleTapLike = async (reel: Reel) => {
+    if (!token || likedIds.has(reel.id)) return;
+    setLikedIds((current) => new Set(current).add(reel.id));
+    setReels((current) => current.map((item) => item.id === reel.id ? { ...item, likeCount: (item.likeCount || 0) + 1, likedByMe: true } : item));
+    try {
+      await likePost(reel.id, token);
+    } catch {
+      setLikedIds((current) => { const next = new Set(current); next.delete(reel.id); return next; });
+      setReels((current) => current.map((item) => item.id === reel.id ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) - 1), likedByMe: false } : item));
+    }
+  };
+
+  return () => {
       active = false;
     };
   }, [token]);
@@ -121,6 +137,7 @@ export default function ReelsPage() {
                   muted
                   active={activeId === reel.id}
                   customControls
+                  onDoubleTap={() => void handleDoubleTapLike(reel)}
                 />
               </div>
 
@@ -153,7 +170,7 @@ export default function ReelsPage() {
 
               <div className="reel-actions">
                 <button type="button" aria-label="إعجاب">
-                  ♡
+                  {likedIds.has(reel.id) ? "❤️" : "♡"}
                   <span>{(reel.likeCount || 0).toLocaleString("ar-IQ")}</span>
                 </button>
                 <button type="button" aria-label="تعليقات">◯</button>
