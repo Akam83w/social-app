@@ -1,11 +1,49 @@
 import OptimizedImage from "../components/OptimizedImage";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 
 type Reel = { id:string; content:string|null; mediaUrl:string|null; mediaType:string|null; mediaPoster?:string|null; likeCount:number; user:{username:string;displayName:string|null;avatarUrl:string|null} };
+
+function ReelItem({ reel }: { reel: Reel }) {
+  const ref = useRef<HTMLElement>(null);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting && entry.intersectionRatio >= 0.65), {
+      threshold: [0.25, 0.65, 0.9],
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return <article ref={ref} className="reel-screen">
+    <div className="reel-media">
+      {reel.mediaUrl && <VideoPlayer src={reel.mediaUrl} poster={reel.mediaPoster} className="reel-video" controls={false} muted autoPlay={active} />}
+      <div className="reel-gradient" />
+      <div className="reel-top">
+        <Link to={"/u/"+encodeURIComponent(reel.user.username)} className="reel-user">
+          <OptimizedImage src={reel.user.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(reel.user.username)} alt=""/>
+          <strong>{reel.user.displayName||reel.user.username}</strong>
+        </Link>
+      </div>
+      <div className="reel-bottom">
+        <div className="reel-caption">
+          {reel.content&&<p>{reel.content}</p>}
+        </div>
+        <div className="reel-actions">
+          <button type="button" aria-label="إعجاب">♥<span>{reel.likeCount||0}</span></button>
+          <button type="button" aria-label="تعليق">💬</button>
+          <button type="button" aria-label="مشاركة">↗</button>
+        </div>
+      </div>
+    </div>
+  </article>;
+}
 
 export default function ReelsPage() {
   const { token } = useAuth();
@@ -16,17 +54,13 @@ export default function ReelsPage() {
     if(!token) return;
     apiRequest("/posts?limit=50",token)
       .then((d:any)=>setReels((d.posts??[]).filter((p:Reel)=>p.mediaType==="video")))
-      .catch(()=>setError("تعذر تحميل الفيديوهات."));
+      .catch(()=>setError("تعذر تحميل الريلز."));
   },[token]);
 
-  return <main className="feed-container"><section className="stories-card">
-    <div className="section-heading"><div><h2>الفيديوهات</h2><p>فيديوهات SDM بجودة تتكيف مع سرعة الاتصال.</p></div><Link to="/create">إنشاء فيديو</Link></div>
-    {error&&<p className="search-error">{error}</p>}
-    {!error&&!reels.length&&<div className="reels-empty">ماكو فيديوهات منشورة حالياً.</div>}
-    <div className="reels-list">{reels.map(r=><article className="reel-card" key={r.id}>
-      <Link to={"/u/"+encodeURIComponent(r.user.username)} className="explore-user"><OptimizedImage src={r.user.avatarUrl||"https://ui-avatars.com/api/?name="+encodeURIComponent(r.user.username)} alt=""/><span>{r.user.displayName||r.user.username}</span></Link>
-      {r.mediaUrl&&<VideoPlayer src={r.mediaUrl} poster={r.mediaPoster} className="post-video" controls/>}
-      {r.content&&<p>{r.content}</p>}<small>♥ {r.likeCount||0}</small>
-    </article>)}</div>
-  </section></main>;
+  return <main className="reels-feed">
+    <div className="reels-header"><strong>ريلز</strong><Link to="/create">＋</Link></div>
+    {error&&<div className="reels-error">{error}</div>}
+    {!error&&!reels.length&&<div className="reels-empty">ماكو ريلز منشورة حالياً.</div>}
+    <div className="reels-list">{reels.map(r=><ReelItem key={r.id} reel={r}/>)}</div>
+  </main>;
 }
