@@ -26,7 +26,7 @@ const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage")
 const PolicyPage = React.lazy(() => import("./pages/PolicyPage"));
 const SavedPage = React.lazy(() => import("./pages/SavedPage"));
 import { useAuth } from "./context/AuthContext";
-import NativePushBootstrap from "./NativePushBootstrap";
+const NativePushBootstrap = React.lazy(() => import("./NativePushBootstrap"));
 
 function QXSplash({ onDone }: { onDone: () => void }) {
   React.useEffect(() => {
@@ -186,7 +186,9 @@ function App() {
 
   return (
     <>
-      <NativePushBootstrap />
+      <React.Suspense fallback={null}>
+        <NativePushBootstrap />
+      </React.Suspense>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
