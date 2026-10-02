@@ -5,10 +5,10 @@ RUN apk add --no-cache ffmpeg
 WORKDIR /app
 
 COPY apps/api/package*.json ./api/
-RUN cd api && npm ci --include=dev
+RUN cd api && npm install --include=dev
 
 COPY apps/web/package*.json ./web/
-RUN cd web && npm ci --include=dev
+RUN cd web && npm install --include=dev
 
 COPY apps/api ./api
 COPY apps/web ./web
