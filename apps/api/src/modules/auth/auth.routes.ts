@@ -24,6 +24,14 @@ export async function authRoutes(app: FastifyInstance) {
     } catch (err: any) {
       if (err.message === 'PASSWORD_MISMATCH') return reply.status(400).send({ error: 'PASSWORD_MISMATCH' });
       if (err.message === 'USER_ALREADY_EXISTS') {
+        const email = String(parsed.data.email).trim().toLowerCase();
+        const username = String(parsed.data.username).trim().toLowerCase();
+        const phone = String(parsed.data.phone || '').trim();
+        const [emailOwner] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+        if (emailOwner) return reply.status(409).send({ error: 'EMAIL_TAKEN' });
+        const [usernameOwner] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.username}) = ${username}`).limit(1);
+        if (usernameOwner) return reply.status(409).send({ error: 'USERNAME_TAKEN' });
+        if (phone) { const [phoneOwner] = await db.select({ id: users.id }).from(users).where(eq(users.phone, phone)).limit(1); if (phoneOwner) return reply.status(409).send({ error: 'PHONE_TAKEN' }); }
         return reply.status(409).send({ error: 'USER_ALREADY_EXISTS' });
       }
       if (err?.code === '23505' && String(err?.constraint || '').includes('username')) {
