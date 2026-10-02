@@ -120,6 +120,7 @@ export default function ReelsPage() {
                   controls={false}
                   muted
                   active={activeId === reel.id}
+                  customControls
                 />
               </div>
 
