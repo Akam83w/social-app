@@ -158,7 +158,6 @@ export const follows = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.followerId, table.followingId] }),
-    pairUnique: uniqueIndex('follows_pair_unique').on(table.followerId, table.followingId),
     followerIdx: index('follows_follower_idx').on(table.followerId),
     followingIdx: index('follows_following_idx').on(table.followingId),
     followingStatusIdx: index('follows_following_status_idx').on(table.followingId, table.status),
