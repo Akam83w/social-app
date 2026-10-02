@@ -4,7 +4,9 @@ import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import "./index.css";
 import "./social-features.css";
 import Layout from "./components/layout/Layout";
-const HomePage = React.lazy(() => import("./pages/HomePage"));
+// Start downloading the first screen immediately so the splash time is used for real work.
+const homePageModule = import("./pages/HomePage");
+const HomePage = React.lazy(() => homePageModule);
 const PostPage = React.lazy(() => import("./pages/PostPage"));
 const SimplePage = React.lazy(() => import("./pages/SimplePage"));
 const ExplorePage = React.lazy(() => import("./pages/ExplorePage"));
@@ -28,7 +30,7 @@ import NativePushBootstrap from "./NativePushBootstrap";
 
 function QXSplash({ onDone }: { onDone: () => void }) {
   React.useEffect(() => {
-    const timer = window.setTimeout(onDone, 650);
+    const timer = window.setTimeout(onDone, 3000);
     return () => window.clearTimeout(timer);
   }, [onDone]);
 
@@ -159,10 +161,27 @@ function ProtectedApp() {
 }
 
 function App() {
-  const [showSplash, setShowSplash] = React.useState(true);
+  const [showSplash, setShowSplash] = React.useState(() => {
+    // The Iraqi splash is an install/first-launch experience only.
+    // A normal browser refresh must keep the current route and open directly there.
+    try {
+      return localStorage.getItem("qx_splash_seen") !== "1";
+    } catch {
+      return true;
+    }
+  });
+
+  const finishSplash = React.useCallback(() => {
+    try {
+      localStorage.setItem("qx_splash_seen", "1");
+    } catch {
+      // Ignore storage failures; the app can still continue normally.
+    }
+    setShowSplash(false);
+  }, []);
 
   if (showSplash) {
-    return <QXSplash onDone={() => setShowSplash(false)} />;
+    return <QXSplash onDone={finishSplash} />;
   }
 
   return (
