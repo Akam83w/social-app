@@ -89,30 +89,25 @@ export default function VideoPlayer({
       }
     };
 
+    let observer: IntersectionObserver | null = null;
+
     if (active) {
       loadVideo();
     } else {
-      const observer = new IntersectionObserver(
+      observer = new IntersectionObserver(
         (entries) => {
           if (entries.some((entry) => entry.isIntersecting)) {
             loadVideo();
-            observer.disconnect();
+            observer?.disconnect();
           }
         },
         { rootMargin: "900px 0px", threshold: 0.01 }
       );
       observer.observe(video);
-      return () => {
-        observer.disconnect();
-        hls?.destroy();
-        video.pause();
-        video.removeAttribute("src");
-        video.load();
-      };
     }
 
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       hls?.destroy();
       video.pause();
       video.removeAttribute("src");
