@@ -47,22 +47,38 @@ export default function ReelsPage() {
         if (active) setError("تعذر تحميل الريلز.");
       });
 
-    const handleDoubleTapLike = async (reel: Reel) => {
-    if (!token || likedIds.has(reel.id)) return;
-    setLikedIds((current) => new Set(current).add(reel.id));
-    setReels((current) => current.map((item) => item.id === reel.id ? { ...item, likeCount: (item.likeCount || 0) + 1, likedByMe: true } : item));
-    try {
-      await likePost(reel.id, token);
-    } catch {
-      setLikedIds((current) => { const next = new Set(current); next.delete(reel.id); return next; });
-      setReels((current) => current.map((item) => item.id === reel.id ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) - 1), likedByMe: false } : item));
-    }
-  };
-
-  return () => {
+    return () => {
       active = false;
     };
   }, [token]);
+
+  const handleDoubleTapLike = async (reel: Reel) => {
+    if (!token || likedIds.has(reel.id)) return;
+    setLikedIds((current) => new Set(current).add(reel.id));
+    setReels((current) =>
+      current.map((item) =>
+        item.id === reel.id
+          ? { ...item, likeCount: (item.likeCount || 0) + 1, likedByMe: true }
+          : item
+      )
+    );
+    try {
+      await likePost(reel.id, token);
+    } catch {
+      setLikedIds((current) => {
+        const next = new Set(current);
+        next.delete(reel.id);
+        return next;
+      });
+      setReels((current) =>
+        current.map((item) =>
+          item.id === reel.id
+            ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) - 1), likedByMe: false }
+            : item
+        )
+      );
+    }
+  };
 
   useEffect(() => {
     const list = listRef.current;
