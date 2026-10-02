@@ -32,13 +32,18 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (data.error === 'EMAIL_PROVIDER_NOT_CONFIGURED') throw new Error('EMAIL_PROVIDER_NOT_CONFIGURED');
         throw new Error(data.error || 'REQUEST_FAILED');
       }
 
-      setMessage('إذا كان الإيميل مسجلاً، تم إرسال رمز الاستعادة.');
+      setMessage(data.throttled
+        ? 'تم إرسال طلب سابق قبل قليل. افحص بريدك أو انتظر دقيقة قبل طلب رمز جديد.'
+        : 'إذا كان الإيميل مسجلاً، تم إرسال رمز الاستعادة إلى بريدك.');
       setStep(2);
-    } catch {
-      setError('تعذر إرسال طلب الاستعادة، حاول مرة ثانية.');
+    } catch (err) {
+      setError(err instanceof Error && err.message === 'EMAIL_PROVIDER_NOT_CONFIGURED'
+        ? 'خدمة البريد غير مهيأة حالياً.'
+        : 'تعذر إرسال طلب الاستعادة، حاول مرة ثانية.');
     } finally {
       setLoading(false);
     }
