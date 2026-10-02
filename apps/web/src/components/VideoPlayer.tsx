@@ -10,6 +10,7 @@ type Props = {
   autoPlay?: boolean;
   active?: boolean;
   customControls?: boolean;
+  onDoubleTap?: () => void;
 };
 
 export default function VideoPlayer({
@@ -21,11 +22,15 @@ export default function VideoPlayer({
   autoPlay = false,
   active = autoPlay,
   customControls = false,
+  onDoubleTap,
 }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const activeRef = useRef(active);
   const [playing, setPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     activeRef.current = active;
@@ -127,6 +132,12 @@ export default function VideoPlayer({
     }
   };
 
+  const showTemporaryControls = () => {
+    setControlsVisible(true);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    controlsTimerRef.current = setTimeout(() => setControlsVisible(false), 1400);
+  };
+
   const toggleMute = () => {
     const video = ref.current;
     if (!video) return;
@@ -134,6 +145,25 @@ export default function VideoPlayer({
     video.muted = nextMuted;
     setIsMuted(nextMuted);
   };
+
+  const handleVideoTap = () => {
+    if (tapTimerRef.current) {
+      clearTimeout(tapTimerRef.current);
+      tapTimerRef.current = null;
+      onDoubleTap?.();
+      return;
+    }
+    tapTimerRef.current = setTimeout(() => {
+      tapTimerRef.current = null;
+      showTemporaryControls();
+      togglePlayback();
+    }, 220);
+  };
+
+  useEffect(() => () => {
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+  }, []);
 
   return (
     <div className={customControls ? "video-player-shell video-player-custom" : "video-player-shell"}>
@@ -147,10 +177,11 @@ export default function VideoPlayer({
         playsInline
         preload="none"
         loop
+        onClick={handleVideoTap}
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
-      {customControls && (
+      {customControls && controlsVisible && (
         <div className="video-custom-controls" aria-label="تحكم بالفيديو">
           <button type="button" onClick={togglePlayback} aria-label={playing ? "إيقاف الفيديو" : "تشغيل الفيديو"}>
             {playing ? "❚❚" : "▶"}
