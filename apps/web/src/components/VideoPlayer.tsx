@@ -11,6 +11,7 @@ type Props = {
   active?: boolean;
   customControls?: boolean;
   onDoubleTap?: () => void;
+  autoSound?: boolean;
 };
 
 export default function VideoPlayer({
@@ -23,6 +24,7 @@ export default function VideoPlayer({
   active = autoPlay,
   customControls = false,
   onDoubleTap,
+  autoSound = false,
 }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const activeRef = useRef(active);
@@ -31,6 +33,7 @@ export default function VideoPlayer({
   const [controlsVisible, setControlsVisible] = useState(false);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const soundUnlockedRef = useRef(false);
 
   useEffect(() => {
     activeRef.current = active;
@@ -43,12 +46,28 @@ export default function VideoPlayer({
       return;
     }
 
-    video.muted = true;
-    setIsMuted(true);
+    if (muted) {
+      video.muted = true;
+      setIsMuted(true);
+    } else {
+      video.muted = false;
+      setIsMuted(false);
+    }
 
     const play = () => {
       if (!activeRef.current) return;
-      void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+      video.muted = muted ? true : false;
+      void video.play()
+        .then(() => setPlaying(true))
+        .catch(() => {
+          if (!muted && autoSound) {
+            video.muted = true;
+            setIsMuted(true);
+            void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+          } else {
+            setPlaying(false);
+          }
+        });
     };
 
     if (video.readyState >= 2) {
@@ -62,7 +81,7 @@ export default function VideoPlayer({
       video.removeEventListener("loadeddata", play);
       video.removeEventListener("canplay", play);
     };
-  }, [active]);
+  }, [active, muted, autoSound]);
 
   useEffect(() => {
     const video = ref.current;
@@ -156,6 +175,14 @@ export default function VideoPlayer({
     tapTimerRef.current = setTimeout(() => {
       tapTimerRef.current = null;
       showTemporaryControls();
+      const video = ref.current;
+      if (autoSound && !soundUnlockedRef.current && video) {
+        soundUnlockedRef.current = true;
+        video.muted = false;
+        setIsMuted(false);
+        void video.play().then(() => setPlaying(true)).catch(() => {});
+        return;
+      }
       togglePlayback();
     }, 220);
   };
