@@ -24,7 +24,7 @@ export function startSocialLogin(provider: 'facebook' | 'twitter') {
   if (!supabaseUrl || !publishableKey) throw new Error('SOCIAL_LOGIN_NOT_CONFIGURED');
   const url = new URL(`${supabaseUrl}/auth/v1/authorize`);
   url.searchParams.set('provider', provider === 'twitter' ? 'x' : 'facebook');
-  url.searchParams.set('redirect_to', window.location.origin + '/auth/callback');
+  url.searchParams.set('redirect_to', window.location.origin + '/auth/callback?provider=' + encodeURIComponent(provider));
   url.searchParams.set('apikey', publishableKey);
   window.location.assign(url.toString());
 }
