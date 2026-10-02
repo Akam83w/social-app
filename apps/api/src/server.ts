@@ -133,6 +133,14 @@ app.post('/notifications/read',{preHandler:verifyToken},async(req,reply)=>{const
 app.post('/notifications/push-subscription',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const sub=req.body as any;if(!sub?.endpoint)return reply.status(400).send({error:'INVALID_SUBSCRIPTION'});await db.execute(sql`INSERT INTO push_subscriptions(user_id,endpoint,subscription) VALUES(${me},${sub.endpoint},${JSON.stringify(sub)}) ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`);return reply.send({ok:true});});
 app.post('/notifications/fcm-token',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.token)return reply.status(400).send({error:'INVALID_FCM_TOKEN'});const platform=String(b.platform||'android').slice(0,20);await db.execute(sql`INSERT INTO fcm_tokens(user_id,token,platform) VALUES(${me},${String(b.token)},${platform}) ON CONFLICT(token) DO UPDATE SET user_id=EXCLUDED.user_id,platform=EXCLUDED.platform,updated_at=now()`);return reply.send({ok:true});});
 app.get('/realtime',async(req,reply)=>{const token=String((req.query as any)?.token||'');try{const payload=app.jwt.verify<{id:string}>(token);reply.hijack();reply.raw.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});reply.raw.write('data: '+JSON.stringify({type:'ready'})+'\\n\\n');let set=realtimeClients.get(payload.id);if(!set){set=new Set();realtimeClients.set(payload.id,set)}set.add(reply.raw);req.raw.on('close',()=>{set?.delete(reply.raw);if(!set?.size)realtimeClients.delete(payload.id)});return reply;}catch{return reply.status(401).send({error:'UNAUTHORIZED'});}});
+app.get('/calls/config',{preHandler:verifyToken},async(_req,reply)=>{
+  const iceServers:any[]=[{urls:'stun:stun.l.google.com:19302'}];
+  const turnUrl=String(process.env.TURN_URL||'').trim();
+  const turnUsername=String(process.env.TURN_USERNAME||'').trim();
+  const turnCredential=String(process.env.TURN_CREDENTIAL||'').trim();
+  if(turnUrl&&turnUsername&&turnCredential)iceServers.push({urls:turnUrl,username:turnUsername,credential:turnCredential});
+  return reply.send({iceServers});
+});
 app.post('/calls/start',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const b=req.body as any;
   if(!b?.toUserId)return reply.status(400).send({error:'INVALID_CALL'});
