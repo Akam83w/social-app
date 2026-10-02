@@ -21,6 +21,6 @@ export async function ensureAuthSchema() {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_until timestamp`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS moderation_status varchar(20) NOT NULL DEFAULT 'active'`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_private boolean NOT NULL DEFAULT false`);
-  await db.execute(sql`UPDATE users SET supporter_expires_at = created_at + interval '60 days', verified_at = COALESCE(verified_at, created_at) WHERE supporter_number IS NOT NULL AND supporter_number::int BETWEEN 1 AND 1000`);
+  await db.execute(sql`UPDATE users SET supporter_expires_at = created_at + interval '90 days', verified_at = COALESCE(verified_at, created_at) WHERE supporter_number IS NOT NULL AND supporter_number::int BETWEEN 1 AND 1000`);
   await db.execute(sql`UPDATE users SET verified_at = COALESCE(verified_at, now()) WHERE lower(email) = lower('sdmtr033@gmail.com')`);
 }
