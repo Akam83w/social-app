@@ -89,7 +89,7 @@ export async function createDirectVideoUpload(
   const parsed = new URL(configuredUrl);
 
   const storageHost = parsed.hostname.endsWith('.supabase.co')
-    ? parsed.hostname.replace(/\\.supabase\\.co$/i, '.storage.supabase.co')
+    ? parsed.hostname.replace(/\.supabase\.co$/i, '.storage.supabase.co')
     : parsed.hostname;
 
   return {

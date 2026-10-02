@@ -7,16 +7,13 @@ type ModerationDecision = {
   severity: 'low' | 'high';
 };
 
-function dataUrlToBase64(value: string) {
-  const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/s.exec(value);
-  return match ? { mime: match[1], base64: match[2] } : null;
-}
-
 async function checkImage(mediaUrl: string): Promise<ModerationDecision> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('MODERATION_NOT_CONFIGURED');
-  const parsed = dataUrlToBase64(mediaUrl);
-  if (!parsed) throw new Error('MODERATION_UNSUPPORTED_MEDIA');
+
+  const isDataUrl = /^data:image\/[a-zA-Z0-9.+-]+;base64,/i.test(mediaUrl);
+  const isHttpUrl = /^https?:\/\//i.test(mediaUrl);
+  if (!isDataUrl && !isHttpUrl) throw new Error('MODERATION_UNSUPPORTED_MEDIA');
 
   const response = await fetch('https://api.openai.com/v1/moderations', {
     method: 'POST',
