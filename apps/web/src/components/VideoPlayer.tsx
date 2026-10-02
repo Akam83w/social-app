@@ -62,8 +62,10 @@ export default function VideoPlayer({
   useEffect(() => {
     const video = ref.current;
     if (!video || !src) return;
+
     let hls: Hls | null = null;
     let loaded = false;
+    let retryCount = 0;
 
     const loadVideo = () => {
       if (loaded) return;
@@ -77,38 +79,67 @@ export default function VideoPlayer({
             enableWorker: true,
             capLevelToPlayerSize: true,
             startLevel: -1,
-            maxBufferLength: 8,
+            maxBufferLength: 10,
             backBufferLength: 4,
-            maxBufferSize: 6 * 1000 * 1000,
+            maxBufferSize: 8 * 1000 * 1000,
+            manifestLoadingMaxRetry: 3,
+            levelLoadingMaxRetry: 3,
+            fragLoadingMaxRetry: 3,
           });
-          hls.loadSource(src);
+
+          hls.on(Hls.Events.ERROR, (_event, data) => {
+            if (!data.fatal || !hls) return;
+
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && retryCount < 2) {
+              retryCount += 1;
+              hls.startLoad();
+            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+              hls.recoverMediaError();
+            }
+          });
+
           hls.attachMedia(video);
+          hls.loadSource(src);
         }
       } else {
         video.src = src;
       }
     };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          loadVideo();
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "900px 0px", threshold: 0.01 }
-    );
+    // The active reel must load immediately. Nearby reels can load when they
+    // approach the viewport, which keeps scrolling smooth without blocking
+    // the first frame.
+    if (active) {
+      loadVideo();
+    } else {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            loadVideo();
+            observer.disconnect();
+          }
+        },
+        { rootMargin: "900px 0px", threshold: 0.01 }
+      );
 
-    observer.observe(video);
+      observer.observe(video);
+
+      return () => {
+        observer.disconnect();
+        hls?.destroy();
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      };
+    }
 
     return () => {
-      observer.disconnect();
       hls?.destroy();
       video.pause();
       video.removeAttribute("src");
       video.load();
     };
-  }, [src]);
+  }, [src, active]);
 
   const togglePlayback = () => {
     const video = ref.current;
