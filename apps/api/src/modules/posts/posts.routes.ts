@@ -249,6 +249,37 @@ export async function postsRoutes(app: FastifyInstance) {
         body.parentCommentId,
       );
 
+      // Notify real users mentioned in the comment (@username), without duplicating notifications.
+      const mentions = [...new Set(
+        (content.match(/@[A-Za-z0-9_.-]{2,50}/g) ?? [])
+          .map((value) => value.slice(1).toLowerCase()),
+      )];
+
+      if (mentions.length) {
+        const mentionedUsers = await db.execute(sql`
+          SELECT id, username
+          FROM users
+          WHERE lower(username) IN (${sql.join(mentions.map((username) => sql`${username}`), sql`, `)} )
+          LIMIT 20
+        `);
+        const actor = await db.execute(sql`SELECT username FROM users WHERE id=${payload.id} LIMIT 1`);
+        const actorUsername = String((actor.rows[0] as any)?.username || 'مستخدم');
+
+        for (const row of mentionedUsers.rows as any[]) {
+          if (String(row.id) === payload.id) continue;
+          try {
+            await (app as any).notifyUser(
+              String(row.id),
+              'mention',
+              'منشن جديد',
+              `@${actorUsername} ذكرك في تعليق`,
+              payload.id,
+              { actorId: payload.id, url: '/post/' + encodeURIComponent(id) },
+            );
+          } catch {}
+        }
+      }
+
       return reply.status(201).send({
         comment,
       });
