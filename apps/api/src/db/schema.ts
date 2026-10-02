@@ -41,6 +41,24 @@ export const posts = pgTable(
   })
 );
 
+export const socialIdentities = pgTable(
+  'social_identities',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    provider: varchar('provider', { length: 20 }).notNull(),
+    providerUserId: varchar('provider_user_id', { length: 255 }).notNull(),
+    providerEmail: varchar('provider_email', { length: 255 }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    providerIdentityUnique: uniqueIndex('social_identities_provider_user_unique').on(table.provider, table.providerUserId),
+    userProviderUnique: uniqueIndex('social_identities_user_provider_unique').on(table.userId, table.provider),
+    userIdIdx: index('social_identities_user_id_idx').on(table.userId),
+  }),
+);
+
 export const passwordResetCodes = pgTable(
   'password_reset_codes',
   {
