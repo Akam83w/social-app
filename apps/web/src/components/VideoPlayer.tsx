@@ -89,17 +89,27 @@ export default function VideoPlayer({
       }
     };
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          loadVideo();
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "900px 0px", threshold: 0.01 }
-    );
-
-    observer.observe(video);
+    if (active) {
+      loadVideo();
+    } else {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            loadVideo();
+            observer.disconnect();
+          }
+        },
+        { rootMargin: "900px 0px", threshold: 0.01 }
+      );
+      observer.observe(video);
+      return () => {
+        observer.disconnect();
+        hls?.destroy();
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      };
+    }
 
     return () => {
       observer.disconnect();
@@ -108,7 +118,7 @@ export default function VideoPlayer({
       video.removeAttribute("src");
       video.load();
     };
-  }, [src]);
+  }, [src, active]);
 
   const togglePlayback = () => {
     const video = ref.current;
