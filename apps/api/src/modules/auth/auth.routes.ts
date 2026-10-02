@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { registerSchema, loginSchema } from './auth.schema';
-import { registerUser, loginUser, updateUserAvatar } from './auth.service';
+import { registerUser, loginUser, loginWithOAuth, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
@@ -22,6 +22,7 @@ export async function authRoutes(app: FastifyInstance) {
       const user = await registerUser(parsed.data);
       return reply.status(201).send({ user });
     } catch (err: any) {
+      if (err.message === 'PASSWORD_MISMATCH') return reply.status(400).send({ error: 'PASSWORD_MISMATCH' });
       if (err.message === 'USER_ALREADY_EXISTS') {
         return reply.status(409).send({ error: 'USER_ALREADY_EXISTS' });
       }
@@ -30,6 +31,21 @@ export async function authRoutes(app: FastifyInstance) {
       }
       app.log.error(err);
       return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
+
+  app.post('/auth/oauth/exchange', async (request, reply) => {
+    const body = request.body as { accessToken?: unknown; provider?: unknown; username?: unknown; phone?: unknown };
+    if (typeof body.accessToken !== 'string' || !['facebook', 'twitter'].includes(String(body.provider))) return reply.status(400).send({ error: 'INVALID_OAUTH_REQUEST' });
+    try {
+      const result = await loginWithOAuth({ accessToken: body.accessToken, provider: body.provider as 'facebook' | 'twitter', username: typeof body.username === 'string' ? body.username : undefined, phone: typeof body.phone === 'string' ? body.phone : undefined });
+      if (result.needsProfile) return reply.send({ needsProfile: true });
+      const token = app.jwt.sign({ id: result.user.id, username: result.user.username });
+      return reply.send({ user: result.user, token, needsProfile: false });
+    } catch (err: any) {
+      if (['OAUTH_INVALID_TOKEN','OAUTH_EMAIL_REQUIRED','USERNAME_TAKEN','PHONE_TAKEN'].includes(err.message)) return reply.status(err.message === 'OAUTH_INVALID_TOKEN' ? 401 : 409).send({ error: err.message });
+      app.log.error(err); return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
   });
 
