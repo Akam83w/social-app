@@ -78,6 +78,13 @@
       "when": 1790761354370,
       "tag": "0010_fast_social_queries",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790966646556,
+      "tag": "0011_database_integrity",
+      "breakpoints": true
     }
   ]
 }
