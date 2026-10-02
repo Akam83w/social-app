@@ -1,5 +1,5 @@
 import OptimizedImage from "../components/OptimizedImage";
-import { API_URL } from "../lib/api";
+import { API_URL, getLinkedSocialAccounts, startSocialLogin, unlinkSocialAccount } from "../lib/api";
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -39,6 +39,24 @@ export default function AccountSettingsPage() {
   const [followRequestsLoading, setFollowRequestsLoading] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<Array<{id:string;username:string;displayName:string|null;avatarUrl:string|null;createdAt:string}>>([]);
   const [blockedLoading, setBlockedLoading] = useState(false);
+  const [linkedProviders, setLinkedProviders] = useState<Array<{provider:string;providerEmail?:string|null}>>([]);
+  const [linkedLoading, setLinkedLoading] = useState(false);
+
+  const loadLinkedAccounts = async () => {
+    if (!token) return;
+    setLinkedLoading(true);
+    try {
+      const data = await getLinkedSocialAccounts(token);
+      setLinkedProviders(data.identities ?? []);
+    } catch {
+      setLinkedProviders([]);
+      setMessage('تعذر تحميل الحسابات المرتبطة.');
+    } finally {
+      setLinkedLoading(false);
+    }
+  };
+
+  const isLinked = (provider: string) => linkedProviders.some(item => item.provider === provider);
 
   const loadFollowRequests = async () => {
     if (!token) return;
@@ -123,7 +141,7 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const go = (id: Section) => { setMessage(''); setDetail(null); setSection(id); };
+  const go = (id: Section) => { setMessage(''); setDetail(null); setSection(id); if (id === 'linked') void loadLinkedAccounts(); };
   const openDetail = (id: Exclude<Detail, null>) => { setMessage(''); setDetail(id); if (id === 'blocked') void loadBlockedUsers(); };
 
   const back = () => {
@@ -207,7 +225,14 @@ export default function AccountSettingsPage() {
 
         {section === 'notifications' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('likesComments')}><span>❤️<strong>الإعجابات والتعليقات</strong><small>تنبيهات التفاعل على منشوراتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('followers')}><span>👥<strong>المتابعون</strong><small>تنبيهات المتابعة والطلبات</small></span><b>›</b></button><button type="button" onClick={() => openDetail('messageNotifications')}><span>✉️<strong>الرسائل</strong><small>تنبيهات الرسائل الجديدة</small></span><b>›</b></button></div>}
 
-        {section === 'linked' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('linkedAccounts')}><span>🔗<strong>الحسابات المرتبطة</strong><small>إدارة الحسابات التي تربطها بمنصتك</small></span><b>›</b></button><div className="settings-info">هذا القسم مجهز للربط مستقبلاً. حالياً حسابك يعمل بشكل مستقل.</div></div>}
+        {section === 'linked' && !detail && <div className="settings-detail settings-options">
+          <div className="settings-info">اربط فيسبوك و X بحساب دجلة حتى تقدر تدخل إلى نفس الحساب بنقرة واحدة. البريد الإلكتروني هو وسيلة الحساب الأساسية.</div>
+          <div className="settings-switch-row"><div><strong>✉️ البريد الإلكتروني</strong><small>{user.email || 'غير متوفر'} · مرتبط بالحساب</small></div><b className="settings-linked-badge">مرتبط</b></div>
+          <div className="settings-switch-row"><div><strong>𝕏 X / تويتر</strong><small>{isLinked('twitter') ? 'مرتبط ويمكن استخدامه لتسجيل الدخول.' : 'غير مرتبط حالياً.'}</small></div>{isLinked('twitter') ? <button type="button" className="settings-link-button danger" onClick={async()=>{if(!token)return;try{await unlinkSocialAccount(token,'twitter');setLinkedProviders(v=>v.filter(x=>x.provider!=='twitter'));setMessage('تم فصل X عن الحساب.');}catch{setMessage('تعذر فصل X.');}}}>فصل</button> : <button type="button" className="settings-link-button" onClick={()=>startSocialLogin('twitter','link')}>ربط</button>}</div>
+          <div className="settings-switch-row"><div><strong>ⓕ فيسبوك</strong><small>{isLinked('facebook') ? 'مرتبط ويمكن استخدامه لتسجيل الدخول.' : 'غير مرتبط حالياً.'}</small></div>{isLinked('facebook') ? <button type="button" className="settings-link-button danger" onClick={async()=>{if(!token)return;try{await unlinkSocialAccount(token,'facebook');setLinkedProviders(v=>v.filter(x=>x.provider!=='facebook'));setMessage('تم فصل فيسبوك عن الحساب.');}catch{setMessage('تعذر فصل فيسبوك.');}}}>فصل</button> : <button type="button" className="settings-link-button" onClick={()=>startSocialLogin('facebook','link')}>ربط</button>}</div>
+          {linkedLoading && <p className="settings-info">جاري تحميل حالة الربط...</p>}
+          {message && <p className="settings-message">{message}</p>}
+        </div>}
 
         {section === 'activity' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => navigate('/saved')}><span>🔖<strong>المحفوظات</strong><small>المنشورات التي حفظتها</small></span><b>›</b></button><button type="button" onClick={() => navigate('/profile')}><span>📷<strong>منشوراتك</strong><small>إدارة المنشورات الموجودة في حسابك</small></span><b>›</b></button><button type="button" onClick={() => navigate('/stories')}><span>⭕<strong>القصص</strong><small>عرض القصص الفعالة حالياً</small></span><b>›</b></button></div>}
         {detail && <div className="settings-detail settings-subdetail">

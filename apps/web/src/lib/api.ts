@@ -18,16 +18,21 @@ export async function exchangeOAuthToken(data: { accessToken: string; provider: 
   return json;
 }
 
-export function startSocialLogin(provider: 'facebook' | 'twitter') {
+export function startSocialLogin(provider: 'facebook' | 'twitter', mode: 'login' | 'link' = 'login') {
   const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').replace(/\/$/, '');
   const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '');
   if (!supabaseUrl || !publishableKey) throw new Error('SOCIAL_LOGIN_NOT_CONFIGURED');
   const url = new URL(`${supabaseUrl}/auth/v1/authorize`);
   url.searchParams.set('provider', provider === 'twitter' ? 'x' : 'facebook');
-  url.searchParams.set('redirect_to', window.location.origin + '/auth/callback?provider=' + encodeURIComponent(provider));
+  url.searchParams.set('redirect_to', window.location.origin + '/auth/callback?provider=' + encodeURIComponent(provider) + '&mode=' + encodeURIComponent(mode));
   url.searchParams.set('apikey', publishableKey);
   window.location.assign(url.toString());
 }
+
+
+export async function getLinkedSocialAccounts(token: string) { return apiRequest('/auth/oauth/linked', token); }
+export async function linkSocialAccount(token: string, accessToken: string, provider: 'facebook' | 'twitter') { return apiRequest('/auth/oauth/link', token, { method: 'POST', body: JSON.stringify({ accessToken, provider }) }); }
+export async function unlinkSocialAccount(token: string, provider: 'facebook' | 'twitter') { return apiRequest('/auth/oauth/linked/' + provider, token, { method: 'DELETE' }); }
 
 export async function loginUser(data: { identifier: string; password: string }) {
   const res = await fetch(`${API_URL}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });

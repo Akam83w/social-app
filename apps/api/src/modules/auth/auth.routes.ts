@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { registerSchema, loginSchema } from './auth.schema';
-import { registerUser, loginUser, loginWithOAuth, updateUserAvatar } from './auth.service';
+import { registerUser, loginUser, loginWithOAuth, linkOAuthIdentity, getLinkedOAuthIdentities, unlinkOAuthIdentity, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
@@ -54,6 +54,34 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.send({ user: result.user, token, needsProfile: false });
     } catch (err: any) {
       if (['OAUTH_INVALID_TOKEN','OAUTH_EMAIL_REQUIRED','USERNAME_TAKEN','PHONE_TAKEN'].includes(err.message)) return reply.status(err.message === 'OAUTH_INVALID_TOKEN' ? 401 : 409).send({ error: err.message });
+      app.log.error(err); return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
+  app.get('/auth/oauth/linked', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    return reply.send({ email: true, identities: await getLinkedOAuthIdentities(me) });
+  });
+
+  app.post('/auth/oauth/link', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const body = request.body as { accessToken?: unknown; provider?: unknown };
+    if (typeof body.accessToken !== 'string' || !['facebook', 'twitter'].includes(String(body.provider))) return reply.status(400).send({ error: 'INVALID_OAUTH_REQUEST' });
+    try {
+      return reply.send(await linkOAuthIdentity(me, { accessToken: body.accessToken, provider: body.provider as 'facebook' | 'twitter' }));
+    } catch (err: any) {
+      if (['OAUTH_INVALID_TOKEN','OAUTH_EMAIL_REQUIRED','OAUTH_IDENTITY_MISSING','PROVIDER_ALREADY_LINKED','SOCIAL_ACCOUNT_ALREADY_LINKED'].includes(err.message)) return reply.status(err.message === 'OAUTH_INVALID_TOKEN' ? 401 : 409).send({ error: err.message });
+      app.log.error(err); return reply.status(500).send({ error: 'INTERNAL_ERROR' });
+    }
+  });
+
+  app.delete('/auth/oauth/linked/:provider', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const provider = String((request.params as { provider?: string }).provider || '');
+    if (!['facebook', 'twitter'].includes(provider)) return reply.status(400).send({ error: 'INVALID_PROVIDER' });
+    try { return reply.send(await unlinkOAuthIdentity(me, provider as 'facebook' | 'twitter')); }
+    catch (err: any) {
+      if (err.message === 'PROVIDER_NOT_LINKED') return reply.status(404).send({ error: err.message });
       app.log.error(err); return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
   });
