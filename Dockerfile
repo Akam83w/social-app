@@ -5,10 +5,10 @@ RUN apk add --no-cache ffmpeg
 WORKDIR /app
 
 COPY apps/api/package*.json ./api/
-RUN cd api && npm install --include=dev
+RUN cd api && npm ci --include=dev
 
 COPY apps/web/package*.json ./web/
-RUN cd web && npm install --include=dev
+RUN cd web && npm ci --include=dev
 
 COPY apps/api ./api
 COPY apps/web ./web
@@ -17,5 +17,8 @@ RUN cd api && npm run build
 RUN cd web && npm run build
 
 EXPOSE 3000
+
+RUN addgroup -S app && adduser -S app -G app && chown -R app:app /app
+USER app
 
 CMD ["node", "api/dist/server.js"]
