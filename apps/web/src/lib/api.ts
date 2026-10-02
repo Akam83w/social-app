@@ -34,7 +34,7 @@ export async function uploadVideo(
   const prepare = await apiRequest(preparePath, token, {
     method: 'POST',
     body: JSON.stringify({ contentType: file.type || 'video/mp4', extension: file.name.split('.').pop() || 'mp4', size: file.size }),
-  }) as { bucketName: string; objectName: string; token: string; endpoint: string };
+  }) as { bucketName: string; objectName: string; token: string; endpoint: string; signedUrl?: string };
 
   const uploadKey = 'sdm-video-upload:' + btoa(unescape(encodeURIComponent(
     [path, file.name, file.size, file.lastModified, file.type].join('|')
@@ -59,23 +59,28 @@ export async function uploadVideo(
     } catch {}
   }
 
-  if (!uploadUrl) {
-    const created = await createTusUpload(prepare.endpoint, prepare.token, file.size, metadata);
-    uploadUrl = created.url;
-    offset = created.offset;
-    localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
-  }
-
   const updateProgress = (value: number) => onProgress?.(Math.min(100, Math.round((value / file.size) * 100)));
 
-  while (offset < file.size) {
-    try {
-      offset = await uploadTusChunk(uploadUrl, prepare.token, file.slice(offset, Math.min(offset + 6 * 1024 * 1024, file.size)), offset, file.size, updateProgress);
-      localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
-    } catch {
-      offset = await tusHead(uploadUrl, prepare.token);
+  try {
+    if (!uploadUrl) {
+      const created = await createTusUpload(prepare.endpoint, prepare.token, file.size, metadata);
+      uploadUrl = created.url;
+      offset = created.offset;
       localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
     }
+
+    while (offset < file.size) {
+      try {
+        offset = await uploadTusChunk(uploadUrl, prepare.token, file.slice(offset, Math.min(offset + 6 * 1024 * 1024, file.size)), offset, file.size, updateProgress);
+        localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
+      } catch {
+        offset = await tusHead(uploadUrl, prepare.token);
+        localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
+      }
+    }
+  } catch (error) {
+    if (!prepare.signedUrl) throw error;
+    await uploadSignedVideo(prepare.signedUrl, file, updateProgress);
   }
 
   onProgress?.(100);
@@ -85,6 +90,19 @@ export async function uploadVideo(
   return apiRequest(completePath, token, {
     method: 'POST',
     body: JSON.stringify({ objectName: prepare.objectName, content, contentType: file.type || 'video/mp4' }),
+  });
+}
+
+function uploadSignedVideo(signedUrl: string, file: File, onProgress: (uploaded: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', signedUrl);
+    xhr.setRequestHeader('Content-Type', file.type || 'video/mp4');
+    xhr.setRequestHeader('Cache-Control', 'max-age=31536000');
+    xhr.upload.onprogress = event => { if (event.lengthComputable) onProgress(event.loaded); };
+    xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('VIDEO_SIGNED_UPLOAD_FAILED'));
+    xhr.onerror = () => reject(new Error('VIDEO_NETWORK_ERROR'));
+    xhr.send(file);
   });
 }
 
