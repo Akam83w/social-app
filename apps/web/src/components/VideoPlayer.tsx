@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import Hls from "hls.js";
+import type Hls from "hls.js";
 
 type Props = {
   src: string;
@@ -89,15 +89,17 @@ export default function VideoPlayer({
     let hls: Hls | null = null;
     let loaded = false;
 
-    const loadVideo = () => {
+    const loadVideo = async () => {
       if (loaded) return;
       loaded = true;
 
       if (src.includes(".m3u8")) {
         if (video.canPlayType("application/vnd.apple.mpegurl")) {
           video.src = src;
-        } else if (Hls.isSupported()) {
-          hls = new Hls({
+        } else {
+          const HlsModule = (await import("hls.js")).default;
+          if (!HlsModule.isSupported()) return;
+          hls = new HlsModule({
             enableWorker: true,
             capLevelToPlayerSize: true,
             startLevel: -1,
@@ -116,12 +118,12 @@ export default function VideoPlayer({
     let observer: IntersectionObserver | null = null;
 
     if (active) {
-      loadVideo();
+      void loadVideo();
     } else {
       observer = new IntersectionObserver(
         (entries) => {
           if (entries.some((entry) => entry.isIntersecting)) {
-            loadVideo();
+            void loadVideo();
             observer?.disconnect();
           }
         },
