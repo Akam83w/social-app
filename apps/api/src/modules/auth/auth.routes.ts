@@ -49,6 +49,7 @@ export async function authRoutes(app: FastifyInstance) {
     try {
       const result = await loginWithOAuth({ accessToken: body.accessToken, provider: body.provider as 'facebook' | 'twitter', username: typeof body.username === 'string' ? body.username : undefined, phone: typeof body.phone === 'string' ? body.phone : undefined });
       if (result.needsProfile) return reply.send({ needsProfile: true });
+      if (!result.user) return reply.status(500).send({ error: 'OAUTH_USER_MISSING' });
       const token = app.jwt.sign({ id: result.user.id, username: result.user.username });
       return reply.send({ user: result.user, token, needsProfile: false });
     } catch (err: any) {
