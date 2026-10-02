@@ -16,16 +16,16 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: |
-            apps/api/package.json
-            apps/web/package.json
+            apps/api/package-lock.json
+            apps/web/package-lock.json
       - name: Install API
-        run: npm install --include=dev
+        run: npm ci
         working-directory: apps/api
       - name: Build API
         run: npm run build
         working-directory: apps/api
       - name: Install Web
-        run: npm install --include=dev
+        run: npm ci
         working-directory: apps/web
       - name: Build Web
         run: npm run build
