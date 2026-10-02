@@ -20,7 +20,7 @@ export async function exchangeOAuthToken(data: { accessToken: string; provider: 
 
 export function startSocialLogin(provider: 'facebook' | 'twitter', mode: 'login' | 'link' = 'login') {
   const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || 'https://beytuhfnhksgwdcsjdzs.supabase.co').replace(/\/$/, '');
-  const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '');
+  const publishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_S3vz_Xl82eFWfZbdkN10yg_T13ig_kZ');
   if (!supabaseUrl || !publishableKey) throw new Error('SOCIAL_LOGIN_NOT_CONFIGURED');
   const url = new URL(`${supabaseUrl}/auth/v1/authorize`);
   url.searchParams.set('provider', provider === 'twitter' ? 'x' : 'facebook');
