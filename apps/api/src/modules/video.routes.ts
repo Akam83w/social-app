@@ -103,22 +103,56 @@ async function processUploadedVideoInBackground(
   recordId: string,
 ) {
   const tempPath = path.join(os.tmpdir(), `sdm-direct-${Date.now()}-${Math.random().toString(36).slice(2)}.video`);
-  try {
-    await downloadVideoToFile(objectName, tempPath);
-    const media = await processVideo(tempPath, userId);
-    if (kind === 'post') {
-      await db.update(posts).set({
-        mediaUrl: media.mediaUrl,
-        mediaType: media.mediaType,
-        mediaPoster: media.mediaPoster,
-      }).where(eq(posts.id, recordId));
-    } else {
-      await db.execute(sql`UPDATE stories SET media_url=${media.mediaUrl},media_type='video',media_poster=${media.mediaPoster} WHERE id=${recordId}`);
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await downloadVideoToFile(objectName, tempPath);
+      const media = await processVideo(tempPath, userId);
+
+      if (kind === 'post') {
+        await db.update(posts).set({
+          mediaUrl: media.mediaUrl,
+          mediaType: media.mediaType,
+          mediaPoster: media.mediaPoster,
+        }).where(eq(posts.id, recordId));
+      } else {
+        await db.execute(sql`UPDATE stories SET media_url=${media.mediaUrl},media_type='video',media_poster=${media.mediaPoster} WHERE id=${recordId}`);
+      }
+
+      await removeStorageFile(objectName).catch(() => {});
+      try {
+        await (app as any).notifyUser(
+          userId,
+          'video_ready',
+          kind === 'post' ? 'الفيديو صار جاهز' : 'القصة صارت جاهزة',
+          kind === 'post' ? 'تمت معالجة الفيديو وصار جاهز للمشاهدة بجودات مناسبة.' : 'تمت معالجة فيديو القصة وصار جاهز للمشاهدة.',
+          userId,
+          { recordId, kind, url: kind === 'post' ? '/post/' + recordId : '/stories' },
+        );
+      } catch {}
+      return;
+    } catch (error) {
+      lastError = error;
+      app.log.error({ err: error, objectName, recordId, attempt }, 'background direct video processing attempt failed');
+      await fsPromises.rm(tempPath, { force: true }).catch(() => {});
+      if (attempt < 3) await new Promise(resolve => setTimeout(resolve, attempt * 2000));
     }
-    await removeStorageFile(objectName).catch(() => {});
-  } catch (error) {
-    app.log.error({ err: error, objectName, recordId }, 'background direct video processing failed');
-  } finally {
-    await fsPromises.rm(tempPath, { force: true }).catch(() => {});
   }
+
+  app.log.error({ err: lastError, objectName, recordId }, 'background direct video processing failed permanently');
+  try {
+    await (app as any).notifyUser(
+      userId,
+      'video_processing_failed',
+      'تعذرت معالجة الفيديو',
+      'الفيديو انرفع، لكن تعذرت معالجته حالياً. حاول فتح المنشور لاحقاً.',
+      userId,
+      { recordId, kind, url: kind === 'post' ? '/post/' + recordId : '/stories' },
+    );
+  } catch {}
+
+  // Keep the original upload when processing fails so the published item
+  // remains playable instead of pointing at a deleted object.
+  await fsPromises.rm(tempPath, { force: true }).catch(() => {});
 }
