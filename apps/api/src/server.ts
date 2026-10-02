@@ -139,6 +139,8 @@ app.post('/calls/start',{preHandler:verifyToken},async(req,reply)=>{
   if(b.toUserId===me)return reply.status(400).send({error:'CANNOT_CALL_SELF'});
   const u=await db.execute(sql`SELECT id FROM users WHERE id=${b.toUserId} LIMIT 1`);
   if(!u.rows[0])return reply.status(404).send({error:'USER_NOT_FOUND'});
+  const blocked=await db.execute(sql`SELECT 1 FROM blocks WHERE (blocker_id=${me} AND blocked_id=${b.toUserId}) OR (blocker_id=${b.toUserId} AND blocked_id=${me}) LIMIT 1`);
+  if(blocked.rows[0])return reply.status(403).send({error:'USER_BLOCKED'});
   const actor=await db.execute(sql`SELECT username,display_name FROM users WHERE id=${me} LIMIT 1`);
   const actorRow=(actor.rows[0] as any)||{};
   const r=await db.execute(sql`INSERT INTO calls(caller_id,callee_id,kind,status) VALUES(${me},${b.toUserId},${b.video?'video':'audio'},'ringing') RETURNING id`);
@@ -183,7 +185,7 @@ app.post('/calls/:id/end',{preHandler:verifyToken},async(req,reply)=>{
   for(const res of realtimeClients.get(other)||[])res.write(`data: ${JSON.stringify({type:'call',kind:'hangup',callId:id,fromUserId:me})}\\n\\n`);
   return reply.send({ok:true});
 });
-app.post('/calls/signal',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.toUserId||!b?.kind)return reply.status(400).send({error:'INVALID_SIGNAL'});const meRow=await db.execute(sql`SELECT username FROM users WHERE id=${me} LIMIT 1`);const fromUsername=(meRow.rows[0] as any)?.username||'';const callId=String(b.payload?.callId||'');for(const res of realtimeClients.get(b.toUserId)||[])res.write(`data: ${JSON.stringify({type:"call",callId,fromUserId:me,fromUsername,kind:b.kind,payload:b.payload})}\\n\\n`);return reply.send({ok:true});});
+app.post('/calls/signal',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.toUserId||!b?.kind)return reply.status(400).send({error:'INVALID_SIGNAL'});const callId=String(b.payload?.callId||'');if(!callId)return reply.status(400).send({error:'INVALID_SIGNAL'});const call=await db.execute(sql`SELECT caller_id,callee_id,status FROM calls WHERE id=${callId} AND status IN ('ringing','accepted') AND (caller_id=${me} OR callee_id=${me}) LIMIT 1`);const row=call.rows[0] as any;if(!row)return reply.status(403).send({error:'CALL_NOT_AVAILABLE'});const expectedPeer=String(row.caller_id)===me?String(row.callee_id):String(row.caller_id);if(String(b.toUserId)!==expectedPeer)return reply.status(403).send({error:'INVALID_CALL_PEER'});const meRow=await db.execute(sql`SELECT username FROM users WHERE id=${me} LIMIT 1`);const fromUsername=(meRow.rows[0] as any)?.username||'';for(const res of realtimeClients.get(expectedPeer)||[])res.write(`data: ${JSON.stringify({type:"call",callId,fromUserId:me,fromUsername,kind:b.kind,payload:b.payload})}\\n\\n`);return reply.send({ok:true});});
 app.get('/sw.js',async(_req,reply)=>reply.type('application/javascript').send(`self.addEventListener('push',e=>{let d={title:'إنستعراق',body:'إشعار جديد',data:{}};try{d=e.data.json()}catch{}e.waitUntil(self.registration.showNotification(d.title,{body:d.body,icon:'/favicon.svg',data:d.data||{}}))});self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.openWindow(e.notification.data?.url||'/notifications'))});`));
 
 
