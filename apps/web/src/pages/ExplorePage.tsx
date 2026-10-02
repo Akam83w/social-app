@@ -1,5 +1,5 @@
 import OptimizedImage from "../components/OptimizedImage";
-import { API_URL, writeCache } from "../lib/api";
+import { API_URL, readCache, writeCache } from "../lib/api";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -21,7 +21,7 @@ export default function ExplorePage() {
     try { const r=await fetch(API_URL+"/posts/explore?limit=30",{headers:{Authorization:"Bearer "+token}}); const d=await r.json(); if(!r.ok) throw new Error(); const next=d.posts??[]; setExplore(next); writeCache(key,{posts:next}); }
     catch { setError("تعذر تحميل الاستكشاف."); } finally { setLoading(false); }
   }
-  useEffect(()=>{void loadExplore();},[token]);
+  useEffect(()=>{const cached=readCache<{posts:Post[]}>(key,2*60*1000);if(cached?.posts?.length){setExplore(cached.posts);setLoading(false)}void loadExplore();},[token]);
 
   async function search(e:React.FormEvent) {
     e.preventDefault(); if(!token) return; const value=query.trim(); if(!value)return;
