@@ -29,17 +29,14 @@ export async function passwordResetRoutes(app: FastifyInstance) {
     try {
       const result = await createPasswordResetCode(parsed.data.email);
 
-      if (result.code) {
-        app.log.info(
-          { email: parsed.data.email },
-          'Password reset code generated'
-        );
-      }
-
       return reply.status(200).send({
         message: 'إذا كان الإيميل مسجلاً، سيتم إرسال رمز الاستعادة إليه.',
+        throttled: Boolean(result.throttled),
       });
-    } catch (err) {
+    } catch (err: any) {
+      if (String(err?.message || '').startsWith('EMAIL_PROVIDER_NOT_CONFIGURED')) {
+        return reply.status(503).send({ error: 'EMAIL_PROVIDER_NOT_CONFIGURED' });
+      }
       app.log.error(err);
       return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
