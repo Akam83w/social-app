@@ -29,37 +29,41 @@ export default function ReelsPage() {
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const listRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    if (!token) return;
-    let active = true;
-
-    apiRequest("/posts?limit=50", token)
-      .then((data: any) => {
-        if (!active) return;
-        const videos = (data.posts ?? []).filter(
-          (post: Reel) => post.mediaType === "video" && post.mediaUrl
-        );
-        setReels(videos);
-        setLikedIds(new Set(videos.filter((post) => post.likedByMe).map((post) => post.id)));
-        setActiveId(videos[0]?.id ?? null);
-      })
-      .catch(() => {
-        if (active) setError("تعذر تحميل الريلز.");
-      });
-
-    const handleDoubleTapLike = async (reel: Reel) => {
+  const handleDoubleTapLike = async (reel: Reel) => {
     if (!token || likedIds.has(reel.id)) return;
     setLikedIds((current) => new Set(current).add(reel.id));
     setReels((current) => current.map((item) => item.id === reel.id ? { ...item, likeCount: (item.likeCount || 0) + 1, likedByMe: true } : item));
     try {
       await likePost(reel.id, token);
     } catch {
-      setLikedIds((current) => { const next = new Set(current); next.delete(reel.id); return next; });
+      setLikedIds((current) => {
+        const next = new Set(current);
+        next.delete(reel.id);
+        return next;
+      });
       setReels((current) => current.map((item) => item.id === reel.id ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) - 1), likedByMe: false } : item));
     }
   };
 
-  return () => {
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+
+    apiRequest("/posts?limit=50", token)
+      .then((data: { posts?: Reel[] }) => {
+        if (!active) return;
+        const videos = (data.posts ?? []).filter(
+          (post: Reel) => post.mediaType === "video" && Boolean(post.mediaUrl),
+        );
+        setReels(videos);
+        setLikedIds(new Set(videos.filter((post: Reel) => post.likedByMe).map((post: Reel) => post.id)));
+        setActiveId(videos[0]?.id ?? null);
+      })
+      .catch(() => {
+        if (active) setError("تعذر تحميل الريلز.");
+      });
+
+    return () => {
       active = false;
     };
   }, [token]);
