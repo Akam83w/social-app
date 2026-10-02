@@ -32,7 +32,7 @@ export async function registerUser(input: RegisterInput) {
   const createdAt = new Date();
   const isFounder = email === 'sdmtr033@gmail.com';
   const supporter = isFounder ? null : supporterNumber;
-  const supporterExpiresAt = supporter ? new Date(createdAt.getTime() + 60 * 24 * 60 * 60 * 1000) : null;
+  const supporterExpiresAt = supporter ? new Date(createdAt.getTime() + 90 * 24 * 60 * 60 * 1000) : null;
   const verifiedAt = isFounder || supporter ? createdAt : null;
 
   const [newUser] = await db
@@ -125,7 +125,7 @@ export async function loginWithOAuth(input: { accessToken: string; provider: 'fa
     username, email, phone, passwordHash,
     displayName: String(remote.user_metadata?.full_name || remote.user_metadata?.name || '').trim() || null,
     supporterNumber: supporter ? String(supporter) : null,
-    supporterExpiresAt: supporter ? new Date(createdAt.getTime() + 60 * 24 * 60 * 60 * 1000) : null,
+    supporterExpiresAt: supporter ? new Date(createdAt.getTime() + 90 * 24 * 60 * 60 * 1000) : null,
     verifiedAt: createdAt,
   }).returning({ id:users.id, username:users.username, email:users.email, phone:users.phone, displayName:users.displayName, bio:users.bio, avatarUrl:users.avatarUrl, supporterNumber:users.supporterNumber, supporterExpiresAt:users.supporterExpiresAt, verifiedAt:users.verifiedAt, moderationStatus:users.moderationStatus, isPrivate:users.isPrivate });
   await db.insert(socialIdentities).values({ userId:newUser.id, provider, providerUserId, providerEmail:email });
