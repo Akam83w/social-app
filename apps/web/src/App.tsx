@@ -21,6 +21,7 @@ const LoginPage = React.lazy(() => import("./pages/LoginPage"));
 const OAuthCallbackPage = React.lazy(() => import("./pages/OAuthCallbackPage"));
 const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
+const PolicyPage = React.lazy(() => import("./pages/PolicyPage"));
 const SavedPage = React.lazy(() => import("./pages/SavedPage"));
 import { useAuth } from "./context/AuthContext";
 import NativePushBootstrap from "./NativePushBootstrap";
@@ -172,6 +173,7 @@ function App() {
         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/policy" element={<PolicyPage />} />
         <Route path="*" element={<ProtectedApp />} />
       </Routes>
     </>
