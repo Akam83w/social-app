@@ -244,6 +244,7 @@ export function connectRealtime(token: string, onEvent: (event: any) => void) {
 }
 export function startCall(token: string, toUserId: string, video: boolean) { return apiRequest('/calls/start', token, { method: 'POST', body: JSON.stringify({ toUserId, video }) }); }
 export function getCall(token: string, callId: string) { return apiRequest('/calls/' + encodeURIComponent(callId), token); }
+export function getCallConfig(token: string) { return apiRequest('/calls/config', token); }
 export function acceptCall(token: string, callId: string) { return apiRequest('/calls/' + encodeURIComponent(callId) + '/accept', token, { method: 'POST' }); }
 export function rejectCall(token: string, callId: string) { return apiRequest('/calls/' + encodeURIComponent(callId) + '/reject', token, { method: 'POST' }); }
 export function endCall(token: string, callId: string) { return apiRequest('/calls/' + encodeURIComponent(callId) + '/end', token, { method: 'POST' }); }
