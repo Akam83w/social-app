@@ -3,23 +3,32 @@ import bcrypt from 'bcryptjs';
 import { and, desc, eq, isNull, gt } from 'drizzle-orm';
 import { db } from '../../db';
 import { passwordResetCodes, users } from '../../db/schema';
+import { sendPasswordResetEmail } from '../../services/email.service';
 
 function generateCode() {
   return crypto.randomInt(100000, 1000000).toString();
 }
 
 export async function createPasswordResetCode(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+
   const [user] = await db
-    .select({
-      id: users.id,
-      email: users.email,
-    })
+    .select({ id: users.id, email: users.email })
     .from(users)
-    .where(eq(users.email, email))
+    .where(eq(users.email, normalizedEmail))
     .limit(1);
 
-  if (!user) {
-    return { code: null };
+  if (!user) return { code: null };
+
+  const latest = await db
+    .select({ createdAt: passwordResetCodes.createdAt })
+    .from(passwordResetCodes)
+    .where(eq(passwordResetCodes.userId, user.id))
+    .orderBy(desc(passwordResetCodes.createdAt))
+    .limit(1);
+
+  if (latest[0]?.createdAt && Date.now() - latest[0].createdAt.getTime() < 60_000) {
+    return { code: null, throttled: true };
   }
 
   const code = generateCode();
@@ -37,14 +46,23 @@ export async function createPasswordResetCode(email: string) {
       )
     );
 
-  await db.insert(passwordResetCodes).values({
+  const [reset] = await db.insert(passwordResetCodes).values({
     userId: user.id,
     codeHash,
     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
     attempts: '0',
-  });
+  }).returning({ id: passwordResetCodes.id });
 
-  return { code };
+  try {
+    await sendPasswordResetEmail(user.email, code);
+  } catch (error) {
+    await db.update(passwordResetCodes)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetCodes.id, reset.id));
+    throw error;
+  }
+
+  return { code: null, throttled: false };
 }
 
 export async function verifyPasswordResetCode(
