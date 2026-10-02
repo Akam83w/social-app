@@ -184,6 +184,29 @@ function App() {
     return <QXSplash onDone={finishSplash} />;
   }
 
+  // Warm the small route chunks after the first screen is usable. This makes
+  // switching between Home/Explore/Reels/Messages/Profile feel instant without
+  // adding their JavaScript to the critical first bundle.
+  React.useEffect(() => {
+    const warmRoutes = () => {
+      void Promise.all([
+        import("./pages/ExplorePage"),
+        import("./pages/ReelsPage"),
+        import("./pages/MessagesPage"),
+        import("./pages/ProfilePage"),
+        import("./pages/SavedPage"),
+        import("./pages/NotificationsLivePage").catch(() => null),
+      ]);
+    };
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    if (idle) {
+      const id = idle(warmRoutes, { timeout: 2500 });
+      return () => window.cancelIdleCallback?.(id);
+    }
+    const timer = window.setTimeout(warmRoutes, 1200);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   return (
     <>
       <React.Suspense fallback={null}>
