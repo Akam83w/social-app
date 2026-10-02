@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
 type Props = {
@@ -9,6 +9,7 @@ type Props = {
   muted?: boolean;
   autoPlay?: boolean;
   active?: boolean;
+  customControls?: boolean;
 };
 
 export default function VideoPlayer({
@@ -19,9 +20,12 @@ export default function VideoPlayer({
   muted = false,
   autoPlay = false,
   active = autoPlay,
+  customControls = false,
 }: Props) {
   const ref = useRef<HTMLVideoElement>(null);
   const activeRef = useRef(active);
+  const [playing, setPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(muted);
 
   useEffect(() => {
     activeRef.current = active;
@@ -30,12 +34,16 @@ export default function VideoPlayer({
 
     if (!active) {
       video.pause();
+      setPlaying(false);
       return;
     }
 
+    video.muted = true;
+    setIsMuted(true);
+
     const play = () => {
       if (!activeRef.current) return;
-      void video.play().catch(() => {});
+      void video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
     };
 
     if (video.readyState >= 2) {
@@ -102,17 +110,51 @@ export default function VideoPlayer({
     };
   }, [src]);
 
+  const togglePlayback = () => {
+    const video = ref.current;
+    if (!video) return;
+
+    if (video.paused) {
+      void video.play().then(() => setPlaying(true)).catch(() => {});
+    } else {
+      video.pause();
+      setPlaying(false);
+    }
+  };
+
+  const toggleMute = () => {
+    const video = ref.current;
+    if (!video) return;
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    setIsMuted(nextMuted);
+  };
+
   return (
-    <video
-      ref={ref}
-      className={className}
-      poster={poster || undefined}
-      controls={controls}
-      muted={muted}
-      autoPlay={false}
-      playsInline
-      preload="none"
-      loop
-    />
+    <div className={customControls ? "video-player-shell video-player-custom" : "video-player-shell"}>
+      <video
+        ref={ref}
+        className={className}
+        poster={poster || undefined}
+        controls={controls}
+        muted={isMuted}
+        autoPlay={false}
+        playsInline
+        preload="none"
+        loop
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+      />
+      {customControls && (
+        <div className="video-custom-controls" aria-label="تحكم بالفيديو">
+          <button type="button" onClick={togglePlayback} aria-label={playing ? "إيقاف الفيديو" : "تشغيل الفيديو"}>
+            {playing ? "❚❚" : "▶"}
+          </button>
+          <button type="button" onClick={toggleMute} aria-label={isMuted ? "تفعيل الصوت" : "كتم الصوت"}>
+            {isMuted ? "🔇" : "🔊"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
