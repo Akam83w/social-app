@@ -96,6 +96,7 @@ export async function createDirectVideoUpload(
     bucketName: BUCKET,
     objectName: remotePath,
     token: data.token,
+    signedUrl: data.signedUrl,
     endpoint: parsed.protocol + '//' + storageHost + '/storage/v1/upload/resumable',
     contentType,
   };
