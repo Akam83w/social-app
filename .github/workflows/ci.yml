@@ -32,3 +32,41 @@ jobs:
         working-directory: apps/web
       - name: Docker build
         run: docker build -t sdm-ci .
+
+
+  smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sdm_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d sdm_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/api/package-lock.json
+      - name: Install API
+        run: npm ci
+        working-directory: apps/api
+      - name: Build API
+        run: npm run build
+        working-directory: apps/api
+      - name: Run API smoke tests against empty Postgres
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/sdm_test
+          SMOKE_PORT: 3310
+          SMOKE_STORAGE_PORT: 4310
+        run: node tests/smoke.mjs
+        working-directory: apps/api
