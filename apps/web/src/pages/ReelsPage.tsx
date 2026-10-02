@@ -1,7 +1,7 @@
 import OptimizedImage from "../components/OptimizedImage";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiRequest } from "../lib/api";
+import { apiRequest, readCache, writeCache } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import VideoPlayer from "../components/VideoPlayer";
 import { likePost } from "../lib/api";
@@ -32,8 +32,15 @@ export default function ReelsPage() {
   useEffect(() => {
     if (!token) return;
     let active = true;
+    const cacheKey = "reels-feed";
+    const cached = readCache<Reel[]>(cacheKey, 2 * 60 * 1000);
+    if (cached?.length) {
+      setReels(cached);
+      setLikedIds(new Set(cached.filter((post) => post.likedByMe).map((post) => post.id)));
+      setActiveId(cached[0]?.id ?? null);
+    }
 
-    apiRequest("/posts?limit=50", token)
+    apiRequest("/posts?limit=20", token)
       .then((data: any) => {
         if (!active) return;
         const videos = (data.posts ?? []).filter(
@@ -41,10 +48,11 @@ export default function ReelsPage() {
         );
         setReels(videos);
         setLikedIds(new Set(videos.filter((post: Reel) => post.likedByMe).map((post: Reel) => post.id)));
-        setActiveId(videos[0]?.id ?? null);
+        setActiveId((current) => current && videos.some((post: Reel) => post.id === current) ? current : (videos[0]?.id ?? null));
+        writeCache(cacheKey, videos);
       })
       .catch(() => {
-        if (active) setError("تعذر تحميل الريلز.");
+        if (active && !cached?.length) setError("تعذر تحميل الريلز.");
       });
 
     return () => {
