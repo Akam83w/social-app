@@ -150,7 +150,8 @@ export default function ReelsPage() {
                   poster={reel.mediaPoster}
                   className="reel-video"
                   controls={false}
-                  muted
+                  muted={false}
+                  autoSound
                   active={activeId === reel.id}
                   customControls
                   onDoubleTap={() => void handleDoubleTapLike(reel)}
