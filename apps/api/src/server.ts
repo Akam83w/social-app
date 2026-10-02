@@ -89,11 +89,11 @@ if (!jwtSecret || jwtSecret.length < 32) throw new Error('JWT_SECRET must be con
 
 const app = Fastify({ logger: true });
 app.decorate('notifyUser', notifyUser);
-const corsOrigin = process.env.CORS_ORIGIN || true;
-app.register(cors, { origin: corsOrigin, credentials: true });
+const corsOrigins = (process.env.CORS_ORIGIN || 'https://lush-topaz-3759.de.deplexo.com,https://localhost,capacitor://localhost,http://localhost').split(',').map(value => value.trim()).filter(Boolean);
+app.register(cors, { origin: corsOrigins, credentials: true });
 app.register(compress, { global: true, encodings: ['br', 'gzip'] });
 app.register(multipart, { limits: { fileSize: 100 * 1024 * 1024, files: 1 } });
-app.register(jwt, { secret: jwtSecret });
+app.register(jwt, { secret: jwtSecret, sign: { expiresIn: '7d' } });
 app.register(fastifyStatic, { root: path.resolve(process.cwd(), process.cwd() === '/app' ? 'web/dist' : '../web/dist'), prefix: '/' });
 app.post('/moderation/appeal', async (request, reply) => {
   try {
