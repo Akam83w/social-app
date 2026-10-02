@@ -1,87 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerUser } from '../lib/api';
+import { registerUser, startSocialLogin } from '../lib/api';
 
 export default function RegisterPage() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    const normalizedUsername = username.trim().toLowerCase();
-    if (!/^[a-z0-9_.]{2,30}$/.test(normalizedUsername)) {
-      setError('اسم المستخدم لازم يكون من حرفين إلى 30 حرف، ويحتوي فقط على a-z والأرقام و _ و .');
-      return;
-    }
-    setLoading(true);
-    try {
-      await registerUser({ username: normalizedUsername, email, password });
-      navigate('/login');
-    } catch (err: any) {
-      if (err.message === 'USER_ALREADY_EXISTS') {
-        setError('هذا المستخدم أو الإيميل موجود مسبقاً');
-      } else {
-        setError('حدث خطأ، حاول مرة ثانية');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div style={{ maxWidth: 400, margin: '60px auto', padding: 20 }}>
-      <h2>حساب جديد</h2>
-      <form onSubmit={handleSubmit} autoComplete="off">
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type="text"
-            name="username"
-            placeholder="اسم المستخدم (مثلاً a_a أو 1_2)"
-            value={username}
-            onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, '').slice(0, 30))}
-            required
-            minLength={2}
-            maxLength={30}
-            pattern="[a-z0-9_.]{2,30}"
-            autoComplete="username"
-            style={{ width: '100%', padding: 8 }}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type="email"
-            name="email"
-            placeholder="الإيميل"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            style={{ width: '100%', padding: 8 }}
-          />
-        </div>
-        <div style={{ marginBottom: 12 }}>
-          <input
-            type="password"
-            name="password"
-            placeholder="الباسورد (8 حروف على الأقل)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            autoComplete="new-password"
-            style={{ width: '100%', padding: 8 }}
-          />
-        </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" disabled={loading} style={{ width: '100%', padding: 10 }}>
-          {loading ? 'جاري التسجيل...' : 'تسجيل'}
-        </button>
-      </form>
-    </div>
-  );
+  const [username,setUsername]=useState(''),[email,setEmail]=useState(''),[phone,setPhone]=useState(''),[password,setPassword]=useState(''),[confirmation,setConfirmation]=useState(''),[error,setError]=useState(''),[loading,setLoading]=useState(false);
+  const navigate=useNavigate();
+  const submit=async(e:React.FormEvent)=>{e.preventDefault();setError('');const u=username.trim().toLowerCase(),em=email.trim().toLowerCase(),ph=phone.trim();if(!/^[a-z0-9_.]{2,30}$/.test(u))return setError('اسم المستخدم من 2 إلى 30 حرف ويحتوي فقط على a-z والأرقام و _ و .');if(password.length<8)return setError('كلمة المرور لازم تكون 8 أحرف على الأقل');if(password!==confirmation)return setError('كلمتا المرور غير متطابقتين');setLoading(true);try{await registerUser({username:u,email:em,phone:ph||undefined,password,passwordConfirmation:confirmation});navigate('/login')}catch(err:any){if(err.message==='USERNAME_TAKEN')setError('اسم المستخدم مستخدم مسبقاً');else if(err.message==='EMAIL_TAKEN')setError('البريد الإلكتروني مستخدم مسبقاً');else if(err.message==='PHONE_TAKEN')setError('رقم الهاتف مستخدم مسبقاً');else if(err.message==='USER_ALREADY_EXISTS')setError('إحدى بيانات الحساب مستخدمة مسبقاً');else setError('حدث خطأ، حاول مرة ثانية')}finally{setLoading(false)}};
+  const social=(p:'facebook'|'twitter')=>{try{startSocialLogin(p)}catch(err:any){setError(err.message==='SOCIAL_LOGIN_NOT_CONFIGURED'?'تسجيل الدخول الاجتماعي غير مفعّل بعد.':'تعذر بدء تسجيل الدخول')}}
+  return <main className="auth-page" dir="rtl"><section className="auth-card"><div className="auth-brand">دجلة</div><h1>إنشاء حساب</h1><p className="auth-subtitle">البريد واسم المستخدم إجباريان، ورقم الهاتف اختياري.</p><form onSubmit={submit}><label>اسم المستخدم<input value={username} onChange={e=>setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g,'').slice(0,30))} placeholder="@username" required minLength={2} maxLength={30} autoComplete="username"/></label><small>اسم المستخدم فريد داخل دجلة ولا يمكن لشخص آخر أخذه.</small><label>البريد الإلكتروني<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email"/></label><label>رقم الهاتف <span>(اختياري)</span><input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="+964..." autoComplete="tel"/></label><label>كلمة المرور<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={8} autoComplete="new-password"/></label><label>تأكيد كلمة المرور<input type="password" value={confirmation} onChange={e=>setConfirmation(e.target.value)} required minLength={8} autoComplete="new-password"/></label>{error&&<p className="auth-error">{error}</p>}<button className="auth-primary" disabled={loading}>{loading?'جاري إنشاء الحساب...':'إنشاء الحساب'}</button></form><div className="auth-divider"><span>أو</span></div><button className="auth-social facebook" type="button" onClick={()=>social('facebook')}>إنشاء عبر فيسبوك</button><button className="auth-social twitter" type="button" onClick={()=>social('twitter')}>إنشاء عبر X / تويتر</button><p className="auth-switch">عندك حساب؟ <button type="button" onClick={()=>navigate('/login')}>تسجيل الدخول</button></p></section></main>
 }
