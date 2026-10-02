@@ -31,8 +31,10 @@ export default function VideoPlayer({
   const [playing, setPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(muted);
   const [controlsVisible, setControlsVisible] = useState(false);
+  const [heartVisible, setHeartVisible] = useState(false);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const soundUnlockedRef = useRef(false);
 
   useEffect(() => {
@@ -127,7 +129,7 @@ export default function VideoPlayer({
             observer?.disconnect();
           }
         },
-        { rootMargin: "900px 0px", threshold: 0.01 }
+        { rootMargin: "900px 0px", threshold: 0.01 },
       );
       observer.observe(video);
     }
@@ -144,7 +146,6 @@ export default function VideoPlayer({
   const togglePlayback = () => {
     const video = ref.current;
     if (!video) return;
-
     if (video.paused) {
       void video.play().then(() => setPlaying(true)).catch(() => {});
     } else {
@@ -171,6 +172,9 @@ export default function VideoPlayer({
     if (tapTimerRef.current) {
       clearTimeout(tapTimerRef.current);
       tapTimerRef.current = null;
+      setHeartVisible(true);
+      if (heartTimerRef.current) clearTimeout(heartTimerRef.current);
+      heartTimerRef.current = setTimeout(() => setHeartVisible(false), 700);
       onDoubleTap?.();
       return;
     }
@@ -192,10 +196,11 @@ export default function VideoPlayer({
   useEffect(() => () => {
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
     if (controlsTimerRef.current) clearTimeout(controlsTimerRef.current);
+    if (heartTimerRef.current) clearTimeout(heartTimerRef.current);
   }, []);
 
   return (
-    <div className={customControls ? "video-player-shell video-player-custom" : "video-player-shell"}>
+    <div className={customControls ? "video-player-shell video-player-custom" : "video-player-shell"} style={{ position: "relative" }}>
       <video
         ref={ref}
         className={className}
@@ -210,6 +215,25 @@ export default function VideoPlayer({
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
       />
+      {heartVisible && onDoubleTap && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%,-50%)",
+            fontSize: "92px",
+            lineHeight: 1,
+            filter: "drop-shadow(0 4px 12px rgba(0,0,0,.35))",
+            pointerEvents: "none",
+            animation: "reels-heart-pop .7s ease-out both",
+            zIndex: 4,
+          }}
+        >
+          ❤️
+        </div>
+      )}
       {customControls && controlsVisible && (
         <div className="video-custom-controls" aria-label="تحكم بالفيديو">
           <button type="button" onClick={togglePlayback} aria-label={playing ? "إيقاف الفيديو" : "تشغيل الفيديو"}>
