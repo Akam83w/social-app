@@ -133,6 +133,11 @@ export const reports = pgTable('reports', {
   targetId: uuid('target_id').notNull(),
   targetType: varchar('target_type', { length: 20 }).notNull(),
   reason: text('reason').notNull(),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  moderatorId: uuid('moderator_id').references(() => users.id, { onDelete: 'set null' }),
+  decision: varchar('decision', { length: 40 }),
+  moderatorNote: text('moderator_note'),
+  resolvedAt: timestamp('resolved_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   reporterIdx: index('reports_reporter_idx').on(table.reporterId),

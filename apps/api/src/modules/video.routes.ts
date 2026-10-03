@@ -7,7 +7,9 @@ import { sql } from 'drizzle-orm';
 import { posts } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken } from '../middleware/auth.middleware';
+import { moderateVideoFile, registerModerationViolation } from '../services/moderation.service';
 import { createDirectVideoUpload, getPublicVideoUrl, downloadVideoToFile, processVideo, removeStorageFile } from '../services/video.service';
+import { videoUploadSchema, videoCompleteSchema } from './request.schemas';
 
 export async function videoRoutes(app: FastifyInstance) {
   app.post('/posts/video/upload', { preHandler: verifyToken }, async (request, reply) => {
@@ -29,11 +31,11 @@ export async function videoRoutes(app: FastifyInstance) {
 
 async function prepareVideoUpload(request: any, reply: any) {
   const userId = request.user.id as string;
-  const body = request.body as { contentType?: string; extension?: string; size?: number } | undefined;
-  const contentType = typeof body?.contentType === 'string' ? body.contentType : 'video/mp4';
-  const size = Number(body?.size || 0);
-  if (!contentType.startsWith('video/')) return reply.status(400).send({ error: 'VIDEO_REQUIRED' });
-  if (!Number.isFinite(size) || size <= 0 || size > 100 * 1024 * 1024) return reply.status(413).send({ error: 'VIDEO_TOO_LARGE' });
+  const parsed = videoUploadSchema.safeParse(request.body);
+  if (!parsed.success) return reply.status(400).send({ error: 'INVALID_VIDEO_UPLOAD', details: parsed.error.flatten() });
+  const body = parsed.data;
+  const contentType = body.contentType;
+  const size = body.size;
 
   try {
     return reply.send(await createDirectVideoUpload(userId, contentType, body?.extension || 'mp4', size));
@@ -47,15 +49,17 @@ async function prepareVideoUpload(request: any, reply: any) {
 
 async function completePostVideo(request: any, reply: any, app: FastifyInstance) {
   const userId = request.user.id as string;
-  const body = request.body as { objectName?: string; content?: string; contentType?: string } | undefined;
-  const objectName = String(body?.objectName || '');
+  const parsed = videoCompleteSchema.safeParse(request.body);
+  if (!parsed.success) return reply.status(400).send({ error: 'INVALID_VIDEO_COMPLETE', details: parsed.error.flatten() });
+  const body = parsed.data;
+  const objectName = body.objectName;
   if (!isOwnedOriginal(objectName, userId)) return reply.status(400).send({ error: 'VIDEO_UPLOAD_INVALID' });
 
   try {
     const mediaUrl = getPublicVideoUrl(objectName);
     const [post] = await db.insert(posts).values({
       userId,
-      content: String(body?.content || '').trim().slice(0, 5000) || null,
+      content: String(body.content || '').trim().slice(0, 5000) || null,
       mediaUrl,
       mediaType: 'video',
       mediaPoster: null,
@@ -71,13 +75,15 @@ async function completePostVideo(request: any, reply: any, app: FastifyInstance)
 
 async function completeStoryVideo(request: any, reply: any, app: FastifyInstance) {
   const userId = request.user.id as string;
-  const body = request.body as { objectName?: string; content?: string; contentType?: string } | undefined;
-  const objectName = String(body?.objectName || '');
+  const parsed = videoCompleteSchema.safeParse(request.body);
+  if (!parsed.success) return reply.status(400).send({ error: 'INVALID_VIDEO_COMPLETE', details: parsed.error.flatten() });
+  const body = parsed.data;
+  const objectName = body.objectName;
   if (!isOwnedOriginal(objectName, userId)) return reply.status(400).send({ error: 'VIDEO_UPLOAD_INVALID' });
 
   try {
     const mediaUrl = getPublicVideoUrl(objectName);
-    const r = await db.execute(sql`INSERT INTO stories(user_id,media_url,media_type,media_poster,content,expires_at) VALUES(${userId},${mediaUrl},'video',NULL,${String(body?.content || '').trim().slice(0, 500) || null},now()+interval '24 hours') RETURNING id,media_url,media_type,media_poster,content,created_at,expires_at`);
+    const r = await db.execute(sql`INSERT INTO stories(user_id,media_url,media_type,media_poster,content,expires_at) VALUES(${userId},${mediaUrl},'video',NULL,${String(body.content || '').trim().slice(0, 500) || null},now()+interval '24 hours') RETURNING id,media_url,media_type,media_poster,content,created_at,expires_at`);
     const story = r.rows[0];
 
     void processUploadedVideoInBackground(app, objectName, userId, 'story', String(story.id));
@@ -108,6 +114,15 @@ async function processUploadedVideoInBackground(
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       await downloadVideoToFile(objectName, tempPath);
+      const moderation = await moderateVideoFile(tempPath);
+      if (moderation.flagged) {
+        await registerModerationViolation(userId, kind, recordId, moderation);
+        if (kind === 'post') await db.delete(posts).where(eq(posts.id, recordId));
+        else await db.execute(sql`DELETE FROM stories WHERE id=${recordId}`);
+        await removeStorageFile(objectName).catch(() => {});
+        try { await (app as any).notifyUser(userId,'moderation','تم رفض الفيديو','تم رفض الفيديو بعد فحص المحتوى.',userId,{url:'/profile/settings'}); } catch {}
+        return;
+      }
       const media = await processVideo(tempPath, userId);
 
       if (kind === 'post') {

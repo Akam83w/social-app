@@ -3,12 +3,16 @@ import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { verifyToken } from '../middleware/auth.middleware';
 import { moderateMedia, registerModerationViolation } from '../services/moderation.service';
+import { storyImageSchema } from './request.schemas';
+import { assertSafeImageReference } from '../services/media-security.service';
 
 export async function storiesRoutes(app:FastifyInstance){
  app.post('/stories',{preHandler:verifyToken},async(request,reply)=>{
    const me=(request.user as {id:string}).id;
-   const body=request.body as {mediaUrl?:string;mediaType?:string;content?:string};
-   if(!body.mediaUrl||body.mediaType!=='image')return reply.status(400).send({error:'IMAGE_ONLY_FOR_NOW'});
+   const parsed=storyImageSchema.safeParse(request.body);
+   if(!parsed.success)return reply.status(400).send({error:'VALIDATION_ERROR',details:parsed.error.flatten()});
+   const body=parsed.data;
+   try { assertSafeImageReference(body.mediaUrl); } catch { return reply.status(400).send({error:'INVALID_MEDIA_REFERENCE'}); }
    let decision;
    try{decision=await moderateMedia(body.mediaUrl,'image')}
    catch(err){return reply.status(503).send({error:err instanceof Error?err.message:'MODERATION_UNAVAILABLE'})}

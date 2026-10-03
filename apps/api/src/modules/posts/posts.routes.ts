@@ -4,6 +4,9 @@ import { db } from '../../db';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { moderateMedia, registerModerationViolation } from '../../services/moderation.service';
 import { createPostSchema } from './posts.schema';
+import { imageUploadSchema, commentSchema, reportSchema } from '../request.schemas';
+import { requireAction } from '../../services/anti-abuse.service';
+import { assertSafeImageReference } from '../../services/media-security.service';
 import { createDirectImageUpload } from '../../services/image.service';
 import {
   getPostLikeStatus,
@@ -30,12 +33,9 @@ export async function postsRoutes(app: FastifyInstance) {
   app.post('/posts/image/upload', { preHandler: verifyToken }, async (request, reply) => {
     try {
       const payload = request.user as { id: string };
-      const body = request.body as { contentType?: string; size?: number };
-      const upload = await createDirectImageUpload(
-        payload.id,
-        String(body.contentType || ''),
-        Number(body.size || 0),
-      );
+      const parsed = imageUploadSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'INVALID_IMAGE_UPLOAD', details: parsed.error.flatten() });
+      const upload = await createDirectImageUpload(payload.id, parsed.data.contentType, parsed.data.size);
       return reply.status(200).send(upload);
     } catch (err) {
       const code = err instanceof Error ? err.message : 'IMAGE_UPLOAD_URL_FAILED';
@@ -50,18 +50,14 @@ export async function postsRoutes(app: FastifyInstance) {
   });
 
   app.post('/posts', { preHandler: verifyToken }, async (request, reply) => {
+    const payload = request.user as { id: string };
+    try { await requireAction('posts', payload.id, 20, 3600); } catch { return reply.status(429).send({ error: 'RATE_LIMITED' }); }
     const parsed = createPostSchema.safeParse(request.body);
 
-    if (!parsed.success) {
-      return reply.status(400).send({
-        error: 'VALIDATION_ERROR',
-        details: parsed.error.flatten(),
-      });
-    }
+    if (!parsed.success) return reply.status(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    if (parsed.data.mediaUrl) { try { assertSafeImageReference(parsed.data.mediaUrl); } catch { return reply.status(400).send({ error: 'INVALID_MEDIA_REFERENCE' }); } }
 
     try {
-      const payload = request.user as { id: string };
-
       if (parsed.data.mediaUrl && parsed.data.mediaType) {
         let decision;
         try {
@@ -80,8 +76,8 @@ export async function postsRoutes(app: FastifyInstance) {
 
       const post = await createPost(payload.id, parsed.data);
       const followers = await db.execute(sql`SELECT follower_id FROM follows WHERE following_id=${payload.id} AND status='accepted'`);
-      const actor = await db.execute(sql`SELECT username,display_name FROM users WHERE id=${payload.id} LIMIT 1`);
-      const a:any=actor.rows[0]; for(const row of followers.rows as any[]) await (app as any).notifyUser(row.follower_id,'post','منشور جديد',`@${a?.username||"مستخدم"} نشر منشوراً جديداً`,payload.id,{actorId:payload.id,url:'/post/'+post.id});
+      const actor = await db.execute(sql`SELECT username,display_name,avatar_url,supporter_number,supporter_expires_at,verified_at,email FROM users WHERE id=${payload.id} LIMIT 1`);
+      const a:any=actor.rows[0]; const livePost={id:post.id,content:post.content,mediaUrl:post.mediaUrl,mediaType:post.mediaType,mediaPoster:post.mediaPoster,createdAt:post.createdAt,updatedAt:post.updatedAt,user:{id:payload.id,username:a?.username||'',displayName:a?.display_name||null,avatarUrl:a?.avatar_url||null,supporterNumber:a?.supporter_number||null,supporterExpiresAt:a?.supporter_expires_at||null,verifiedAt:a?.verified_at||null,isFounder:String(a?.email||'').toLowerCase()==='sdmtr033@gmail.com'},likeCount:0,likedByMe:false}; for(const row of followers.rows as any[]) { await (app as any).publishRealtime?.(row.follower_id,{type:'post',post:livePost}); await (app as any).notifyUser(row.follower_id,'post','منشور جديد',`@${a?.username||"مستخدم"} نشر منشوراً جديداً`,payload.id,{actorId:payload.id,url:'/post/'+post.id}); }
       return reply.status(201).send({ post });
     } catch (err) {
       app.log.error(err);
@@ -217,20 +213,13 @@ export async function postsRoutes(app: FastifyInstance) {
   app.post('/posts/:id/comments', { preHandler: verifyToken }, async (request, reply) => {
     try {
       const payload = request.user as { id: string };
+      try { await requireAction('comments', payload.id, 60, 3600); } catch { return reply.status(429).send({ error: 'RATE_LIMITED' }); }
       const { id } = request.params as { id: string };
       if (!(await ensurePostAccessible(payload.id, id))) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
-      const body = request.body as {
-        content?: string;
-        parentCommentId?: string;
-      };
-
-      const content = body.content?.trim();
-
-      if (!content) {
-        return reply.status(400).send({
-          error: 'VALIDATION_ERROR',
-        });
-      }
+      const parsed = commentSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+      const body = parsed.data;
+      const content = body.content;
 
       if (body.parentCommentId) {
         const parentComment = await getCommentById(body.parentCommentId);
@@ -335,13 +324,10 @@ export async function postsRoutes(app: FastifyInstance) {
 
   app.post('/reports', { preHandler: verifyToken }, async (request, reply) => {
     const reporterId = (request.user as { id: string }).id;
-    const body = request.body as { targetId?: string; targetType?: string; reason?: string };
-    const targetId = String(body.targetId || '').trim();
-    const targetType = String(body.targetType || '').trim().toLowerCase();
-    const reason = String(body.reason || '').trim().slice(0, 500);
-    if (!targetId || !['post', 'user'].includes(targetType) || !reason) {
-      return reply.status(400).send({ error: 'INVALID_REPORT' });
-    }
+    try { await requireAction('reports', reporterId, 10, 3600); } catch { return reply.status(429).send({ error: 'RATE_LIMITED' }); }
+    const parsed = reportSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_REPORT', details: parsed.error.flatten() });
+    const { targetId, targetType, reason } = parsed.data;
     if (targetType === 'post') {
       const found = await db.execute(sql`SELECT id FROM posts WHERE id=${targetId} LIMIT 1`);
       if (!found.rows[0]) return reply.status(404).send({ error: 'TARGET_NOT_FOUND' });

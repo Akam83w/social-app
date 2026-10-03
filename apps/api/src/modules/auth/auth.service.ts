@@ -87,7 +87,7 @@ function getProviderIdentity(remote: Awaited<ReturnType<typeof getOAuthRemote>>,
 }
 
 function publicOAuthUser(user: typeof users.$inferSelect) {
-  return { id:user.id, username:user.username, email:user.email, phone:user.phone, displayName:user.displayName, bio:user.bio, avatarUrl:user.avatarUrl, supporterNumber:user.supporterNumber, supporterExpiresAt:user.supporterExpiresAt, verifiedAt:user.verifiedAt, moderationStatus:user.moderationStatus, isPrivate:user.isPrivate };
+  return { id:user.id, username:user.username, email:user.email, phone:user.phone, displayName:user.displayName, bio:user.bio, avatarUrl:user.avatarUrl, supporterNumber:user.supporterNumber, supporterExpiresAt:user.supporterExpiresAt, verifiedAt:user.verifiedAt, moderationStatus:user.moderationStatus, isPrivate:user.isPrivate, authVersion:user.authVersion || 1 };
 }
 
 export async function loginWithOAuth(input: { accessToken: string; provider: 'facebook' | 'twitter'; username?: string; phone?: string }) {
@@ -129,7 +129,7 @@ export async function loginWithOAuth(input: { accessToken: string; provider: 'fa
     verifiedAt: createdAt,
   }).returning({ id:users.id, username:users.username, email:users.email, phone:users.phone, displayName:users.displayName, bio:users.bio, avatarUrl:users.avatarUrl, supporterNumber:users.supporterNumber, supporterExpiresAt:users.supporterExpiresAt, verifiedAt:users.verifiedAt, moderationStatus:users.moderationStatus, isPrivate:users.isPrivate });
   await db.insert(socialIdentities).values({ userId:newUser.id, provider, providerUserId, providerEmail:email });
-  return { user:newUser, needsProfile:false };
+  return { user:publicOAuthUser(newUser), needsProfile:false };
 }
 
 export async function linkOAuthIdentity(userId: string, input: { accessToken: string; provider: 'facebook' | 'twitter' }) {
