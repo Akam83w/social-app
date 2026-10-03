@@ -61,8 +61,6 @@ export async function postsRoutes(app: FastifyInstance) {
     }
 
     try {
-      const payload = request.user as { id: string };
-
       if (parsed.data.mediaUrl && parsed.data.mediaType) {
         let decision;
         try {
