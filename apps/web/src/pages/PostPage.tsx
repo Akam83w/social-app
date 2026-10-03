@@ -190,6 +190,8 @@ export default function PostPage() {
       const newComment: Comment = {
         ...response.comment,
         parentCommentId: null,
+        likeCount: 0,
+        likedByMe: false,
         user: {
           id: user?.id || "",
           username: user?.username || "مستخدم",
@@ -240,6 +242,8 @@ export default function PostPage() {
       const newReply: Comment = {
         ...response.comment,
         parentCommentId,
+        likeCount: 0,
+        likedByMe: false,
         user: {
           id: user?.id || "",
           username: user?.username || "مستخدم",
