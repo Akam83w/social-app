@@ -20,6 +20,7 @@ import { verifyToken } from './middleware/auth.middleware';
 import { videoRoutes } from './modules/video.routes';
 import { moderationRoutes } from './modules/moderation.routes';
 import { moderationAppealSchema, performanceSchema, callStartSchema, callSignalSchema, pushSubscriptionSchema, fcmTokenSchema } from './modules/request.schemas';
+import { recordRequest, maybeAlertOn5xx, prometheusMetrics, recordMediaFailure, recordCallFailure } from './services/observability.service';
 import { assertRedisReady, redisAddStreamEvent, redisIncr, redisExpire, redisReadStream } from './services/redis.service';
 
 
@@ -95,6 +96,16 @@ if (!jwtSecret || jwtSecret.length < 32) throw new Error('JWT_SECRET must be con
 
 const app = Fastify({ logger: true, bodyLimit: 200 * 1024 * 1024 });
 app.decorate('notifyUser', notifyUser);
+app.addHook('onRequest', async (request) => {
+  (request as FastifyRequest & { startedAt?: number }).startedAt = Date.now();
+});
+app.addHook('onResponse', async (request, reply) => {
+  const startedAt = (request as FastifyRequest & { startedAt?: number }).startedAt || Date.now();
+  const duration = Date.now() - startedAt;
+  recordRequest(request.method, request.routeOptions?.url || request.url, reply.statusCode, duration);
+  if (reply.statusCode >= 500) await maybeAlertOn5xx((message, data) => request.log.error(data, message));
+});
+
 app.addHook('onSend', async (_request, reply) => {
   reply.header('X-Content-Type-Options', 'nosniff');
   reply.header('X-Frame-Options', 'DENY');
@@ -145,6 +156,11 @@ app.post('/performance', async (request, reply) => {
   return reply.status(204).send();
 });
 
+app.get('/metrics', async (request, reply) => {
+  const expected = String(process.env.METRICS_TOKEN || '').trim();
+  if (!expected || request.headers['x-metrics-token'] !== expected) return reply.status(404).send({ error: 'NOT_FOUND' });
+  return reply.type('text/plain; version=0.0.4').send(prometheusMetrics());
+});
 app.get('/notifications/config',{preHandler:verifyToken},async(_req,reply)=>reply.send({publicKey:vapidPublicKey}));
 app.get('/notifications',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const r=await db.execute(sql`SELECT id,type,title,body,data,read_at,created_at FROM notifications WHERE user_id=${me} ORDER BY created_at DESC LIMIT 50`);return reply.send({notifications:r.rows});});
 app.post('/notifications/read',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;await db.execute(sql`UPDATE notifications SET read_at=now() WHERE user_id=${me} AND read_at IS NULL`);return reply.send({ok:true});});
