@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 type EditableUser = { bio?: string | null; phone?: string | null; isPrivate?: boolean };
 
 type Section = 'home' | 'edit' | 'personal' | 'security' | 'privacy' | 'notifications' | 'linked' | 'activity';
-type Detail = 'password' | 'sessions' | 'privateAccount' | 'messagePrivacy' | 'blocked' | 'likesComments' | 'followers' | 'messageNotifications' | null;
+type Detail = 'password' | 'sessions' | 'deleteAccount' | 'privateAccount' | 'messagePrivacy' | 'blocked' | 'likesComments' | 'followers' | 'messageNotifications' | null;
 
 const rows: Array<{ id: Exclude<Section, 'home'>; title: string; description: string; icon: string }> = [
   { id: 'edit', title: 'تعديل الملف الشخصي', description: 'الاسم، اسم المستخدم، النبذة والصورة الشخصية', icon: '👤' },
@@ -39,6 +39,8 @@ export default function AccountSettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [followRequests, setFollowRequests] = useState<Array<{id:string;username:string;displayName:string|null;avatarUrl:string|null;createdAt:string}>>([]);
   const [followRequestsLoading, setFollowRequestsLoading] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<Array<{id:string;username:string;displayName:string|null;avatarUrl:string|null;createdAt:string}>>([]);
@@ -148,6 +150,27 @@ export default function AccountSettingsPage() {
   const loadAccountSettings = async () => { if (!token) return; try { const r=await fetch(API_URL+'/auth/settings',{headers:{Authorization:'Bearer '+token}}); const d=await r.json(); if(r.ok){setAllowMessages(d.settings?.allow_messages||'everyone');setLikesComments(d.settings?.notify_likes!==false);setFollowers(d.settings?.notify_followers!==false);setMessageNotifications(d.settings?.notify_messages!==false);} } catch {} };
   const saveAccountSettings = async (patch: Record<string, unknown>) => { if (!token) return; try { const r=await fetch(API_URL+'/auth/settings',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({allowMessages,notifyLikes:likesComments,notifyFollowers:followers,notifyMessages:messageNotifications,...patch})}); if(!r.ok) throw new Error(); setMessage('تم حفظ الإعداد.'); } catch { setMessage('تعذر حفظ الإعداد.'); } };
   const changePassword = async () => { if(!token) return; if(newPassword.length<8||newPassword!==confirmPassword){setMessage('تأكد من كلمة المرور الجديدة وتطابقها.');return;} try { const r=await fetch(API_URL+'/auth/change-password',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({currentPassword,newPassword})}); const d=await r.json(); if(!r.ok) throw new Error(d.error); if (d.token) login(user, d.token); setCurrentPassword('');setNewPassword('');setConfirmPassword('');setMessage('تم تغيير كلمة المرور وتسجيل خروج الجلسات الأخرى. هذا الجهاز بقي مسجلاً.'); } catch(e:any){setMessage(e?.message==='CURRENT_PASSWORD_INVALID'?'كلمة المرور الحالية غير صحيحة.':'تعذر تغيير كلمة المرور.');} };
+  const deleteAccount = async () => {
+    if (!token) return;
+    if (deleteConfirmation.trim() !== 'حذف حسابي') {
+      setMessage('اكتب «حذف حسابي» للتأكيد النهائي.');
+      return;
+    }
+    try {
+      const r = await fetch(API_URL + '/auth/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ currentPassword: deletePassword }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || 'ACCOUNT_DELETION_FAILED');
+      logout();
+      navigate('/login', { replace: true });
+    } catch (e: any) {
+      setMessage(e?.message === 'CURRENT_PASSWORD_INVALID' ? 'كلمة المرور الحالية غير صحيحة.' : 'تعذر حذف الحساب نهائياً.');
+    }
+  };
+
   const logoutAll = async () => { if(!token)return; try { const r=await fetch(API_URL+'/auth/logout-all',{method:'POST',headers:{Authorization:'Bearer '+token}}); const d=await r.json(); if(!r.ok) throw new Error(); login(user,d.token); setMessage('تم تسجيل خروج الجلسات الأخرى. هذا الجهاز بقي مسجلاً.'); } catch { setMessage('تعذر إنهاء الجلسات.'); } };
   const go = (id: Section) => { setMessage(''); setDetail(null); setSection(id); if (id === 'linked') void loadLinkedAccounts(); if (id === 'notifications') void loadAccountSettings(); };
   
@@ -170,7 +193,7 @@ export default function AccountSettingsPage() {
       <section className="account-settings-shell">
         <header className="settings-header">
           <button type="button" className="settings-back" onClick={back}>‹</button>
-          <div><h1>{detail ? ({password:'تغيير كلمة المرور',sessions:'الجلسات والأجهزة',privateAccount:'الحساب الخاص',messagePrivacy:'الرسائل والردود',blocked:'الحسابات المحظورة',likesComments:'الإعجابات والتعليقات',followers:'المتابعون',messageNotifications:'إشعارات الرسائل'} as Record<Exclude<Detail,null>,string>)[detail] : section === 'home' ? 'الإعدادات' : rows.find(r => r.id === section)?.title}</h1><small>{detail ? 'إعدادات الحساب' : section === 'home' ? 'إدارة حسابك وتجربتك' : 'إعدادات الحساب'}</small></div>
+          <div><h1>{detail ? ({password:'تغيير كلمة المرور',sessions:'الجلسات والأجهزة',deleteAccount:'حذف الحساب',privateAccount:'الحساب الخاص',messagePrivacy:'الرسائل والردود',blocked:'الحسابات المحظورة',likesComments:'الإعجابات والتعليقات',followers:'المتابعون',messageNotifications:'إشعارات الرسائل'} as Record<Exclude<Detail,null>,string>)[detail] : section === 'home' ? 'الإعدادات' : rows.find(r => r.id === section)?.title}</h1><small>{detail ? 'إعدادات الحساب' : section === 'home' ? 'إدارة حسابك وتجربتك' : 'إعدادات الحساب'}</small></div>
         </header>
 
         {section === 'home' && (
@@ -227,7 +250,15 @@ export default function AccountSettingsPage() {
           </div>
         )}
 
-                {section === 'security' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('password')}><span>🔑<strong>تغيير كلمة المرور</strong><small>تغيير كلمة المرور الحالية</small></span><b>›</b></button><button type="button" onClick={() => openDetail('sessions')}><span>📱<strong>الجلسات والأجهزة</strong><small>تسجيل خروج الأجهزة الأخرى</small></span><b>›</b></button></div>}
+                {detail === 'deleteAccount' && <div className="settings-detail">
+          <div className="settings-info">هذا الإجراء نهائي. سيتم حذف حسابك وبياناته المرتبطة به من قاعدة البيانات، ولا يمكن التراجع عنه.</div>
+          {field('كلمة المرور الحالية', deletePassword, setDeletePassword)}
+          <label className="settings-field"><span>اكتب «حذف حسابي» للتأكيد</span><input value={deleteConfirmation} onChange={e => setDeleteConfirmation(e.target.value)} /></label>
+          <button className="settings-save danger" type="button" onClick={() => void deleteAccount()}>حذف الحساب نهائياً</button>
+          {message && <p className="settings-message">{message}</p>}
+        </div>}
+
+        {section === 'security' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('password')}><span>🔑<strong>تغيير كلمة المرور</strong><small>تغيير كلمة المرور الحالية</small></span><b>›</b></button><button type="button" onClick={() => openDetail('sessions')}><span>📱<strong>الجلسات والأجهزة</strong><small>تسجيل خروج الأجهزة الأخرى</small></span><b>›</b></button><button type="button" className="danger" onClick={() => openDetail('deleteAccount')}><span>🗑️<strong>حذف الحساب</strong><small>حذف الحساب وبياناته نهائياً</small></span><b>›</b></button></div>}
 
         {section === 'privacy' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('privateAccount')}><span>🔒<strong>الحساب الخاص</strong><small>تحكم بمن يستطيع رؤية منشوراتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('messagePrivacy')}><span>💬<strong>الرسائل والردود</strong><small>تحكم بمن يستطيع مراسلتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('blocked')}><span>🚫<strong>الحسابات المحظورة</strong><small>إدارة الحسابات التي حظرتها</small></span><b>›</b></button></div>}
 
