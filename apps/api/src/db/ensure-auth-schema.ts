@@ -51,7 +51,7 @@ export async function ensureAuthSchema() {
     updated_at timestamp NOT NULL DEFAULT now(),
     expires_at timestamp NOT NULL,
     CONSTRAINT user_notes_user_unique UNIQUE(user_id)
-  `);
+  )`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS user_notes_expires_at_idx ON user_notes(expires_at)`);
 
   await db.execute(sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS expires_at timestamp`);
