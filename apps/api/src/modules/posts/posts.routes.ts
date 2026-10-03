@@ -6,6 +6,7 @@ import { moderateMedia, registerModerationViolation } from '../../services/moder
 import { createPostSchema } from './posts.schema';
 import { imageUploadSchema, commentSchema, reportSchema } from '../request.schemas';
 import { requireAction } from '../../services/anti-abuse.service';
+import { assertSafeImageReference } from '../../services/media-security.service';
 import { createDirectImageUpload } from '../../services/image.service';
 import {
   getPostLikeStatus,
@@ -53,12 +54,8 @@ export async function postsRoutes(app: FastifyInstance) {
     try { await requireAction('posts', payload.id, 20, 3600); } catch { return reply.status(429).send({ error: 'RATE_LIMITED' }); }
     const parsed = createPostSchema.safeParse(request.body);
 
-    if (!parsed.success) {
-      return reply.status(400).send({
-        error: 'VALIDATION_ERROR',
-        details: parsed.error.flatten(),
-      });
-    }
+    if (!parsed.success) return reply.status(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+    if (parsed.data.mediaUrl) { try { assertSafeImageReference(parsed.data.mediaUrl); } catch { return reply.status(400).send({ error: 'INVALID_MEDIA_REFERENCE' }); } }
 
     try {
       if (parsed.data.mediaUrl && parsed.data.mediaType) {
