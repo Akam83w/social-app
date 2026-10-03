@@ -16,3 +16,4 @@
 .chat-thread{overflow-y:auto;max-height:calc(100dvh - 300px);scroll-behavior:smooth;padding-bottom:8px}
 .message-form{position:sticky;bottom:0;background:#fff}
 @media(max-width:820px){.message-form{bottom:84px}}
+
