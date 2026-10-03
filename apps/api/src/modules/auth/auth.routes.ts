@@ -1,12 +1,15 @@
 import type { FastifyInstance } from 'fastify';
 import bcrypt from 'bcryptjs';
-import { registerSchema, loginSchema } from './auth.schema';
+import { registerSchema, loginSchema, oauthExchangeSchema, oauthLinkSchema, changePasswordSchema, authSettingsSchema, privacySchema } from './auth.schema';
 import { registerUser, loginUser, loginWithOAuth, linkOAuthIdentity, getLinkedOAuthIdentities, unlinkOAuthIdentity, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { users, posts, likes, follows } from '../../db/schema';
 import { desc, sql, and } from 'drizzle-orm';
+import { z as zAccount } from 'zod';
+const zAccountDeletionSchema = zAccount.object({ currentPassword: zAccount.string().min(1).max(128) });
+
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/register', async (request, reply) => {
@@ -45,13 +48,13 @@ export async function authRoutes(app: FastifyInstance) {
 
 
   app.post('/auth/oauth/exchange', async (request, reply) => {
-    const body = request.body as { accessToken?: unknown; provider?: unknown; username?: unknown; phone?: unknown };
-    if (typeof body.accessToken !== 'string' || !['facebook', 'twitter'].includes(String(body.provider))) return reply.status(400).send({ error: 'INVALID_OAUTH_REQUEST' });
+    const parsed = oauthExchangeSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_OAUTH_REQUEST', details: parsed.error.flatten() });
     try {
-      const result = await loginWithOAuth({ accessToken: body.accessToken, provider: body.provider as 'facebook' | 'twitter', username: typeof body.username === 'string' ? body.username : undefined, phone: typeof body.phone === 'string' ? body.phone : undefined });
+      const result = await loginWithOAuth(parsed.data);
       if (result.needsProfile) return reply.send({ needsProfile: true });
       if (!result.user) return reply.status(500).send({ error: 'OAUTH_USER_MISSING' });
-      const token = app.jwt.sign({ id: result.user.id, username: result.user.username });
+      const token = app.jwt.sign({ id: result.user.id, username: result.user.username, authVersion: result.user.authVersion || 1 });
       return reply.send({ user: result.user, token, needsProfile: false });
     } catch (err: any) {
       if (['OAUTH_INVALID_TOKEN','OAUTH_EMAIL_REQUIRED','USERNAME_TAKEN','PHONE_TAKEN'].includes(err.message)) return reply.status(err.message === 'OAUTH_INVALID_TOKEN' ? 401 : 409).send({ error: err.message });
@@ -66,10 +69,10 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post('/auth/oauth/link', { preHandler: verifyToken }, async (request, reply) => {
     const me = (request.user as { id: string }).id;
-    const body = request.body as { accessToken?: unknown; provider?: unknown };
-    if (typeof body.accessToken !== 'string' || !['facebook', 'twitter'].includes(String(body.provider))) return reply.status(400).send({ error: 'INVALID_OAUTH_REQUEST' });
+    const parsed = oauthLinkSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_OAUTH_REQUEST', details: parsed.error.flatten() });
     try {
-      return reply.send(await linkOAuthIdentity(me, { accessToken: body.accessToken, provider: body.provider as 'facebook' | 'twitter' }));
+      return reply.send(await linkOAuthIdentity(me, parsed.data));
     } catch (err: any) {
       if (['OAUTH_INVALID_TOKEN','OAUTH_EMAIL_REQUIRED','OAUTH_IDENTITY_MISSING','PROVIDER_ALREADY_LINKED','SOCIAL_ACCOUNT_ALREADY_LINKED'].includes(err.message)) return reply.status(err.message === 'OAUTH_INVALID_TOKEN' ? 401 : 409).send({ error: err.message });
       app.log.error(err); return reply.status(500).send({ error: 'INTERNAL_ERROR' });
@@ -89,8 +92,9 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post('/auth/change-password', { preHandler: verifyToken }, async (request, reply) => {
     const me = (request.user as { id: string }).id;
-    const body = request.body as { currentPassword?: unknown; newPassword?: unknown };
-    if (typeof body.currentPassword !== 'string' || typeof body.newPassword !== 'string' || body.newPassword.length < 8) return reply.status(400).send({ error: 'INVALID_PASSWORD' });
+    const parsed = changePasswordSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_PASSWORD', details: parsed.error.flatten() });
+    const body = parsed.data;
     const [row] = await db.select({ passwordHash: users.passwordHash, authVersion: users.authVersion }).from(users).where(eq(users.id, me)).limit(1);
     if (!row || !(await bcrypt.compare(body.currentPassword, row.passwordHash))) return reply.status(401).send({ error: 'CURRENT_PASSWORD_INVALID' });
     const passwordHash = await bcrypt.hash(body.newPassword, 10);
@@ -99,6 +103,27 @@ export async function authRoutes(app: FastifyInstance) {
     if (!fresh) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
     const token = app.jwt.sign({ id: fresh.id, username: fresh.username, authVersion: fresh.authVersion });
     return reply.send({ changed: true, token });
+  });
+
+  app.delete('/auth/account', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const body = request.body as unknown;
+    const parsed = zAccountDeletionSchema.safeParse(body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_ACCOUNT_DELETION', details: parsed.error.flatten() });
+
+    const [row] = await db.select({ passwordHash: users.passwordHash }).from(users).where(eq(users.id, me)).limit(1);
+    if (!row) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    if (!(await bcrypt.compare(parsed.data.currentPassword, row.passwordHash))) {
+      return reply.status(401).send({ error: 'CURRENT_PASSWORD_INVALID' });
+    }
+
+    try {
+      await db.execute(sql`DELETE FROM users WHERE id=${me}`);
+      return reply.send({ deleted: true });
+    } catch (err) {
+      app.log.error(err);
+      return reply.status(500).send({ error: 'ACCOUNT_DELETION_FAILED' });
+    }
   });
 
   app.post('/auth/logout-all', { preHandler: verifyToken }, async (request, reply) => {
@@ -124,11 +149,14 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   app.patch('/auth/settings', { preHandler: verifyToken }, async (request, reply) => {
-    const me = (request.user as { id: string }).id; const body = request.body as Record<string, unknown>;
-    const allow = ['everyone','followers','nobody'].includes(String(body.allowMessages)) ? String(body.allowMessages) : 'everyone';
-    const likes = typeof body.notifyLikes === 'boolean' ? body.notifyLikes : true;
-    const followers = typeof body.notifyFollowers === 'boolean' ? body.notifyFollowers : true;
-    const messages = typeof body.notifyMessages === 'boolean' ? body.notifyMessages : true;
+    const me = (request.user as { id: string }).id;
+    const parsed = authSettingsSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_SETTINGS', details: parsed.error.flatten() });
+    const body = parsed.data;
+    const allow = body.allowMessages ?? 'everyone';
+    const likes = body.notifyLikes ?? true;
+    const followers = body.notifyFollowers ?? true;
+    const messages = body.notifyMessages ?? true;
     await db.execute(sql`INSERT INTO user_settings(user_id,allow_messages,notify_likes,notify_followers,notify_messages,updated_at) VALUES(${me},${allow},${likes},${followers},${messages},now()) ON CONFLICT(user_id) DO UPDATE SET allow_messages=excluded.allow_messages,notify_likes=excluded.notify_likes,notify_followers=excluded.notify_followers,notify_messages=excluded.notify_messages,updated_at=now()`);
     return reply.send({ saved:true, settings:{allow_messages:allow,notify_likes:likes,notify_followers:followers,notify_messages:messages} });
   });
@@ -159,8 +187,9 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.patch('/auth/privacy', { preHandler: verifyToken }, async (request, reply) => {
     const me = (request.user as { id: string }).id;
-    const body = request.body as { isPrivate?: unknown };
-    if (typeof body.isPrivate !== 'boolean') return reply.status(400).send({ error: 'INVALID_PRIVACY' });
+    const parsed = privacySchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_PRIVACY', details: parsed.error.flatten() });
+    const body = parsed.data;
     const [updated] = await db.update(users).set({ isPrivate: body.isPrivate, updatedAt: new Date() }).where(eq(users.id, me)).returning({
       id: users.id, username: users.username, email: users.email, phone: users.phone, displayName: users.displayName,
       bio: users.bio, avatarUrl: users.avatarUrl, isPrivate: users.isPrivate,
