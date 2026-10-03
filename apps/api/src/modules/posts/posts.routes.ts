@@ -289,6 +289,28 @@ export async function postsRoutes(app: FastifyInstance) {
     }
   });
 
+  app.post('/comments/:id/like', { preHandler: verifyToken }, async (request, reply) => {
+    try {
+      const me=(request.user as {id:string}).id;
+      const {id}=request.params as {id:string};
+      const found=await db.execute(sql`SELECT c.id,c.user_id,c.post_id FROM comments c WHERE c.id=${id} AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.blocker_id=${me} AND b.blocked_id=c.user_id) OR (b.blocker_id=c.user_id AND b.blocked_id=${me})) LIMIT 1`);
+      if(!found.rows[0]) return reply.status(404).send({error:'COMMENT_NOT_FOUND'});
+      await db.execute(sql`INSERT INTO comment_likes(user_id,comment_id) VALUES(${me},${id}) ON CONFLICT(user_id,comment_id) DO NOTHING`);
+      const count=await db.execute(sql`SELECT count(*)::int AS count FROM comment_likes WHERE comment_id=${id}`);
+      return reply.send({liked:true,likeCount:Number((count.rows[0] as any)?.count||0)});
+    } catch(err){app.log.error(err);return reply.status(500).send({error:'INTERNAL_ERROR'});}
+  });
+
+  app.delete('/comments/:id/like', { preHandler: verifyToken }, async (request, reply) => {
+    try {
+      const me=(request.user as {id:string}).id;
+      const {id}=request.params as {id:string};
+      await db.execute(sql`DELETE FROM comment_likes WHERE user_id=${me} AND comment_id=${id}`);
+      const count=await db.execute(sql`SELECT count(*)::int AS count FROM comment_likes WHERE comment_id=${id}`);
+      return reply.send({liked:false,likeCount:Number((count.rows[0] as any)?.count||0)});
+    } catch(err){app.log.error(err);return reply.status(500).send({error:'INTERNAL_ERROR'});}
+  });
+
   app.delete('/comments/:id', { preHandler: verifyToken }, async (request, reply) => {
     try {
       const payload = request.user as { id: string };
