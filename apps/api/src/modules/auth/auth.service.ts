@@ -5,6 +5,8 @@ import { db } from '../../db';
 import { users, socialIdentities } from '../../db/schema';
 import type { RegisterInput, LoginInput } from './auth.schema';
 
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
+
 export async function registerUser(input: RegisterInput) {
   const username = input.username.trim().toLowerCase();
   const email = input.email.trim().toLowerCase();
@@ -100,6 +102,8 @@ export async function loginWithOAuth(input: { accessToken: string; provider: 'fa
     .where(sql`${socialIdentities.provider} = ${provider} AND ${socialIdentities.providerUserId} = ${providerUserId}`).limit(1);
   if (linked?.user) return { user: publicOAuthUser(linked.user), needsProfile: false };
 
+  if (!remote.email_confirmed_at) throw new Error('OAUTH_EMAIL_NOT_VERIFIED');
+
   const [existing] = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing) {
     await db.insert(socialIdentities).values({ userId: existing.id, provider, providerUserId, providerEmail: email }).onConflictDoNothing();
@@ -171,6 +175,7 @@ export async function loginUser(input: LoginInput) {
     .limit(1);
 
   if (!existingUser) {
+    await bcrypt.compare(input.password, DUMMY_HASH);
     throw new Error('INVALID_CREDENTIALS');
   }
 
