@@ -48,7 +48,6 @@ export default function MessagesPage(){
  const verifiedBadge=(u:ChatUser)=>u.verifiedAt&&(u.isFounder||(u.supporterNumber&&u.supporterExpiresAt&&new Date(u.supporterExpiresAt).getTime()>Date.now()))?<span className="real-verified">✓</span>:null;
  const avatarOf=(u:{username:string;avatarUrl:string|null})=>u.avatarUrl||`https://ui-avatars.com/api/?name=${encodeURIComponent(u.username)}`;
 
- const goBack=()=>{setActive(null);if(params.get("username"))navigate("/messages",{replace:true});void load();};
  const myNote=notes.find(n=>n.user.id===user?.id);
 
  if(active){
