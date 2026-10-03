@@ -16,7 +16,7 @@ const appealDecisionSchema = z.object({
 
 function moderatorEmails() {
   return new Set(
-    [process.env.FOUNDER_EMAIL, ...(process.env.MODERATOR_EMAILS || '').split(',')]
+    [process.env.FOUNDER_EMAIL || 'sdmtr033@gmail.com', ...(process.env.MODERATOR_EMAILS || '').split(',')]
       .map((value) => String(value || '').trim().toLowerCase())
       .filter(Boolean),
   );
