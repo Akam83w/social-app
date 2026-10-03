@@ -95,7 +95,10 @@ export async function authRoutes(app: FastifyInstance) {
     if (!row || !(await bcrypt.compare(body.currentPassword, row.passwordHash))) return reply.status(401).send({ error: 'CURRENT_PASSWORD_INVALID' });
     const passwordHash = await bcrypt.hash(body.newPassword, 10);
     await db.update(users).set({ passwordHash, authVersion: (row.authVersion || 1) + 1, updatedAt: new Date() }).where(eq(users.id, me));
-    return reply.send({ changed: true });
+    const [fresh] = await db.select({ id: users.id, username: users.username, authVersion: users.authVersion }).from(users).where(eq(users.id, me)).limit(1);
+    if (!fresh) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    const token = app.jwt.sign({ id: fresh.id, username: fresh.username, authVersion: fresh.authVersion });
+    return reply.send({ changed: true, token });
   });
 
   app.post('/auth/logout-all', { preHandler: verifyToken }, async (request, reply) => {
