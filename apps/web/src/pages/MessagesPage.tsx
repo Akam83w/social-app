@@ -1,9 +1,10 @@
 import { useEffect,useState,useRef } from "react";
+import "./MessagesPage.css";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiRequest,connectRealtime,sendSignal,startCall,getCall,getCallConfig,acceptCall,rejectCall,endCall,getActiveUsers,getMessageNotes,setMessageNote,deleteMessageNote,pingPresence } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
-type Message={id:string;content:string;createdAt:string;senderId:string;receiverId:string};
+type Message={id:string;content:string;createdAt:string;senderId:string;receiverId:string;status?:"sending"|"sent"|"failed"};
 type ChatUser={id?:string;username:string;displayName:string|null;avatarUrl:string|null;verifiedAt?:string|null;supporterNumber?:string|null;supporterExpiresAt?:string|null;isFounder?:boolean};
 type Chat={user:ChatUser;messages:Message[]};
 type ActiveUser={id:string;username:string;displayName:string|null;avatarUrl:string|null;verifiedAt?:string|null;supporterNumber?:string|null;supporterExpiresAt?:string|null;isFounder?:boolean;isActive:boolean;note?:string|null;noteCreatedAt?:string|null;noteExpiresAt?:string|null};
@@ -20,14 +21,56 @@ export default function MessagesPage(){
  const refreshPresence=async()=>{if(!token)return;try{const [n,a]=await Promise.all([getMessageNotes(token),getActiveUsers(token)]);setNotes(n.notes??[]);setActiveUsers(a.users??[]);}catch{}};
  const open=async(u:string)=>{if(!token||!u.trim())return;try{const clean=u.replace(/^@/,"").trim();const d=await apiRequest(`/messages/${encodeURIComponent(clean)}`,token);setActive(d);setUsername(clean);setError("");}catch{setError("ما لكيت هذا الحساب أو تعذر فتح المحادثة.")}};
  useEffect(()=>{const target=params.get("username");if(!token)return;if(target)void open(target);else void load();},[token,params]);
- useEffect(()=>{if(!token)return;void pingPresence(token);const timer=window.setInterval(()=>{void pingPresence(token);void refreshPresence();},60000);return()=>window.clearInterval(timer);},[token]);
+  useEffect(()=>{
+   if(!token)return;
+   return connectRealtime(token,(event:any)=>{
+     if(event.type==="message"&&event.message){
+       const message=normalizeMessage(event.message);
+       setActive(a=>{
+         if(!a||message.senderId!==a.user.id)return a;
+         if(a.messages.some(m=>m.id===message.id))return a;
+         return {...a,messages:[...a.messages,message]};
+       });
+       setChats(a=>a.map(ch=>ch.user.id===message.senderId?{...ch,messages:[...(ch.messages||[]).filter(m=>m.id!==message.id),message]}:ch));
+     }
+   });
+ },[token,active?.user.id]);
+useEffect(()=>{if(!token)return;void pingPresence(token);const timer=window.setInterval(()=>{void pingPresence(token);void refreshPresence();},60000);return()=>window.clearInterval(timer);},[token]);
  const saveNote=async()=>{if(!token)return;const value=noteText.trim().slice(0,60);if(!value)return;setNoteSaving(true);try{await setMessageNote(token,value);setNoteOpen(false);setNoteText("");await refreshPresence();}catch{setError("تعذر نشر الملاحظة.");}finally{setNoteSaving(false)}};
  const removeNote=async()=>{if(!token)return;try{await deleteMessageNote(token);setNotes(n=>n.filter(x=>x.user.id!==user?.id));await refreshPresence();}catch{setError("تعذر حذف الملاحظة.")}};
- const send=async(e:React.FormEvent)=>{e.preventDefault();if(!token||!active||!text.trim())return;try{const d=await apiRequest(`/messages/${encodeURIComponent(active.user.username)}`,token,{method:"POST",body:JSON.stringify({content:text.trim()})});setText("");if(d.message){setActive(a=>a?a.messages.some(m=>m.id===d.message.id)?a:{...a,messages:[...a.messages,d.message]}:a);setChats(a=>a.map(c=>c.user.username===active.user.username?{...c,messages:[d.message]}:c));void refreshPresence();}}catch{setError("تعذر إرسال الرسالة.")}};
+ const normalizeMessage=(m:any):Message=>({id:String(m.id),content:String(m.content||""),createdAt:typeof m.createdAt==="string"&&m.createdAt?m.createdAt:new Date().toISOString(),senderId:String(m.senderId),receiverId:String(m.receiverId),status:"sent"});
+ const upsertIncoming=(m:any)=>{
+   const message=normalizeMessage(m);
+   setActive(a=>a?a.messages.some(x=>x.id===message.id)?a:{...a,messages:[...a.messages,message]}:a);
+   setChats(a=>a.map(ch=>ch.user.id===message.senderId||ch.user.username===active?.user.username?{...ch,messages:[...(ch.messages||[]).filter(x=>x.id!==message.id),message]}:ch));
+ };
+ const send=async(e:React.FormEvent)=>{
+   e.preventDefault();
+   const value=text.trim();
+   if(!token||!active||!value)return;
+   const receiver=active.user.id||"";
+   const tempId="local-"+crypto.randomUUID();
+   const optimistic:Message={id:tempId,content:value,createdAt:new Date().toISOString(),senderId:user?.id||"",receiverId:receiver,status:"sending"};
+   setText("");
+   setError("");
+   setActive(a=>a?a.messages.some(m=>m.id===tempId)?a:{...a,messages:[...a.messages,optimistic]}:a);
+   try{
+     const d=await apiRequest(`/messages/${encodeURIComponent(active.user.username)}`,token,{method:"POST",body:JSON.stringify({content:value})});
+     if(d.message){
+       const message=normalizeMessage(d.message);
+       setActive(a=>a?a.messages.map(m=>m.id===tempId?message:m):a);
+       setChats(a=>a.map(ch=>ch.user.username===active.user.username?{...ch,messages:[message]}:ch));
+     }
+   }catch{
+     setActive(a=>a?a.messages.map(m=>m.id===tempId?{...m,status:"failed"}:m):a);
+     setError("تعذر إرسال الرسالة.");
+   }
+ };
+
 
  const myNote=notes.find(n=>n.user.id===user?.id);
 
- if(active)return <main className="feed-container"><section className="messages-panel"><button className="back-messages" onClick={()=>setActive(null)}>← الرسائل</button><header className="chat-header"><button type="button" className="chat-user-link" onClick={()=>navigate(`/u/${encodeURIComponent(active.user.username)}`)} aria-label="فتح الحساب"><img src={active.user.avatarUrl||`https://ui-avatars.com/api/?name=${encodeURIComponent(active.user.username)}`} alt="" /></button><div className="chat-call-buttons"><button onClick={async()=>{if(!token||!active.user.id)return;try{const d=await startCall(token,active.user.id,true);location.href="/call?callId="+encodeURIComponent(d.callId)}catch{setError("تعذر بدء المكالمة.")}}}>📹</button><button onClick={async()=>{if(!token||!active.user.id)return;try{const d=await startCall(token,active.user.id,false);location.href="/call?callId="+encodeURIComponent(d.callId)}catch{setError("تعذر بدء المكالمة.")}}}>📞</button></div><button type="button" className="chat-user-info" onClick={()=>navigate(`/u/${encodeURIComponent(active.user.username)}`)}><strong>{active.user.displayName||active.user.username}{active.user.verifiedAt&&(active.user.isFounder||(active.user.supporterNumber&&active.user.supporterExpiresAt&&new Date(active.user.supporterExpiresAt).getTime()>Date.now()))&&<span className="real-verified">✓</span>}</strong><span>@{active.user.username}</span></button></header><div className="chat-list">{active.messages.map(m=><div key={m.id} className={m.senderId===user?.id?"message":"message other"}>{m.content}<small>{new Date(m.createdAt).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"})}</small></div>)}</div><form className="message-form" onSubmit={send}><input value={text} onChange={e=>setText(e.target.value)} placeholder="اكتب رسالة..." maxLength={2000}/><button>إرسال</button></form>{error&&<p className="search-error">{error}</p>}</section></main>;
+ if(active)return <main className="feed-container messages-shell"><section className="messages-panel chat-panel"><header className="chat-header"><button className="back-messages" onClick={()=>setActive(null)} aria-label="العودة">‹</button><button type="button" className="chat-user-link" onClick={()=>navigate(`/u/${encodeURIComponent(active.user.username)}`)} aria-label="فتح الحساب"><img src={active.user.avatarUrl||`https://ui-avatars.com/api/?name=${encodeURIComponent(active.user.username)}`} alt="" /></button><button type="button" className="chat-user-info" onClick={()=>navigate(`/u/${encodeURIComponent(active.user.username)}`)}><strong>{active.user.displayName||active.user.username}{active.user.verifiedAt&&(active.user.isFounder||(active.user.supporterNumber&&active.user.supporterExpiresAt&&new Date(active.user.supporterExpiresAt).getTime()>Date.now()))&&<span className="real-verified">✓</span>}</strong><span>نشط في المحادثة · @{active.user.username}</span></button><div className="chat-call-buttons"><button aria-label="مكالمة فيديو" onClick={async()=>{if(!token||!active.user.id)return;try{const d=await startCall(token,active.user.id,true);location.href="/call?callId="+encodeURIComponent(d.callId)}catch{setError("تعذر بدء المكالمة.")}}}>▣</button><button aria-label="مكالمة صوتية" onClick={async()=>{if(!token||!active.user.id)return;try{const d=await startCall(token,active.user.id,false);location.href="/call?callId="+encodeURIComponent(d.callId)}catch{setError("تعذر بدء المكالمة.")}}}>◉</button></div></header><div className="chat-list chat-messages" aria-live="polite">{active.messages.map(m=>{const time=Date.parse(m.createdAt);const label=Number.isNaN(time)?"":new Date(time).toLocaleTimeString("ar-IQ",{hour:"2-digit",minute:"2-digit"});return <div key={m.id} className={`message-row ${m.senderId===user?.id?"mine":"theirs"}`}><div className={`message-bubble ${m.status==="sending"?"is-sending":m.status==="failed"?"is-failed":""}`}>{m.content}<div className="message-meta">{label}{m.senderId===user?.id&&<span aria-label={m.status==="sending"?"جاري الإرسال":m.status==="failed"?"فشل الإرسال":"تم الإرسال"}>{m.status==="sending"?" · جاري الإرسال":m.status==="failed"?" · فشل الإرسال":" ✓"}</span>}</div></div></div>})}</div><form className="message-form instagram-composer" onSubmit={send}><button type="button" className="composer-icon" aria-label="الكاميرا">◎</button><input value={text} onChange={e=>setText(e.target.value)} placeholder="رسالة..." maxLength={2000} autoComplete="off"/><button type="button" className="composer-icon" aria-label="الصور">▧</button><button type="button" className="composer-icon" aria-label="الصوت">◉</button><button type="button" className="composer-icon" aria-label="الملصقات">☺</button>{text.trim()&&<button className="composer-send" type="submit" aria-label="إرسال">إرسال</button>}</form>{error&&<p className="search-error">{error}</p>}</section></main>;
 
  return <main className="feed-container"><section className="messages-panel">
    <div className="messages-title"><h1>الرسائل</h1><span>دردشة مباشرة بين المستخدمين</span></div>
