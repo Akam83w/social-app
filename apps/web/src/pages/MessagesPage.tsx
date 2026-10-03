@@ -94,4 +94,30 @@ export function CallPage(){
    {incoming&&!accepted&&call?.status==="ringing"?<div className="incoming-call-card"><div className="incoming-call-icon">📞</div><h2>{call.display_name||call.username}</h2><p>{call.kind==="video"?"مكالمة فيديو واردة":"مكالمة صوتية واردة"}</p><div><button className="accept-call" onClick={()=>void doAccept()}>رد</button><button className="reject-call" onClick={()=>void doReject()}>رفض</button></div></div>:<><div className="call-videos"><video ref={remote} autoPlay playsInline className="call-remote"/><video ref={local} autoPlay muted playsInline className="call-local"/>{call?.kind==="audio"&&<div className="audio-call-avatar">📞</div>}</div><div className="call-actions"><button onClick={()=>void toggleSpeaker()} title="السبيكر">{speaker?"🔊":"🔈"}</button><button onClick={hang} className="hangup">📞</button></div></>}
    {error&&<p className="call-error">{error}</p>}</main>
 }
-export function NotificationsLivePage(){const{token}=useAuth();const navigate=useNavigate();const[list,setList]=useState<any[]>([]);const load=async()=>{if(token){const d=await apiRequest('/notifications',token);setList(d.notifications||[])}};useEffect(()=>{void load()},[token]);const enable=async()=>{if(!token||!('Notification'in window)||!('serviceWorker'in navigator))return;const p=await Notification.requestPermission();if(p!=='granted')return;const reg=await navigator.serviceWorker.ready;const cfg=await apiRequest('/notifications/config',token);const bytes=Uint8Array.from(atob(cfg.publicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));const sub=await reg.pushManager.getSubscription()||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});await apiRequest('/notifications/push-subscription',token,{method:'POST',body:JSON.stringify(sub.toJSON())});};return <main className="feed-container"><section className="stories-card"><div style={{padding:20}}><h1 style={{marginTop:0}}>الإشعارات</h1><p style={{color:'#777'}}>رسائل، إعجابات ومنشورات جديدة.</p><button onClick={()=>void enable()} style={{padding:'11px 16px',borderRadius:12,background:'#111715',color:'#fff'}}>🔔 تفعيل إشعارات الجهاز</button></div><div className="chat-list">{list.map(n=>{let data:any={};try{data=typeof n.data==="string"?JSON.parse(n.data):(n.data||{})}catch{};const url=typeof data.url==="string"?data.url:"";return <button type="button" key={n.id} className="chat-row" onClick={()=>{if(url)navigate(url)}} disabled={!url}><div><strong>{n.title}</strong><small>{n.body}</small></div></button>})}</div></section></main>}
+export function NotificationsLivePage(){
+ const{token}=useAuth();
+ const navigate=useNavigate();
+ const[list,setList]=useState<any[]>([]);
+ const[permission,setPermission]=useState<string>(()=>typeof Notification!=="undefined"?Notification.permission:"default");
+ const load=async()=>{if(token){const d=await apiRequest('/notifications',token);setList(d.notifications||[])}};
+ useEffect(()=>{void load();if(typeof Notification!=="undefined")setPermission(Notification.permission)},[token]);
+ const enable=async()=>{
+   if(!token||!('Notification'in window)||!('serviceWorker'in navigator))return;
+   const p=await Notification.requestPermission();
+   setPermission(p);
+   if(p!=='granted')return;
+   try{
+     const reg=await navigator.serviceWorker.ready;
+     const cfg=await apiRequest('/notifications/config',token);
+     if(!cfg.publicKey)return;
+     const bytes=Uint8Array.from(atob(cfg.publicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+     const sub=await reg.pushManager.getSubscription()||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
+     await apiRequest('/notifications/push-subscription',token,{method:'POST',body:JSON.stringify(sub.toJSON())});
+   }catch{}
+ };
+ return <main className="feed-container"><section className="stories-card">
+   <div style={{padding:'18px 20px 10px'}}><h1 style={{margin:0}}>الإشعارات</h1></div>
+   {permission==='default'&&<div style={{padding:'0 20px 16px'}}><button onClick={()=>void enable()} style={{padding:'10px 14px',borderRadius:12,background:'#111715',color:'#fff'}}>🔔 تفعيل إشعارات الجهاز</button></div>}
+   <div className="chat-list">{list.map(n=>{let data:any={};try{data=typeof n.data==="string"?JSON.parse(n.data):(n.data||{})}catch{};const url=typeof data.url==="string"?data.url:"";return <button type="button" key={n.id} className="chat-row" onClick={()=>{if(url)navigate(url)}} disabled={!url}><div><strong>{n.title}</strong><small>{n.body}</small></div></button>})}</div>
+ </section></main>
+}
