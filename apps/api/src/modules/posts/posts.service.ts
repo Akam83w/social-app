@@ -186,6 +186,8 @@ export async function getPostComments(postId: string, currentUserId?: string) {
       content: comments.content,
       createdAt: comments.createdAt,
       updatedAt: comments.updatedAt,
+      likeCount: sql<number>`(SELECT count(*)::int FROM comment_likes WHERE comment_likes.comment_id = ${comments.id})`,
+      likedByMe: currentUserId ? sql<boolean>`EXISTS (SELECT 1 FROM comment_likes WHERE comment_likes.comment_id = ${comments.id} AND comment_likes.user_id = ${currentUserId})` : sql<boolean>`false`,
       user: {
         id: users.id,
         username: users.username,
