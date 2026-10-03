@@ -121,46 +121,56 @@ export default function ReelsPage() {
     };
   }, [token]);
 
-  const handleDoubleTapLike = async (reel: Reel) => {
+  const setReelLike = async (reel: Reel, nextLiked: boolean) => {
     if (!token) return;
-    const wasLiked = Boolean(reel.likedByMe || likedIds.has(reel.id));
-
-    // Keep the heart animation for every double tap, but toggle the actual like.
-    setHeartReelId(reel.id);
-    window.setTimeout(() => setHeartReelId((current) => current === reel.id ? null : current), 700);
+    const currentLiked = Boolean(reel.likedByMe || likedIds.has(reel.id));
+    if (currentLiked === nextLiked) return;
 
     setLikedIds((current) => {
       const next = new Set(current);
-      if (wasLiked) next.delete(reel.id);
-      else next.add(reel.id);
+      if (nextLiked) next.add(reel.id);
+      else next.delete(reel.id);
       return next;
     });
     setReels((current) =>
       current.map((item) =>
         item.id === reel.id
-          ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) + (wasLiked ? -1 : 1)), likedByMe: !wasLiked }
+          ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) + (nextLiked ? 1 : -1)), likedByMe: nextLiked }
           : item,
       ),
     );
 
     try {
-      if (wasLiked) await unlikePost(reel.id, token);
-      else await likePost(reel.id, token);
+      if (nextLiked) await likePost(reel.id, token);
+      else await unlikePost(reel.id, token);
     } catch {
       setLikedIds((current) => {
         const next = new Set(current);
-        if (wasLiked) next.add(reel.id);
+        if (currentLiked) next.add(reel.id);
         else next.delete(reel.id);
         return next;
       });
       setReels((current) =>
         current.map((item) =>
           item.id === reel.id
-            ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) + (wasLiked ? 1 : -1)), likedByMe: wasLiked }
+            ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) + (currentLiked ? 1 : -1)), likedByMe: currentLiked }
             : item,
         ),
       );
     }
+  };
+
+  // Double tap behaves like Instagram/TikTok: it likes if not already liked.
+  const handleDoubleTapLike = async (reel: Reel) => {
+    if (!token) return;
+    setHeartReelId(reel.id);
+    window.setTimeout(() => setHeartReelId((current) => current === reel.id ? null : current), 700);
+    await setReelLike(reel, true);
+  };
+
+  // The visible like button toggles like/unlike.
+  const handleLikeButton = async (reel: Reel) => {
+    await setReelLike(reel, !(reel.likedByMe || likedIds.has(reel.id)));
   };
 
   const openComments = async (reel: Reel) => {
@@ -360,7 +370,7 @@ export default function ReelsPage() {
               </div>
 
               <div className="reel-actions">
-                <button type="button" aria-label="إعجاب" onClick={() => void handleDoubleTapLike(reel)}>
+                <button type="button" aria-label="إعجاب" onClick={() => void handleLikeButton(reel)}>
                   {likedIds.has(reel.id) ? "❤️" : "♡"}
                   <span>{(reel.likeCount || 0).toLocaleString("ar-IQ")}</span>
                 </button>
