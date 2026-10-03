@@ -12,6 +12,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   identifier: z.string().min(1),
   password: z.string().min(1),
+  twoFactorCode: z.string().regex(/^\d{6}$/).optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
