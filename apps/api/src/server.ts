@@ -5,11 +5,13 @@ import fastifyStatic from '@fastify/static';
 import multipart from '@fastify/multipart';
 import compress from '@fastify/compress';
 import path from 'path';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import webpush from 'web-push';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging, type Messaging } from 'firebase-admin/messaging';
 import { db } from './db';
+import { users } from './db/schema';
+import { ensureAccountActive } from './services/moderation.service';
 import { ensureAuthSchema } from './db/ensure-auth-schema';
 import { authRoutes } from './modules/auth/auth.routes';
 import { postsRoutes } from './modules/posts/posts.routes';
@@ -46,6 +48,8 @@ function allowPerformanceSample(ip: string) {
   current.count += 1;
   return true;
 }
+
+setInterval(() => { const now = Date.now(); for (const m of [authRate, performanceRate]) for (const [k, v] of m) if (v.resetAt <= now) m.delete(k); }, 60_000).unref();
 
 const realtimeClients = new Map<string, Set<any>>();
 const callTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -100,13 +104,21 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret || jwtSecret.length < 32) throw new Error('JWT_SECRET must be configured with at least 32 characters');
 
-const app = Fastify({ logger: true, bodyLimit: 200 * 1024 * 1024 });
+const app = Fastify({
+  logger: { serializers: { req(req) {
+    return { method: req.method, url: String(req.url).replace(/([?&]token=)[^&]+/i, '$1[redacted]'), hostname: req.hostname };
+  } } },
+  trustProxy: process.env.TRUST_PROXY !== 'false',
+  bodyLimit: 6 * 1024 * 1024,
+});
 app.decorate('notifyUser', notifyUser);
 app.addHook('onSend', async (_request, reply) => {
   reply.header('X-Content-Type-Options', 'nosniff');
   reply.header('X-Frame-Options', 'DENY');
   reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   reply.header('Permissions-Policy', 'camera=(self), microphone=(self)');
+  reply.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
 });
 
 app.addHook('onRequest', async (request, reply) => {
@@ -156,9 +168,9 @@ app.post('/performance', async (request, reply) => {
 app.get('/notifications/config',{preHandler:verifyToken},async(_req,reply)=>reply.send({publicKey:vapidPublicKey}));
 app.get('/notifications',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const r=await db.execute(sql`SELECT id,type,title,body,data,read_at,created_at FROM notifications WHERE user_id=${me} ORDER BY created_at DESC LIMIT 50`);return reply.send({notifications:r.rows});});
 app.post('/notifications/read',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;await db.execute(sql`UPDATE notifications SET read_at=now() WHERE user_id=${me} AND read_at IS NULL`);return reply.send({ok:true});});
-app.post('/notifications/push-subscription',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const sub=req.body as any;if(!sub?.endpoint)return reply.status(400).send({error:'INVALID_SUBSCRIPTION'});await db.execute(sql`INSERT INTO push_subscriptions(user_id,endpoint,subscription) VALUES(${me},${sub.endpoint},${JSON.stringify(sub)}) ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`);return reply.send({ok:true});});
-app.post('/notifications/fcm-token',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.token)return reply.status(400).send({error:'INVALID_FCM_TOKEN'});const platform=String(b.platform||'android').slice(0,20);await db.execute(sql`INSERT INTO fcm_tokens(user_id,token,platform) VALUES(${me},${String(b.token)},${platform}) ON CONFLICT(token) DO UPDATE SET user_id=EXCLUDED.user_id,platform=EXCLUDED.platform,updated_at=now()`);return reply.send({ok:true});});
-app.get('/realtime',async(req,reply)=>{const token=String((req.query as any)?.token||'');try{const payload=app.jwt.verify<{id:string}>(token);reply.hijack();reply.raw.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});reply.raw.write('data: '+JSON.stringify({type:'ready'})+'\\n\\n');let set=realtimeClients.get(payload.id);if(!set){set=new Set();realtimeClients.set(payload.id,set)}set.add(reply.raw);req.raw.on('close',()=>{set?.delete(reply.raw);if(!set?.size)realtimeClients.delete(payload.id)});return reply;}catch{return reply.status(401).send({error:'UNAUTHORIZED'});}});
+app.post('/notifications/push-subscription',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const sub=req.body as any;if(!sub?.endpoint)return reply.status(400).send({error:'INVALID_SUBSCRIPTION'});await db.execute(sql`INSERT INTO push_subscriptions(user_id,endpoint,subscription) VALUES(${me},${sub.endpoint},${JSON.stringify(sub)}) ON CONFLICT(endpoint) DO UPDATE SET subscription=EXCLUDED.subscription WHERE push_subscriptions.user_id=EXCLUDED.user_id`);return reply.send({ok:true});});
+app.post('/notifications/fcm-token',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.token)return reply.status(400).send({error:'INVALID_FCM_TOKEN'});const platform=String(b.platform||'android').slice(0,20);await db.execute(sql`INSERT INTO fcm_tokens(user_id,token,platform) VALUES(${me},${String(b.token)},${platform}) ON CONFLICT(token) DO UPDATE SET platform=EXCLUDED.platform,updated_at=now() WHERE fcm_tokens.user_id=EXCLUDED.user_id`);return reply.send({ok:true});});
+app.get('/realtime',async(req,reply)=>{const token=String((req.query as any)?.token||'');try{const payload=app.jwt.verify<{id:string;authVersion?:number}>(token);const [u]=await db.select({authVersion:users.authVersion}).from(users).where(eq(users.id,payload.id)).limit(1);if(!u||Number(u.authVersion||1)!==Number(payload.authVersion??1))throw new Error('SESSION_REVOKED');await ensureAccountActive(payload.id);reply.hijack();reply.raw.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});reply.raw.write('data: '+JSON.stringify({type:'ready'})+'\\n\\n');let set=realtimeClients.get(payload.id);if(!set){set=new Set();realtimeClients.set(payload.id,set)}set.add(reply.raw);req.raw.on('close',()=>{set?.delete(reply.raw);if(!set?.size)realtimeClients.delete(payload.id)});return reply;}catch{return reply.status(401).send({error:'UNAUTHORIZED'});}});
 app.get('/calls/config',{preHandler:verifyToken},async(_req,reply)=>{
   const iceServers:any[]=[{urls:'stun:stun.l.google.com:19302'}];
   const turnUrl=String(process.env.TURN_URL||'').trim();
@@ -228,7 +240,7 @@ app.setNotFoundHandler(async (request, reply) => {
   return reply.status(404).send({ error: 'NOT_FOUND' });
 });
 
-app.get('/health', async (_request, reply) => { try { const result=await db.execute(sql`SELECT 1 AS ok`);return reply.status(200).send({status:'ok',database:result.rows[0]}); }catch(err:any){app.log.error(err);return reply.status(500).send({status:'error',database:{message:err?.message||String(err),code:err?.code||null,detail:err?.detail||null,hint:err?.hint||null}})} });
+app.get('/health', async (_request, reply) => { try { const result=await db.execute(sql`SELECT 1 AS ok`);return reply.status(200).send({status:'ok',database:result.rows[0]}); }catch(err:any){app.log.error(err);return reply.status(500).send({ status: 'error' })} });
 
 const start = async () => {
  try {
