@@ -9,6 +9,7 @@ import { users, posts, likes, follows } from '../../db/schema';
 import { desc, sql, and } from 'drizzle-orm';
 import { z as zAccount } from 'zod';
 import { profileUpdateSchema, avatarSchema } from '../request.schemas';
+import { assertSafeImageReference } from '../../services/media-security.service';
 const zAccountDeletionSchema = zAccount.object({ currentPassword: zAccount.string().min(1).max(128) });
 
 
@@ -295,6 +296,7 @@ export async function authRoutes(app: FastifyInstance) {
     const parsed = avatarSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: 'INVALID_AVATAR_URL', details: parsed.error.flatten() });
     const body = parsed.data;
+    if (body.avatarUrl) { try { assertSafeImageReference(body.avatarUrl); } catch { return reply.status(400).send({ error: 'INVALID_AVATAR_URL' }); } }
 
     try {
       const user = await updateUserAvatar(
