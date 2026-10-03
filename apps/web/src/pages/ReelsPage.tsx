@@ -84,6 +84,7 @@ export default function ReelsPage() {
   const [commentSending, setCommentSending] = useState(false);
   const [mentionUser, setMentionUser] = useState<User | null>(null);
   const [shareBusy, setShareBusy] = useState<string | null>(null);
+  const [heartReelId, setHeartReelId] = useState<string | null>(null);
   const listRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
