@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { verifyToken } from '../middleware/auth.middleware';
+import { isAllowedMediaUrl } from '../services/media-url';
 import { moderateMedia, registerModerationViolation } from '../services/moderation.service';
 
 export async function storiesRoutes(app:FastifyInstance){
@@ -9,6 +10,7 @@ export async function storiesRoutes(app:FastifyInstance){
    const me=(request.user as {id:string}).id;
    const body=request.body as {mediaUrl?:string;mediaType?:string;content?:string};
    if(!body.mediaUrl||body.mediaType!=='image')return reply.status(400).send({error:'IMAGE_ONLY_FOR_NOW'});
+   if(!isAllowedMediaUrl(body.mediaUrl))return reply.status(400).send({error:'INVALID_MEDIA_URL'});
    let decision;
    try{decision=await moderateMedia(body.mediaUrl,'image')}
    catch(err){return reply.status(503).send({error:err instanceof Error?err.message:'MODERATION_UNAVAILABLE'})}
