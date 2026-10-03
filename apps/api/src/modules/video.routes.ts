@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { posts } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken } from '../middleware/auth.middleware';
+import { moderateVideoFile, registerModerationViolation } from '../services/moderation.service';
 import { createDirectVideoUpload, getPublicVideoUrl, downloadVideoToFile, processVideo, removeStorageFile } from '../services/video.service';
 import { videoUploadSchema, videoCompleteSchema } from './request.schemas';
 
@@ -113,6 +114,15 @@ async function processUploadedVideoInBackground(
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       await downloadVideoToFile(objectName, tempPath);
+      const moderation = await moderateVideoFile(tempPath);
+      if (moderation.flagged) {
+        await registerModerationViolation(userId, kind, recordId, moderation);
+        if (kind === 'post') await db.delete(posts).where(eq(posts.id, recordId));
+        else await db.execute(sql`DELETE FROM stories WHERE id=${recordId}`);
+        await removeStorageFile(objectName).catch(() => {});
+        try { await (app as any).notifyUser(userId,'moderation','تم رفض الفيديو','تم رفض الفيديو بعد فحص المحتوى.',userId,{url:'/profile/settings'}); } catch {}
+        return;
+      }
       const media = await processVideo(tempPath, userId);
 
       if (kind === 'post') {
