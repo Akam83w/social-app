@@ -54,6 +54,16 @@ export async function ensureAuthSchema() {
   )`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS user_notes_expires_at_idx ON user_notes(expires_at)`);
 
+  await db.execute(sql`ALTER TABLE reports ADD COLUMN IF NOT EXISTS status varchar(20) NOT NULL DEFAULT 'pending'`);
+  await db.execute(sql`ALTER TABLE reports ADD COLUMN IF NOT EXISTS moderator_id uuid`);
+  await db.execute(sql`ALTER TABLE reports ADD COLUMN IF NOT EXISTS decision varchar(40)`);
+  await db.execute(sql`ALTER TABLE reports ADD COLUMN IF NOT EXISTS moderator_note text`);
+  await db.execute(sql`ALTER TABLE reports ADD COLUMN IF NOT EXISTS resolved_at timestamp`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS reports_status_created_idx ON reports(status, created_at)`);
+  await db.execute(sql`ALTER TABLE moderation_appeals ADD COLUMN IF NOT EXISTS moderator_id uuid`);
+  await db.execute(sql`ALTER TABLE moderation_appeals ADD COLUMN IF NOT EXISTS decision varchar(40)`);
+  await db.execute(sql`ALTER TABLE moderation_appeals ADD COLUMN IF NOT EXISTS moderator_note text`);
+  await db.execute(sql`ALTER TABLE moderation_appeals ADD COLUMN IF NOT EXISTS resolved_at timestamp`);
   await db.execute(sql`ALTER TABLE calls ADD COLUMN IF NOT EXISTS expires_at timestamp`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS calls_expires_at_idx ON calls(expires_at)`);
 
