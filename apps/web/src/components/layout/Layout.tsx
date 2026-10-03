@@ -50,7 +50,41 @@ const stories = [
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { user,token } = useAuth();
-  useEffect(()=>{if(!token)return;let stop=()=>{};(async()=>{try{if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.register('/sw.js');const cfg=await apiRequest('/notifications/config',token);if('PushManager' in window&&Notification.permission==='granted'&&cfg.publicKey){const bytes=Uint8Array.from(atob(cfg.publicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));const sub=await reg.pushManager.getSubscription()||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});await apiRequest('/notifications/push-subscription',token,{method:'POST',body:JSON.stringify(sub.toJSON())})}}stop=connectRealtime(token,e=>{if(e.type==='notification'&&'Notification'in window&&Notification.permission==='granted')navigator.serviceWorker?.ready.then(r=>r.showNotification(e.title,{body:e.body,data:e.data||{}})).catch(()=>{});if(e.type==='call'&&e.kind==='invite'&&e.callId)navigate('/call?incoming=1&callId='+encodeURIComponent(e.callId))})}catch{}})();return()=>stop()},[token]);
+  useEffect(()=>{
+    if(!token)return;
+    let stop=()=>{};
+
+    // Keep the realtime channel available immediately for notifications/calls.
+    stop=connectRealtime(token,e=>{
+      if(e.type==="notification"&&"Notification"in window&&Notification.permission==="granted"){
+        navigator.serviceWorker?.ready.then(r=>r.showNotification(e.title,{body:e.body,data:e.data||{}})).catch(()=>{});
+      }
+      if(e.type==="call"&&e.kind==="invite"&&e.callId)navigate("/call?incoming=1&callId="+encodeURIComponent(e.callId));
+    });
+
+    // Push subscription is background work; never block the first screen on it.
+    const idle=(window as Window & {requestIdleCallback?: (cb:()=>void,opts?:{timeout:number})=>number}).requestIdleCallback;
+    const setupPush=()=>{
+      void (async()=>{
+        try{
+          if(!("serviceWorker" in navigator))return;
+          const reg=await navigator.serviceWorker.register("/sw.js");
+          const cfg=await apiRequest("/notifications/config",token);
+          if("PushManager" in window&&Notification.permission==="granted"&&cfg.publicKey){
+            const bytes=Uint8Array.from(atob(cfg.publicKey.replace(/-/g,"+").replace(/_/g,"/")),c=>c.charCodeAt(0));
+            const sub=await reg.pushManager.getSubscription()||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
+            await apiRequest("/notifications/push-subscription",token,{method:"POST",body:JSON.stringify(sub.toJSON())});
+          }
+        }catch{}
+      })();
+    };
+    const idleId=idle?idle(setupPush,{timeout:5000}):window.setTimeout(setupPush,2000);
+    return()=>{
+      stop();
+      if(idle&&typeof idleId==="number") (window as Window & {cancelIdleCallback?: (id:number)=>void}).cancelIdleCallback?.(idleId);
+      else window.clearTimeout(idleId as number);
+    };
+  },[token,navigate]);
 
   return (
     <div className="app-shell" dir="rtl">
