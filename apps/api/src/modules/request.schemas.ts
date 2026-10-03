@@ -20,7 +20,7 @@ export const imageUploadSchema = z.object({
 
 export const profileUpdateSchema = z.object({
   displayName: z.string().trim().max(100).optional(),
-  username: z.string().trim().regex(/^[A-Za-z0-9_.]{2,30}$/),
+  username: z.string().trim().transform((value) => value.replace(/^@/, '')).pipe(z.string().regex(/^[A-Za-z0-9_.]{2,30}$/)),
   phone: z.string().trim().max(20).optional(),
   bio: z.string().trim().max(500).optional(),
 });
