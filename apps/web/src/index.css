@@ -1480,7 +1480,7 @@ img {
 .verified-badge-inline{width:15px;height:15px;font-size:9px;margin-right:3px}
 
 
-/* ---------------- QX FULL-SCREEN IRAQI SPLASH ---------------- */
+/* ---------------- DIJLA FIRST-LAUNCH SPLASH ---------------- */
 .qx-splash {
   position: fixed;
   inset: 0;
@@ -1488,133 +1488,61 @@ img {
   width: 100vw;
   height: 100dvh;
   overflow: hidden;
-  display: grid;
-  place-items: center;
-  background: #000;
+  display: block;
+  background: #102d3d;
   isolation: isolate;
 }
 
-.qx-flag {
+.qx-dijla-scene {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  display: grid;
-  place-items: center;
-  background:
-    linear-gradient(
-      to bottom,
-      #ce1126 0%,
-      #ce1126 33.333%,
-      #fff 33.333%,
-      #fff 66.666%,
-      #000 66.666%,
-      #000 100%
-    );
+  width: 100%;
+  height: 100%;
+  display: block;
+  animation: qx-dijla-zoom 3s ease-out both;
+  transform-origin: center center;
 }
 
-.qx-flag::after {
-  content: "";
+.qx-iraqi-flag {
+  transform-origin: 12px 205px;
+  animation: qx-flag-wave 1.15s ease-in-out infinite;
+}
+
+.qx-water-lines {
+  animation: qx-water-drift 4s ease-in-out infinite alternate;
+}
+
+.qx-splash-vignette {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at center, rgba(0,0,0,.04), rgba(0,0,0,.24)),
-    linear-gradient(90deg, rgba(0,0,0,.16), transparent 25%, transparent 75%, rgba(0,0,0,.16));
-}
-
-.qx-flag-word {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 1;
-  transform: translate(-50%, -50%);
-  color: #007a3d;
-  font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", sans-serif;
-  font-size: clamp(30px, 8vw, 92px);
-  font-weight: 900;
-  white-space: nowrap;
-  opacity: .95;
-  text-shadow: 0 2px 8px rgba(0,0,0,.08);
-}
-
-.qx-splash-content {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 24px;
-  text-align: center;
-}
-
-.qx-logo {
-  color: #fff;
-  font-size: clamp(78px, 24vw, 190px);
-  font-weight: 950;
-  line-height: .82;
-  letter-spacing: -7px;
-  font-family: Inter, "Segoe UI", sans-serif;
-  text-shadow:
-    0 5px 28px rgba(0,0,0,.48),
-    0 1px 0 rgba(255,255,255,.25);
-  animation: qx-logo-in 900ms cubic-bezier(.16,1,.3,1) both;
-}
-
-.qx-tagline {
-  color: #fff;
-  padding: 9px 18px 11px;
-  border-radius: 999px;
-  background: rgba(0,0,0,.32);
-  border: 1px solid rgba(255,255,255,.24);
-  box-shadow: 0 10px 35px rgba(0,0,0,.22);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", sans-serif;
-  font-size: clamp(19px, 5.5vw, 42px);
-  font-weight: 850;
-  line-height: 1.5;
-  white-space: nowrap;
-  animation: qx-tagline-in 900ms 350ms cubic-bezier(.16,1,.3,1) both;
-}
-
-.qx-splash::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 4;
   pointer-events: none;
-  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
-  transform: translateX(120%);
-  animation: qx-shine 1200ms 850ms ease-out both;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.18), transparent 25%, transparent 72%, rgba(0,0,0,.28)),
+    radial-gradient(circle at center, transparent 45%, rgba(0,0,0,.18) 100%);
 }
 
-@keyframes qx-logo-in {
-  0% { opacity: 0; transform: translateY(35px) scale(.72); filter: blur(10px); }
-  65% { opacity: 1; transform: translateY(-4px) scale(1.04); filter: blur(0); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes qx-dijla-zoom {
+  from { transform: scale(1.035); opacity: .98; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-@keyframes qx-tagline-in {
-  0% { opacity: 0; transform: translateY(24px) scale(.9); }
-  60% { opacity: 1; transform: translateY(-2px) scale(1.02); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes qx-flag-wave {
+  0%, 100% { transform: skewY(0deg) scaleX(1); }
+  50% { transform: skewY(1.2deg) scaleX(.985); }
 }
 
-@keyframes qx-shine {
-  0% { transform: translateX(120%); }
-  100% { transform: translateX(-120%); }
+@keyframes qx-water-drift {
+  from { transform: translateX(-12px); }
+  to { transform: translateX(12px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qx-logo,
-  .qx-tagline,
-  .qx-splash::after {
+  .qx-dijla-scene,
+  .qx-iraqi-flag,
+  .qx-water-lines {
     animation: none;
   }
 }
-
-
 
 /* ---------------- SDM ORIGINAL PROFILE REDESIGN ---------------- */
 .profile-page-card {
