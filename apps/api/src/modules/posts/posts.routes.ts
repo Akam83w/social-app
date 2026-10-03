@@ -79,9 +79,17 @@ export async function postsRoutes(app: FastifyInstance) {
       }
 
       const post = await createPost(payload.id, parsed.data);
-      const followers = await db.execute(sql`SELECT follower_id FROM follows WHERE following_id=${payload.id} AND status='accepted'`);
-      const actor = await db.execute(sql`SELECT username,display_name FROM users WHERE id=${payload.id} LIMIT 1`);
-      const a:any=actor.rows[0]; for(const row of followers.rows as any[]) await (app as any).notifyUser(row.follower_id,'post','منشور جديد',`@${a?.username||"مستخدم"} نشر منشوراً جديداً`,payload.id,{actorId:payload.id,url:'/post/'+post.id});
+      void (async () => {
+        const followers = await db.execute(sql`SELECT follower_id FROM follows WHERE following_id=${payload.id} AND status='accepted'`);
+        const actor = await db.execute(sql`SELECT username,display_name FROM users WHERE id=${payload.id} LIMIT 1`);
+        const a:any=actor.rows[0];
+        const rows = followers.rows as any[];
+        for (let i=0; i<rows.length; i+=20) {
+          await Promise.allSettled(rows.slice(i,i+20).map(row =>
+            (app as any).notifyUser(row.follower_id,'post','منشور جديد',`@${a?.username||"مستخدم"} نشر منشوراً جديداً`,payload.id,{actorId:payload.id,url:'/post/'+post.id})
+          ));
+        }
+      })().catch(() => {});
       return reply.status(201).send({ post });
     } catch (err) {
       app.log.error(err);
