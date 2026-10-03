@@ -196,6 +196,7 @@ function uploadTusChunk(
 }
 
 const inflight = new Map<string, Promise<unknown>>();
+const prefetched = new Map<string, { data: unknown; expiresAt: number }>();
 
 export async function apiRequest(path: string, token: string | null, options: RequestInit = {}) {
   const headers = new Headers(options.headers);
@@ -203,7 +204,15 @@ export async function apiRequest(path: string, token: string | null, options: Re
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const method = (options.method || 'GET').toUpperCase();
   const key = method === 'GET' ? method + ':' + path + ':' + (token || '') : '';
-  if (key && inflight.has(key)) return inflight.get(key);
+
+  if (key) {
+    const cached = prefetched.get(key);
+    if (cached) {
+      if (cached.expiresAt > Date.now()) return cached.data;
+      prefetched.delete(key);
+    }
+    if (inflight.has(key)) return inflight.get(key);
+  }
 
   const request = (async () => {
     const res = await fetch(`${API_URL}${path}`, { ...options, headers });
@@ -217,6 +226,26 @@ export async function apiRequest(path: string, token: string | null, options: Re
   if (!key) return request;
   inflight.set(key, request);
   try { return await request; } finally { inflight.delete(key); }
+}
+
+export function prefetchApi(path: string, token: string, ttlMs = 30_000) {
+  const key = 'GET:' + path + ':' + token;
+  const existing = prefetched.get(key);
+  if (existing && existing.expiresAt > Date.now()) return Promise.resolve(existing.data);
+  const running = inflight.get(key);
+  const promise = (running || apiRequest(path, token)).then(data => {
+    prefetched.set(key, { data, expiresAt: Date.now() + ttlMs });
+    return data;
+  }).catch(error => {
+    prefetched.delete(key);
+    throw error;
+  });
+  return promise;
+}
+
+export function clearPrefetchedApi(path?: string, token?: string | null) {
+  if (!path) { prefetched.clear(); return; }
+  prefetched.delete('GET:' + path + ':' + (token || ''));
 }
 
 export function registerServiceWorker() {
