@@ -69,7 +69,7 @@ export async function messagesRoutes(app: FastifyInstance){
     }))
   };
  });
- app.get('/messages/:username',{preHandler:verifyToken},async(request,reply)=>{const me=(request.user as {id:string}).id;const {username}=request.params as {username:string};const u=await db.execute(sql`SELECT id,username,display_name,avatar_url,verified_at,supporter_number,supporter_expires_at,(lower(email)=lower('sdmtr033@gmail.com')) AS is_founder FROM users WHERE lower(username)=lower(${username}) LIMIT 1`);const other=(u.rows[0] as any);if(!other)return reply.status(404).send({error:'USER_NOT_FOUND'});const blocked=await db.execute(sql`SELECT 1 FROM blocks WHERE (blocker_id=${me} AND blocked_id=${other.id}) OR (blocker_id=${other.id} AND blocked_id=${me}) LIMIT 1`);if(blocked.rows[0])return reply.status(403).send({error:'USER_BLOCKED'});const rows=await db.execute(sql`
+ app.get('/messages/:username',{preHandler:verifyToken},async(request,reply)=>{const me=(request.user as {id:string}).id;const {username}=request.params as {username:string};const u=await db.execute(sql`SELECT id,username,display_name,avatar_url,verified_at,supporter_number,supporter_expires_at,(lower(email)=lower('sdmtr033@gmail.com')) AS is_founder FROM users WHERE lower(username)=lower(${username}) LIMIT 1`);const other=(u.rows[0] as any);if(!other)return reply.status(404).send({error:'USER_NOT_FOUND'});const [blocked,rows]=await Promise.all([db.execute(sql`SELECT 1 FROM blocks WHERE (blocker_id=${me} AND blocked_id=${other.id}) OR (blocker_id=${other.id} AND blocked_id=${me}) LIMIT 1`),db.execute(sql`
   SELECT id,content,created_at,sender_id,receiver_id
   FROM (
     SELECT id,content,created_at,sender_id,receiver_id
