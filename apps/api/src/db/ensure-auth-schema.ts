@@ -22,8 +22,6 @@ export async function ensureAuthSchema() {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS moderation_status varchar(20) NOT NULL DEFAULT 'active'`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_private boolean NOT NULL DEFAULT false`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_version integer NOT NULL DEFAULT 1`);
-  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret text`);
-  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean NOT NULL DEFAULT false`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS user_settings (user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, allow_messages varchar(20) NOT NULL DEFAULT 'everyone', notify_likes boolean NOT NULL DEFAULT true, notify_followers boolean NOT NULL DEFAULT true, notify_messages boolean NOT NULL DEFAULT true, updated_at timestamp NOT NULL DEFAULT now())`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_version integer NOT NULL DEFAULT 1`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret text`);
