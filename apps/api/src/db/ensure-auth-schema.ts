@@ -25,6 +25,10 @@ export async function ensureAuthSchema() {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret text`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean NOT NULL DEFAULT false`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS user_settings (user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, allow_messages varchar(20) NOT NULL DEFAULT 'everyone', notify_likes boolean NOT NULL DEFAULT true, notify_followers boolean NOT NULL DEFAULT true, notify_messages boolean NOT NULL DEFAULT true, updated_at timestamp NOT NULL DEFAULT now())`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_version integer NOT NULL DEFAULT 1`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret text`);
+  await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean NOT NULL DEFAULT false`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS user_settings (user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, allow_messages varchar(20) NOT NULL DEFAULT 'everyone', notify_likes boolean NOT NULL DEFAULT true, notify_followers boolean NOT NULL DEFAULT true, notify_messages boolean NOT NULL DEFAULT true, updated_at timestamp NOT NULL DEFAULT now())`);
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at timestamp`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS comment_likes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, comment_id uuid NOT NULL REFERENCES comments(id) ON DELETE CASCADE, created_at timestamp NOT NULL DEFAULT now(), CONSTRAINT comment_likes_user_comment_unique UNIQUE(user_id, comment_id))`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS comment_likes_comment_id_idx ON comment_likes(comment_id)`);
