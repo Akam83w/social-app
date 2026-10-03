@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import bcrypt from 'bcryptjs';
 import { registerSchema, loginSchema } from './auth.schema';
 import { registerUser, loginUser, loginWithOAuth, linkOAuthIdentity, getLinkedOAuthIdentities, unlinkOAuthIdentity, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
@@ -86,6 +87,49 @@ export async function authRoutes(app: FastifyInstance) {
     }
   });
 
+  app.post('/auth/change-password', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const body = request.body as { currentPassword?: unknown; newPassword?: unknown };
+    if (typeof body.currentPassword !== 'string' || typeof body.newPassword !== 'string' || body.newPassword.length < 8) return reply.status(400).send({ error: 'INVALID_PASSWORD' });
+    const [row] = await db.select({ passwordHash: users.passwordHash, authVersion: users.authVersion }).from(users).where(eq(users.id, me)).limit(1);
+    if (!row || !(await bcrypt.compare(body.currentPassword, row.passwordHash))) return reply.status(401).send({ error: 'CURRENT_PASSWORD_INVALID' });
+    const passwordHash = await bcrypt.hash(body.newPassword, 10);
+    await db.update(users).set({ passwordHash, authVersion: (row.authVersion || 1) + 1, updatedAt: new Date() }).where(eq(users.id, me));
+    return reply.send({ changed: true });
+  });
+
+  app.post('/auth/logout-all', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const [row] = await db.update(users).set({ authVersion: sql`coalesce(${users.authVersion},1)+1`, updatedAt: new Date() }).where(eq(users.id, me)).returning({ authVersion: users.authVersion });
+    const [fresh] = await db.select({ id: users.id, username: users.username, authVersion: users.authVersion }).from(users).where(eq(users.id, me)).limit(1);
+    if (!fresh) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
+    const token = app.jwt.sign({ id: fresh.id, username: fresh.username, authVersion: fresh.authVersion });
+    return reply.send({ loggedOutAll: true, token });
+  });
+
+  app.get('/auth/security', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const [row] = await db.select({ authVersion: users.authVersion }).from(users).where(eq(users.id, me)).limit(1);
+    return reply.send({ authVersion: row?.authVersion ?? 1, currentSession: true });
+  });
+
+  app.get('/auth/settings', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    await db.execute(sql`INSERT INTO user_settings(user_id) VALUES(${me}) ON CONFLICT(user_id) DO NOTHING`);
+    const r = await db.execute(sql`SELECT allow_messages, notify_likes, notify_followers, notify_messages FROM user_settings WHERE user_id=${me} LIMIT 1`);
+    return reply.send({ settings: r.rows[0] || { allow_messages:'everyone', notify_likes:true, notify_followers:true, notify_messages:true } });
+  });
+
+  app.patch('/auth/settings', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id; const body = request.body as Record<string, unknown>;
+    const allow = ['everyone','followers','nobody'].includes(String(body.allowMessages)) ? String(body.allowMessages) : 'everyone';
+    const likes = typeof body.notifyLikes === 'boolean' ? body.notifyLikes : true;
+    const followers = typeof body.notifyFollowers === 'boolean' ? body.notifyFollowers : true;
+    const messages = typeof body.notifyMessages === 'boolean' ? body.notifyMessages : true;
+    await db.execute(sql`INSERT INTO user_settings(user_id,allow_messages,notify_likes,notify_followers,notify_messages,updated_at) VALUES(${me},${allow},${likes},${followers},${messages},now()) ON CONFLICT(user_id) DO UPDATE SET allow_messages=excluded.allow_messages,notify_likes=excluded.notify_likes,notify_followers=excluded.notify_followers,notify_messages=excluded.notify_messages,updated_at=now()`);
+    return reply.send({ saved:true, settings:{allow_messages:allow,notify_likes:likes,notify_followers:followers,notify_messages:messages} });
+  });
+
   app.post('/auth/login', async (request, reply) => {
     const parsed = loginSchema.safeParse(request.body);
 
@@ -98,7 +142,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     try {
       const user = await loginUser(parsed.data);
-      const token = app.jwt.sign({ id: user.id, username: user.username });
+      const token = app.jwt.sign({ id: user.id, username: user.username, authVersion: user.authVersion || 1 });
       return reply.status(200).send({ user, token });
     } catch (err: any) {
       if (err.message === 'INVALID_CREDENTIALS') {
