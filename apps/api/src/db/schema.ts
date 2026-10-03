@@ -17,8 +17,6 @@ export const users = pgTable('users', {
   moderationStatus: varchar('moderation_status', { length: 20 }).notNull().default('active'),
   isPrivate: boolean('is_private').notNull().default(false),
   authVersion: integer('auth_version').notNull().default(1),
-  twoFactorSecret: text('two_factor_secret'),
-  twoFactorEnabled: boolean('two_factor_enabled').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
