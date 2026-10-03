@@ -6,12 +6,13 @@ import { useAuth } from '../context/AuthContext';
 
 type EditableUser = { bio?: string | null; phone?: string | null; isPrivate?: boolean };
 
-type Section = 'home' | 'edit' | 'personal' | 'privacy' | 'notifications' | 'linked' | 'activity';
-type Detail = 'privateAccount' | 'messagePrivacy' | 'blocked' | 'likesComments' | 'followers' | 'messageNotifications' | null;
+type Section = 'home' | 'edit' | 'personal' | 'security' | 'privacy' | 'notifications' | 'linked' | 'activity';
+type Detail = 'password' | 'sessions' | 'privateAccount' | 'messagePrivacy' | 'blocked' | 'likesComments' | 'followers' | 'messageNotifications' | null;
 
 const rows: Array<{ id: Exclude<Section, 'home'>; title: string; description: string; icon: string }> = [
   { id: 'edit', title: 'تعديل الملف الشخصي', description: 'الاسم، اسم المستخدم، النبذة والصورة الشخصية', icon: '👤' },
   { id: 'personal', title: 'المعلومات الشخصية', description: 'رقم الهاتف والبريد الإلكتروني', icon: '🪪' },
+  { id: 'security', title: 'كلمة السر والأمان', description: 'كلمة المرور والجلسات المفتوحة', icon: '🔐' },
   { id: 'privacy', title: 'الخصوصية', description: 'الحساب الخاص، الرسائل والتفاعل معك', icon: '🛡️' },
   { id: 'notifications', title: 'الإشعارات', description: 'الإعجابات، التعليقات، المتابعون والرسائل', icon: '🔔' },
   { id: 'linked', title: 'الحسابات المرتبطة', description: 'إدارة الحسابات المرتبطة وتسجيل الدخول', icon: '🔗' },
@@ -34,6 +35,10 @@ export default function AccountSettingsPage() {
   const [likesComments, setLikesComments] = useState(true);
   const [followers, setFollowers] = useState(true);
   const [messageNotifications, setMessageNotifications] = useState(true);
+  const [allowMessages, setAllowMessages] = useState('everyone');
+  const [newPassword, setNewPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [followRequests, setFollowRequests] = useState<Array<{id:string;username:string;displayName:string|null;avatarUrl:string|null;createdAt:string}>>([]);
   const [followRequestsLoading, setFollowRequestsLoading] = useState(false);
   const [blockedUsers, setBlockedUsers] = useState<Array<{id:string;username:string;displayName:string|null;avatarUrl:string|null;createdAt:string}>>([]);
@@ -140,7 +145,12 @@ export default function AccountSettingsPage() {
     }
   };
 
-  const go = (id: Section) => { setMessage(''); setDetail(null); setSection(id); if (id === 'linked') void loadLinkedAccounts(); };
+  const loadAccountSettings = async () => { if (!token) return; try { const r=await fetch(API_URL+'/auth/settings',{headers:{Authorization:'Bearer '+token}}); const d=await r.json(); if(r.ok){setAllowMessages(d.settings?.allow_messages||'everyone');setLikesComments(d.settings?.notify_likes!==false);setFollowers(d.settings?.notify_followers!==false);setMessageNotifications(d.settings?.notify_messages!==false);} } catch {} };
+  const saveAccountSettings = async (patch: Record<string, unknown>) => { if (!token) return; try { const r=await fetch(API_URL+'/auth/settings',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({allowMessages,notifyLikes:likesComments,notifyFollowers:followers,notifyMessages:messageNotifications,...patch})}); if(!r.ok) throw new Error(); setMessage('تم حفظ الإعداد.'); } catch { setMessage('تعذر حفظ الإعداد.'); } };
+  const changePassword = async () => { if(!token) return; if(newPassword.length<8||newPassword!==confirmPassword){setMessage('تأكد من كلمة المرور الجديدة وتطابقها.');return;} try { const r=await fetch(API_URL+'/auth/change-password',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({currentPassword,newPassword})}); const d=await r.json(); if(!r.ok) throw new Error(d.error); setCurrentPassword('');setNewPassword('');setConfirmPassword('');setMessage('تم تغيير كلمة المرور وتسجيل خروج الأجهزة الأخرى.'); } catch(e:any){setMessage(e?.message==='CURRENT_PASSWORD_INVALID'?'كلمة المرور الحالية غير صحيحة.':'تعذر تغيير كلمة المرور.');} };
+  const logoutAll = async () => { if(!token)return; try { const r=await fetch(API_URL+'/auth/logout-all',{method:'POST',headers:{Authorization:'Bearer '+token}}); const d=await r.json(); if(!r.ok) throw new Error(); login(user,d.token); setMessage('تم تسجيل خروج الجلسات الأخرى. هذا الجهاز بقي مسجلاً.'); } catch { setMessage('تعذر إنهاء الجلسات.'); } };
+  const go = (id: Section) => { setMessage(''); setDetail(null); setSection(id); if (id === 'linked') void loadLinkedAccounts(); if (id === 'notifications') void loadAccountSettings(); };
+  
   const openDetail = (id: Exclude<Detail, null>) => { setMessage(''); setDetail(id); if (id === 'blocked') void loadBlockedUsers(); };
 
   const back = () => {
@@ -160,7 +170,7 @@ export default function AccountSettingsPage() {
       <section className="account-settings-shell">
         <header className="settings-header">
           <button type="button" className="settings-back" onClick={back}>‹</button>
-          <div><h1>{detail ? ({privateAccount:'الحساب الخاص',messagePrivacy:'الرسائل والردود',blocked:'الحسابات المحظورة',likesComments:'الإعجابات والتعليقات',followers:'المتابعون',messageNotifications:'إشعارات الرسائل'} as Record<Exclude<Detail,null>,string>)[detail] : section === 'home' ? 'الإعدادات' : rows.find(r => r.id === section)?.title}</h1><small>{detail ? 'إعدادات الحساب' : section === 'home' ? 'إدارة حسابك وتجربتك' : 'إعدادات الحساب'}</small></div>
+          <div><h1>{detail ? ({password:'تغيير كلمة المرور',sessions:'الجلسات والأجهزة',privateAccount:'الحساب الخاص',messagePrivacy:'الرسائل والردود',blocked:'الحسابات المحظورة',likesComments:'الإعجابات والتعليقات',followers:'المتابعون',messageNotifications:'إشعارات الرسائل'} as Record<Exclude<Detail,null>,string>)[detail] : section === 'home' ? 'الإعدادات' : rows.find(r => r.id === section)?.title}</h1><small>{detail ? 'إعدادات الحساب' : section === 'home' ? 'إدارة حسابك وتجربتك' : 'إعدادات الحساب'}</small></div>
         </header>
 
         {section === 'home' && (
@@ -173,7 +183,7 @@ export default function AccountSettingsPage() {
 
             <div className="settings-group">
               <h2>الحساب</h2>
-              {rows.slice(0, 2).map(r => <button className="settings-row" type="button" key={r.id} onClick={() => go(r.id)}><b className="settings-icon">{r.icon}</b><span><strong>{r.title}</strong><small>{r.description}</small></span><b>›</b></button>)}
+              {rows.slice(0, 3).map(r => <button className="settings-row" type="button" key={r.id} onClick={() => go(r.id)}><b className="settings-icon">{r.icon}</b><span><strong>{r.title}</strong><small>{r.description}</small></span><b>›</b></button>)}
             </div>
 
             <div className="settings-group">
@@ -217,7 +227,9 @@ export default function AccountSettingsPage() {
           </div>
         )}
 
-                {section === 'privacy' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('privateAccount')}><span>🔒<strong>الحساب الخاص</strong><small>تحكم بمن يستطيع رؤية منشوراتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('messagePrivacy')}><span>💬<strong>الرسائل والردود</strong><small>تحكم بمن يستطيع مراسلتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('blocked')}><span>🚫<strong>الحسابات المحظورة</strong><small>إدارة الحسابات التي حظرتها</small></span><b>›</b></button></div>}
+                {section === 'security' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('password')}><span>🔑<strong>تغيير كلمة المرور</strong><small>تغيير كلمة المرور الحالية</small></span><b>›</b></button><button type="button" onClick={() => openDetail('sessions')}><span>📱<strong>الجلسات والأجهزة</strong><small>تسجيل خروج الأجهزة الأخرى</small></span><b>›</b></button></div>}
+
+        {section === 'privacy' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('privateAccount')}><span>🔒<strong>الحساب الخاص</strong><small>تحكم بمن يستطيع رؤية منشوراتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('messagePrivacy')}><span>💬<strong>الرسائل والردود</strong><small>تحكم بمن يستطيع مراسلتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('blocked')}><span>🚫<strong>الحسابات المحظورة</strong><small>إدارة الحسابات التي حظرتها</small></span><b>›</b></button></div>}
 
         {section === 'notifications' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => openDetail('likesComments')}><span>❤️<strong>الإعجابات والتعليقات</strong><small>تنبيهات التفاعل على منشوراتك</small></span><b>›</b></button><button type="button" onClick={() => openDetail('followers')}><span>👥<strong>المتابعون</strong><small>تنبيهات المتابعة والطلبات</small></span><b>›</b></button><button type="button" onClick={() => openDetail('messageNotifications')}><span>✉️<strong>الرسائل</strong><small>تنبيهات الرسائل الجديدة</small></span><b>›</b></button></div>}
 
@@ -233,19 +245,21 @@ export default function AccountSettingsPage() {
         {section === 'activity' && !detail && <div className="settings-detail settings-options"><button type="button" onClick={() => navigate('/saved')}><span>🔖<strong>المحفوظات</strong><small>المنشورات التي حفظتها</small></span><b>›</b></button><button type="button" onClick={() => navigate('/profile')}><span>📷<strong>منشوراتك</strong><small>إدارة المنشورات الموجودة في حسابك</small></span><b>›</b></button><button type="button" onClick={() => navigate('/stories')}><span>⭕<strong>القصص</strong><small>عرض القصص الفعالة حالياً</small></span><b>›</b></button></div>}
         {detail && <div className="settings-detail settings-subdetail">
           {detail === 'privateAccount' && <><div className="settings-switch-row"><div><strong>الحساب الخاص</strong><small>السماح للمتابعين المقبولين فقط برؤية منشوراتك.</small></div><button type="button" className={privateAccount ? 'settings-switch on' : 'settings-switch'} onClick={async () => { if (!token) return; const next=!privateAccount; setPrivateAccount(next); setMessage(''); try { const r=await fetch(API_URL+'/auth/privacy',{method:'PATCH',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({isPrivate:next})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'تعذر حفظ الخصوصية'); login(d.user,token); setMessage('تم حفظ إعداد الخصوصية.'); } catch(e) { setPrivateAccount(!next); setMessage(e instanceof Error?e.message:'تعذر حفظ إعداد الخصوصية'); } }} aria-pressed={privateAccount}><span /></button></div><div className="settings-info">الحساب الخاص يمنع غير المتابعين المقبولين من رؤية منشوراتك وقوائم المتابعين والمتابَعين.</div>{message&&<p className="settings-message">{message}</p>}</>}
-          {detail === 'messagePrivacy' && <div className="settings-options"><button type="button"><span>💬<strong>من يستطيع مراسلتي</strong><small>حالياً: المستخدمون القادرون على بدء محادثة</small></span><b>›</b></button><div className="settings-info">خيارات قبول الرسائل تحتاج ربطاً بسياسة رسائل في الخادم.</div></div>}
+          {detail === 'password' && <div className="settings-detail">{field('كلمة المرور الحالية', currentPassword, setCurrentPassword)}{field('كلمة المرور الجديدة', newPassword, setNewPassword)}{field('تأكيد كلمة المرور الجديدة', confirmPassword, setConfirmPassword)}<button type="button" className="settings-save" onClick={() => void changePassword()}>حفظ كلمة المرور</button>{message&&<p className="settings-message">{message}</p>}</div>}
+          {detail === 'sessions' && <div className="settings-detail"><div className="settings-switch-row"><div><strong>هذا الجهاز</strong><small>الجلسة الحالية</small></div><b className="settings-linked-badge">نشطة</b></div><button type="button" className="settings-save" onClick={() => void logoutAll()}>تسجيل خروج كل الأجهزة الأخرى</button>{message&&<p className="settings-message">{message}</p>}</div>}
+          {detail === 'messagePrivacy' && <div className="settings-detail"><div className="settings-options"><button type="button" onClick={() => {setAllowMessages('everyone');void saveAccountSettings({allowMessages:'everyone'})}}><span>👥<strong>الجميع</strong><small>أي مستخدم يستطيع بدء محادثة</small></span><b>{allowMessages==='everyone'?'✓':'›'}</b></button><button type="button" onClick={() => {setAllowMessages('followers');void saveAccountSettings({allowMessages:'followers'})}}><span>👤<strong>المتابعون</strong><small>فقط الحسابات التي تتابعك</small></span><b>{allowMessages==='followers'?'✓':'›'}</b></button><button type="button" onClick={() => {setAllowMessages('nobody');void saveAccountSettings({allowMessages:'nobody'})}}><span>🚫<strong>لا أحد</strong><small>منع بدء محادثات جديدة</small></span><b>{allowMessages==='nobody'?'✓':'›'}</b></button></div></div>}
           {detail === 'blocked' && <div className="settings-detail">
             {blockedLoading ? <p className="settings-info">جاري تحميل الحسابات المحظورة...</p> : blockedUsers.length === 0 ? <p className="settings-info">ماكو حسابات محظورة حالياً.</p> : <div className="settings-options">{blockedUsers.map(item => <div key={item.id} className="settings-switch-row"><div style={{display:'flex',alignItems:'center',gap:10}}><OptimizedImage src={item.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username)}`} alt="" style={{width:42,height:42,borderRadius:'50%',objectFit:'cover'}}/><span><strong>{item.displayName || item.username}</strong><small>@{item.username}</small></span></div><button type="button" className="settings-save" onClick={() => void unblockUser(item.username)}>إلغاء الحظر</button></div>)}</div>}
             {!blockedLoading && <button type="button" className="settings-save" onClick={() => void loadBlockedUsers()}>تحديث القائمة</button>}
           </div>}
-          {detail === 'likesComments' && <div className="settings-switch-row"><div><strong>الإعجابات والتعليقات</strong><small>إظهار تنبيهات الإعجاب والتعليق.</small></div><button type="button" className={likesComments ? 'settings-switch on' : 'settings-switch'} onClick={() => setLikesComments(v => !v)} aria-pressed={likesComments}><span /></button></div>}
+          {detail === 'likesComments' && <div className="settings-switch-row"><div><strong>الإعجابات والتعليقات</strong><small>إظهار تنبيهات الإعجاب والتعليق.</small></div><button type="button" className={likesComments ? 'settings-switch on' : 'settings-switch'} onClick={() => {const v=!likesComments;setLikesComments(v);void saveAccountSettings({notifyLikes:v})}} aria-pressed={likesComments}><span /></button></div>}
           {detail === 'followers' && <div className="settings-detail">
-            <div className="settings-switch-row"><div><strong>المتابعون</strong><small>إظهار تنبيهات المتابعة وطلبات المتابعة.</small></div><button type="button" className={followers ? 'settings-switch on' : 'settings-switch'} onClick={() => setFollowers(v => !v)} aria-pressed={followers}><span /></button></div>
+            <div className="settings-switch-row"><div><strong>المتابعون</strong><small>إظهار تنبيهات المتابعة وطلبات المتابعة.</small></div><button type="button" className={followers ? 'settings-switch on' : 'settings-switch'} onClick={() => {const v=!followers;setFollowers(v);void saveAccountSettings({notifyFollowers:v})}} aria-pressed={followers}><span /></button></div>
             <div className="settings-info">طلبات المتابعة المعلقة</div>
             <button type="button" className="settings-save" onClick={() => void loadFollowRequests()} disabled={followRequestsLoading}>{followRequestsLoading ? 'جارٍ التحميل...' : 'تحديث الطلبات'}</button>
             {followRequests.length === 0 ? <p className="settings-info">ماكو طلبات متابعة معلقة حالياً.</p> : <div className="settings-options">{followRequests.map(req => <div key={req.id} className="settings-switch-row"><div><strong>{req.displayName || req.username}</strong><small>@{req.username}</small></div><div><button type="button" className="settings-save" onClick={() => void handleFollowRequest(req.username, 'accept')}>قبول</button><button type="button" className="settings-save" onClick={() => void handleFollowRequest(req.username, 'reject')}>رفض</button></div></div>)}</div>}
           </div>}
-          {detail === 'messageNotifications' && <div className="settings-switch-row"><div><strong>إشعارات الرسائل</strong><small>إظهار تنبيهات الرسائل الجديدة.</small></div><button type="button" className={messageNotifications ? 'settings-switch on' : 'settings-switch'} onClick={() => setMessageNotifications(v => !v)} aria-pressed={messageNotifications}><span /></button></div>}
+          {detail === 'messageNotifications' && <div className="settings-switch-row"><div><strong>إشعارات الرسائل</strong><small>إظهار تنبيهات الرسائل الجديدة.</small></div><button type="button" className={messageNotifications ? 'settings-switch on' : 'settings-switch'} onClick={() => {const v=!messageNotifications;setMessageNotifications(v);void saveAccountSettings({notifyMessages:v})}} aria-pressed={messageNotifications}><span /></button></div>}
         </div>}
       </section>
     </main>
