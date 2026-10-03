@@ -24,6 +24,7 @@ const OAuthCallbackPage = React.lazy(() => import("./pages/OAuthCallbackPage"));
 const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
 const PolicyPage = React.lazy(() => import("./pages/PolicyPage"));
+const LegalPage = React.lazy(() => import("./pages/LegalPage"));
 const SavedPage = React.lazy(() => import("./pages/SavedPage"));
 const ModerationPage = React.lazy(() => import("./pages/ModerationPage"));
 import { useAuth } from "./context/AuthContext";
@@ -263,6 +264,8 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/policy" element={<PolicyPage />} />
+        <Route path="/terms" element={<LegalPage />} />
+        <Route path="/privacy" element={<LegalPage />} />
         <Route path="*" element={<ProtectedApp />} />
       </Routes>
     </>
