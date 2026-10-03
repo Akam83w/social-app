@@ -19,7 +19,7 @@ import { passwordResetRoutes } from './modules/password-reset/password-reset.rou
 import { verifyToken } from './middleware/auth.middleware';
 import { videoRoutes } from './modules/video.routes';
 import { moderationRoutes } from './modules/moderation.routes';
-import { moderationAppealSchema, performanceSchema, callStartSchema, callSignalSchema } from './modules/request.schemas';
+import { moderationAppealSchema, performanceSchema, callStartSchema, callSignalSchema, pushSubscriptionSchema, fcmTokenSchema } from './modules/request.schemas';
 import { assertRedisReady, redisAddStreamEvent, redisIncr, redisExpire, redisReadStream } from './services/redis.service';
 
 
@@ -148,8 +148,8 @@ app.post('/performance', async (request, reply) => {
 app.get('/notifications/config',{preHandler:verifyToken},async(_req,reply)=>reply.send({publicKey:vapidPublicKey}));
 app.get('/notifications',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const r=await db.execute(sql`SELECT id,type,title,body,data,read_at,created_at FROM notifications WHERE user_id=${me} ORDER BY created_at DESC LIMIT 50`);return reply.send({notifications:r.rows});});
 app.post('/notifications/read',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;await db.execute(sql`UPDATE notifications SET read_at=now() WHERE user_id=${me} AND read_at IS NULL`);return reply.send({ok:true});});
-app.post('/notifications/push-subscription',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const sub=req.body as any;if(!sub?.endpoint)return reply.status(400).send({error:'INVALID_SUBSCRIPTION'});await db.execute(sql`INSERT INTO push_subscriptions(user_id,endpoint,subscription) VALUES(${me},${sub.endpoint},${JSON.stringify(sub)}) ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`);return reply.send({ok:true});});
-app.post('/notifications/fcm-token',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.token)return reply.status(400).send({error:'INVALID_FCM_TOKEN'});const platform=String(b.platform||'android').slice(0,20);await db.execute(sql`INSERT INTO fcm_tokens(user_id,token,platform) VALUES(${me},${String(b.token)},${platform}) ON CONFLICT(token) DO UPDATE SET user_id=EXCLUDED.user_id,platform=EXCLUDED.platform,updated_at=now()`);return reply.send({ok:true});});
+app.post('/notifications/push-subscription',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const parsed=pushSubscriptionSchema.safeParse(req.body);if(!parsed.success)return reply.status(400).send({error:'INVALID_SUBSCRIPTION',details:parsed.error.flatten()});const sub=parsed.data;await db.execute(sql`INSERT INTO push_subscriptions(user_id,endpoint,subscription) VALUES(${me},${sub.endpoint},${JSON.stringify(sub)}) ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`);return reply.send({ok:true});});
+app.post('/notifications/fcm-token',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const parsed=fcmTokenSchema.safeParse(req.body);if(!parsed.success)return reply.status(400).send({error:'INVALID_FCM_TOKEN',details:parsed.error.flatten()});const b=parsed.data;await db.execute(sql`INSERT INTO fcm_tokens(user_id,token,platform) VALUES(${me},${b.token},${b.platform}) ON CONFLICT(token) DO UPDATE SET user_id=EXCLUDED.user_id,platform=EXCLUDED.platform,updated_at=now()`);return reply.send({ok:true});});
 app.get('/realtime',async(req,reply)=>{
   const token=String((req.query as any)?.token||'');
   try{
