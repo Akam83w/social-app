@@ -5,6 +5,7 @@ import { verifyToken } from '../../middleware/auth.middleware';
 import { moderateMedia, registerModerationViolation } from '../../services/moderation.service';
 import { createPostSchema } from './posts.schema';
 import { imageUploadSchema, commentSchema, reportSchema } from '../request.schemas';
+import { requireAction } from '../../services/anti-abuse.service';
 import { createDirectImageUpload } from '../../services/image.service';
 import {
   getPostLikeStatus,
@@ -48,6 +49,8 @@ export async function postsRoutes(app: FastifyInstance) {
   });
 
   app.post('/posts', { preHandler: verifyToken }, async (request, reply) => {
+    const payload = request.user as { id: string };
+    try { await requireAction('posts', payload.id, 20, 3600); } catch { return reply.status(429).send({ error: 'RATE_LIMITED' }); }
     const parsed = createPostSchema.safeParse(request.body);
 
     if (!parsed.success) {
@@ -215,6 +218,7 @@ export async function postsRoutes(app: FastifyInstance) {
   app.post('/posts/:id/comments', { preHandler: verifyToken }, async (request, reply) => {
     try {
       const payload = request.user as { id: string };
+      try { await requireAction('comments', payload.id, 60, 3600); } catch { return reply.status(429).send({ error: 'RATE_LIMITED' }); }
       const { id } = request.params as { id: string };
       if (!(await ensurePostAccessible(payload.id, id))) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
       const parsed = commentSchema.safeParse(request.body);
@@ -325,6 +329,7 @@ export async function postsRoutes(app: FastifyInstance) {
 
   app.post('/reports', { preHandler: verifyToken }, async (request, reply) => {
     const reporterId = (request.user as { id: string }).id;
+    try { await requireAction('reports', reporterId, 10, 3600); } catch { return reply.status(429).send({ error: 'RATE_LIMITED' }); }
     const parsed = reportSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: 'INVALID_REPORT', details: parsed.error.flatten() });
     const { targetId, targetType, reason } = parsed.data;
