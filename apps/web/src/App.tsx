@@ -189,65 +189,51 @@ function App() {
     if (!token) return;
     let cancelled = false;
 
-    // Start the whole app warm-up immediately, even while the splash is visible.
-    // This removes the old "open page first, then start loading it" waterfall.
-    const warmApp = async () => {
-      const routeChunks = [
+    // Keep first paint light: only warm data required by the home screen.
+    // Everything else is loaded lazily when the user actually opens it.
+    const warmHome = async () => {
+      await Promise.allSettled([
+        prefetchApi("/posts?limit=20", token, 30_000),
+        prefetchApi("/stories", token, 30_000),
+      ]);
+    };
+
+    void warmHome();
+
+    // Non-critical routes/data are intentionally deferred until the browser is idle.
+    // This prevents the login -> app transition from competing with the first screen.
+    const idle = (window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    }).requestIdleCallback;
+
+    const warmNonCritical = () => {
+      if (cancelled) return;
+      void Promise.allSettled([
         import("./pages/ExplorePage"),
         import("./pages/ReelsPage"),
         import("./pages/MessagesPage"),
         import("./pages/ProfilePage"),
-        import("./pages/SavedPage"),
-        import("./pages/AccountSettingsPage"),
-        import("./pages/PostPage"),
-      ];
-
-      const dataRequests = [
-        prefetchApi("/posts?limit=20", token, 30_000),
-        prefetchApi("/stories", token, 30_000),
-        prefetchApi("/posts?limit=30", token, 30_000),
-        prefetchApi("/posts/explore?limit=30", token, 30_000),
-        prefetchApi("/messages", token, 15_000),
-        prefetchApi("/messages/notes", token, 15_000),
-        prefetchApi("/presence/active", token, 15_000),
+      ]);
+      void Promise.allSettled([
         prefetchApi("/notifications", token, 15_000),
         prefetchApi("/notifications/config", token, 30_000),
-        prefetchApi("/posts?limit=50", token, 15_000),
-      ];
-
-      const profileRequests = user?.username
-        ? [prefetchApi("/auth/users/" + encodeURIComponent(user.username), token, 30_000)]
-        : [];
-
-      const results = await Promise.allSettled([...routeChunks, ...dataRequests, ...profileRequests]);
-      if (cancelled) return;
-
-      // Warm the most important profile pictures without downloading post videos/images.
-      const avatarUrls = new Set<string>();
-      for (const result of results) {
-        if (result.status !== "fulfilled") continue;
-        const collect = (value: unknown) => {
-          if (!value || typeof value !== "object") return;
-          if (Array.isArray(value)) { value.forEach(collect); return; }
-          for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-            if (key === "avatarUrl" && typeof child === "string" && child.startsWith("http")) avatarUrls.add(child);
-            else if (key !== "mediaUrl" && key !== "mediaPoster") collect(child);
-            if (avatarUrls.size >= 40) return;
-          }
-        };
-        collect(result.value);
-        if (avatarUrls.size >= 40) break;
-      }
-      avatarUrls.forEach(url => {
-        const image = new Image();
-        image.decoding = "async";
-        image.src = url;
-      });
+      ]);
     };
 
-    void warmApp();
-    return () => { cancelled = true; };
-  }, [token, user?.username]);
+    const idleId = idle
+      ? idle(warmNonCritical, { timeout: 4_000 })
+      : window.setTimeout(warmNonCritical, 1_500);
+
+    return () => {
+      cancelled = true;
+      if (idle && typeof idleId === "number") {
+        idleId && (window as Window & { cancelIdleCallback?: (id: number) => void }).cancelIdleCallback?.(idleId);
+      } else {
+        window.clearTimeout(idleId as number);
+      }
+    };
+  }, [token]);
 
   if (showSplash) {
     return <QXSplash onDone={finishSplash} />;
