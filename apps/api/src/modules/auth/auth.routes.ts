@@ -534,6 +534,7 @@ export async function authRoutes(app: FastifyInstance) {
       supporterExpiresAt: users.supporterExpiresAt,
       verifiedAt: users.verifiedAt,
       isPrivate: users.isPrivate,
+      authVersion: users.authVersion,
     }).from(users).where(eq(users.id, payload.id)).limit(1);
 
     if (!user) return reply.status(404).send({ error: 'USER_NOT_FOUND' });
