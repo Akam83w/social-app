@@ -202,13 +202,7 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.patch('/auth/profile', { preHandler: verifyToken }, async (request, reply) => {
     const payload = request.user as { id: string };
-    const rawBody = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : {};
-    const parsed = profileUpdateSchema.safeParse({
-      displayName: rawBody.displayName,
-      username: typeof rawBody.username === 'string' ? rawBody.username.replace(/^@/, '') : rawBody.username,
-      phone: rawBody.phone,
-      bio: rawBody.bio,
-    });
+    const parsed = profileUpdateSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: 'INVALID_PROFILE', details: parsed.error.flatten() });
     const body = parsed.data;
 
