@@ -16,9 +16,13 @@ export default function MessagesPage(){
  const [activeUsers,setActiveUsers]=useState<ActiveUser[]>([]); const [notes,setNotes]=useState<Note[]>([]);
  const [noteOpen,setNoteOpen]=useState(false); const [noteText,setNoteText]=useState(""); const [noteSaving,setNoteSaving]=useState(false); const [loadingChat,setLoadingChat]=useState(false); const endRef=useRef<HTMLDivElement>(null);
 
- const load=async()=>{if(!token)return;try{const [ch,n,a]=await Promise.all([apiRequest("/messages",token),getMessageNotes(token),getActiveUsers(token)]);setChats(ch.chats??[]);setNotes(n.notes??[]);setActiveUsers(a.users??[]);}catch{setError("تعذر تحميل الرسائل.");}};
+ const load=async()=>{if(!token)return;
+  void apiRequest("/messages",token).then(ch=>{setChats(ch.chats??[]);writeCache("messages",ch.chats??[]);}).catch(()=>setError("تعذر تحميل الرسائل."));
+  void getMessageNotes(token).then(n=>setNotes(n.notes??[])).catch(()=>{});
+  void getActiveUsers(token).then(a=>setActiveUsers(a.users??[])).catch(()=>{});
+ };
  const refreshPresence=async()=>{if(!token)return;try{const [n,a]=await Promise.all([getMessageNotes(token),getActiveUsers(token)]);setNotes(n.notes??[]);setActiveUsers(a.users??[]);}catch{}};
- const open=async(u:string)=>{if(!token||!u.trim())return;try{const clean=u.replace(/^@/,"").trim();const d=await apiRequest(`/messages/${encodeURIComponent(clean)}`,token);setActive(d);setUsername(clean);setError("");}catch{setError("ما لكيت هذا الحساب أو تعذر فتح المحادثة.")}};
+ const open=async(u:string)=>{if(!token||!u.trim())return;const clean=u.replace(/^@/,"").trim();const known=chats.find(c=>c.user.username.toLowerCase()===clean.toLowerCase())?.user||activeUsers.find(x=>x.username.toLowerCase()===clean.toLowerCase());setActive({user:{id:known?.id,username:clean,displayName:known?.displayName||null,avatarUrl:known?.avatarUrl||null,verifiedAt:known?.verifiedAt||null,supporterNumber:known?.supporterNumber||null,supporterExpiresAt:known?.supporterExpiresAt||null,isFounder:known?.isFounder||false},messages:[]});setLoadingChat(true);setUsername(clean);setError("");try{const d=await apiRequest(`/messages/${encodeURIComponent(clean)}`,token);setActive(d);setLoadingChat(false);}catch{setLoadingChat(false);setActive(null);setError("ما لكيت هذا الحساب أو تعذر فتح المحادثة.")}};
  useEffect(()=>{const target=params.get("username");if(!token)return;if(target)void open(target);else void load();},[token,params]);
  useEffect(()=>{if(!token)return;void pingPresence(token);const timer=window.setInterval(()=>{void pingPresence(token);void refreshPresence();},60000);return()=>window.clearInterval(timer);},[token]);
  const saveNote=async()=>{if(!token)return;const value=noteText.trim().slice(0,60);if(!value)return;setNoteSaving(true);try{await setMessageNote(token,value);setNoteOpen(false);setNoteText("");await refreshPresence();}catch{setError("تعذر نشر الملاحظة.");}finally{setNoteSaving(false)}};
