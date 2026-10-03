@@ -8,6 +8,7 @@ import { db } from '../../db';
 import { users, posts, likes, follows } from '../../db/schema';
 import { desc, sql, and } from 'drizzle-orm';
 import { z as zAccount } from 'zod';
+import { profileUpdateSchema, avatarSchema } from '../request.schemas';
 const zAccountDeletionSchema = zAccount.object({ currentPassword: zAccount.string().min(1).max(128) });
 
 
@@ -201,17 +202,20 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.patch('/auth/profile', { preHandler: verifyToken }, async (request, reply) => {
     const payload = request.user as { id: string };
-    const body = request.body as {
-      displayName?: unknown;
-      username?: unknown;
-      phone?: unknown;
-      bio?: unknown;
-    };
+    const rawBody = request.body && typeof request.body === 'object' ? request.body as Record<string, unknown> : {};
+    const parsed = profileUpdateSchema.safeParse({
+      displayName: rawBody.displayName,
+      username: typeof rawBody.username === 'string' ? rawBody.username.replace(/^@/, '') : rawBody.username,
+      phone: rawBody.phone,
+      bio: rawBody.bio,
+    });
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_PROFILE', details: parsed.error.flatten() });
+    const body = parsed.data;
 
-    const displayName = typeof body.displayName === 'string' ? body.displayName.trim().slice(0, 100) : '';
-    const username = typeof body.username === 'string' ? body.username.trim().replace(/^@/, '').toLowerCase() : '';
-    const phone = typeof body.phone === 'string' ? body.phone.trim().slice(0, 20) : '';
-    const bio = typeof body.bio === 'string' ? body.bio.trim().slice(0, 500) : '';
+    const displayName = body.displayName || '';
+    const username = body.username.toLowerCase();
+    const phone = body.phone || '';
+    const bio = body.bio || '';
 
     if (!username || !/^[A-Za-z0-9_.]{2,30}$/.test(username)) {
       return reply.status(400).send({ error: 'INVALID_USERNAME' });
@@ -294,15 +298,9 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.patch('/auth/avatar', { preHandler: verifyToken }, async (request, reply) => {
     const payload = request.user as { id: string; username: string };
-    const body = request.body as { avatarUrl?: unknown };
-
-    if (body.avatarUrl !== null && typeof body.avatarUrl !== 'string') {
-      return reply.status(400).send({ error: 'INVALID_AVATAR_URL' });
-    }
-
-    if (typeof body.avatarUrl === 'string' && body.avatarUrl.length > 2_000_000) {
-      return reply.status(413).send({ error: 'AVATAR_TOO_LARGE' });
-    }
+    const parsed = avatarSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_AVATAR_URL', details: parsed.error.flatten() });
+    const body = parsed.data;
 
     try {
       const user = await updateUserAvatar(
