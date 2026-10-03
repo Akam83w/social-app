@@ -1,4 +1,8 @@
 import { sql } from 'drizzle-orm';
+import { spawn } from 'node:child_process';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { db } from '../db';
 
 type ModerationDecision = {
@@ -45,8 +49,41 @@ async function checkImage(mediaUrl: string): Promise<ModerationDecision> {
 
 export async function moderateMedia(mediaUrl: string, mediaType: string): Promise<ModerationDecision> {
   if (mediaType === 'image') return checkImage(mediaUrl);
-  if (mediaType === 'video') throw new Error('MODERATION_VIDEO_NOT_SUPPORTED');
+  if (mediaType === 'video') throw new Error('VIDEO_FILE_REQUIRED_FOR_MODERATION');
   return { flagged: false, severity: 'low' };
+}
+
+
+function runFfmpeg(args: string[], cwd: string) {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn('ffmpeg', args, { cwd, stdio: ['ignore', 'ignore', 'pipe'] });
+    let stderr='';
+    child.stderr.on('data', chunk => { stderr += String(chunk); });
+    child.on('error', error => reject(error));
+    child.on('close', code => code === 0 ? resolve() : reject(new Error('FFMPEG_FAILED: '+stderr.slice(-2000))));
+  });
+}
+
+export async function moderateVideoFile(inputPath: string): Promise<ModerationDecision> {
+  const work=await fs.mkdtemp(path.join(os.tmpdir(),'sdm-moderation-'));
+  try {
+    const frames=['00:00:01','00:00:05','00:00:10'];
+    for(let i=0;i<frames.length;i+=1){
+      const output=path.join(work,`frame-${i}.jpg`);
+      try {
+        await runFfmpeg(['-hide_banner','-loglevel','error','-y','-ss',frames[i],'-i',inputPath,'-frames:v','1','-vf','scale=720:720:force_original_aspect_ratio=decrease,pad=720:720:(ow-iw)/2:(oh-ih)/2','-q:v','5',output],work);
+      } catch {
+        if(i===0) throw new Error('VIDEO_FRAME_EXTRACTION_FAILED');
+        continue;
+      }
+      const bytes=await fs.readFile(output);
+      const decision=await checkImage(`data:image/jpeg;base64,${bytes.toString('base64')}`);
+      if(decision.flagged) return decision;
+    }
+    return {flagged:false,severity:'low'};
+  } finally {
+    await fs.rm(work,{recursive:true,force:true}).catch(()=>{});
+  }
 }
 
 export async function registerModerationViolation(
