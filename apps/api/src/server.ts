@@ -18,37 +18,28 @@ import { storiesRoutes } from './modules/stories.routes';
 import { passwordResetRoutes } from './modules/password-reset/password-reset.routes';
 import { verifyToken } from './middleware/auth.middleware';
 import { videoRoutes } from './modules/video.routes';
+import { assertRedisReady, redisAddStreamEvent, redisIncr, redisExpire, redisReadStream } from './services/redis.service';
 
 
-const authRate = new Map<string, { count: number; resetAt: number }>();
-function allowAuthRequest(ip: string) {
-  const now = Date.now();
-  const current = authRate.get(ip);
-  if (!current || current.resetAt <= now) {
-    authRate.set(ip, { count: 1, resetAt: now + 60_000 });
-    return true;
-  }
-  if (current.count >= 20) return false;
-  current.count += 1;
-  return true;
+async function allowDistributedRateLimit(scope: string, key: string, limit: number, windowSeconds: number) {
+  const redisKey = `rate:${scope}:${key}`;
+  const count = Number(await redisIncr(redisKey));
+  if (count === 1) await redisExpire(redisKey, windowSeconds);
+  return count <= limit;
 }
 
-const performanceRate = new Map<string, { count: number; resetAt: number }>();
-
-function allowPerformanceSample(ip: string) {
-  const now = Date.now();
-  const current = performanceRate.get(ip);
-  if (!current || current.resetAt <= now) {
-    performanceRate.set(ip, { count: 1, resetAt: now + 60_000 });
-    return true;
+async function publishRealtime(userId: string, event: Record<string, unknown>) {
+  try {
+    await redisAddStreamEvent(`realtime:${userId}`, {
+      type: String(event.type || 'event'),
+      payload: JSON.stringify(event),
+    });
+  } catch (error) {
+    console.error('Realtime publish failed:', error);
   }
-  if (current.count >= 30) return false;
-  current.count += 1;
-  return true;
 }
 
-const realtimeClients = new Map<string, Set<any>>();
-const callTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const requireRedis = process.env.NODE_ENV === 'production' || process.env.REQUIRE_REDIS === 'true';
 let vapidPublicKey = '';
 let firebaseMessaging: Messaging | null = null;
 
@@ -86,7 +77,7 @@ async function setupRealtimeAndPush() {
 async function notifyUser(userId:string,type:string,title:string,body:string,actorId?:string,data:any={}) {
   const r=await db.execute(sql`INSERT INTO notifications(user_id,actor_id,type,title,body,data) VALUES(${userId},${actorId||null},${type},${title},${body},${JSON.stringify(data)}) RETURNING id,created_at`);
   const item={id:(r.rows[0] as any).id,type:'notification',notificationType:type,title,body,data,createdAt:(r.rows[0] as any).created_at};
-  for(const res of realtimeClients.get(userId)||[]) res.write(`data: ${JSON.stringify(item)}\\n\\n`);
+  await publishRealtime(userId, item);
   const subs=await db.execute(sql`SELECT id,subscription FROM push_subscriptions WHERE user_id=${userId}`);
   for(const s of subs.rows as any[]) try{await webpush.sendNotification(JSON.parse(s.subscription),JSON.stringify({title,body,data}),{TTL:60,urgency:'high'});}catch(e:any){if(e?.statusCode===404||e?.statusCode===410)await db.execute(sql`DELETE FROM push_subscriptions WHERE id=${s.id}`);}
   if(firebaseMessaging){
@@ -111,7 +102,7 @@ app.addHook('onSend', async (_request, reply) => {
 
 app.addHook('onRequest', async (request, reply) => {
   if (request.method !== 'POST' || !request.url.startsWith('/auth/')) return;
-  if (allowAuthRequest(request.ip)) return;
+  if (await allowDistributedRateLimit('auth', request.ip, 20, 60)) return;
   reply.header('Retry-After', '60').status(429).send({ error: 'RATE_LIMITED' });
 });
 
@@ -143,13 +134,14 @@ app.register(storiesRoutes);
 app.register(passwordResetRoutes);
 
 app.post('/performance', async (request, reply) => {
-  if (!allowPerformanceSample(request.ip)) return reply.status(204).send();
-  const body = request.body as any;
-  const name = String(body?.name || '').slice(0, 20);
-  const value = Number(body?.value);
-  const path = String(body?.path || '').slice(0, 200);
+  if (!(await allowDistributedRateLimit('performance', request.ip, 30, 60))) return reply.status(204).send();
+  const body = request.body as unknown;
+  const metricBody = (body && typeof body === 'object') ? body as Record<string, unknown> : {};
+  const name = String(metricBody.name || '').slice(0, 20);
+  const value = Number(metricBody.value);
+  const path = String(metricBody.path || '').slice(0, 200);
   if (!name || !Number.isFinite(value) || value < 0 || value > 120_000) return reply.status(204).send();
-  request.log.info({ metric: name, value: Math.round(value * 100) / 100, path, connection: String(body?.connection || '').slice(0, 20) }, 'performance_metric');
+  request.log.info({ metric: name, value: Math.round(value * 100) / 100, path, connection: String(metricBody.connection || '').slice(0, 20) }, 'performance_metric');
   return reply.status(204).send();
 });
 
@@ -158,7 +150,35 @@ app.get('/notifications',{preHandler:verifyToken},async(req,reply)=>{const me=(r
 app.post('/notifications/read',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;await db.execute(sql`UPDATE notifications SET read_at=now() WHERE user_id=${me} AND read_at IS NULL`);return reply.send({ok:true});});
 app.post('/notifications/push-subscription',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const sub=req.body as any;if(!sub?.endpoint)return reply.status(400).send({error:'INVALID_SUBSCRIPTION'});await db.execute(sql`INSERT INTO push_subscriptions(user_id,endpoint,subscription) VALUES(${me},${sub.endpoint},${JSON.stringify(sub)}) ON CONFLICT(endpoint) DO UPDATE SET user_id=EXCLUDED.user_id,subscription=EXCLUDED.subscription`);return reply.send({ok:true});});
 app.post('/notifications/fcm-token',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.token)return reply.status(400).send({error:'INVALID_FCM_TOKEN'});const platform=String(b.platform||'android').slice(0,20);await db.execute(sql`INSERT INTO fcm_tokens(user_id,token,platform) VALUES(${me},${String(b.token)},${platform}) ON CONFLICT(token) DO UPDATE SET user_id=EXCLUDED.user_id,platform=EXCLUDED.platform,updated_at=now()`);return reply.send({ok:true});});
-app.get('/realtime',async(req,reply)=>{const token=String((req.query as any)?.token||'');try{const payload=app.jwt.verify<{id:string}>(token);reply.hijack();reply.raw.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});reply.raw.write('data: '+JSON.stringify({type:'ready'})+'\\n\\n');let set=realtimeClients.get(payload.id);if(!set){set=new Set();realtimeClients.set(payload.id,set)}set.add(reply.raw);req.raw.on('close',()=>{set?.delete(reply.raw);if(!set?.size)realtimeClients.delete(payload.id)});return reply;}catch{return reply.status(401).send({error:'UNAUTHORIZED'});}});
+app.get('/realtime',async(req,reply)=>{
+  const token=String((req.query as any)?.token||'');
+  try{
+    const payload=app.jwt.verify<{id:string}>(token);
+    reply.hijack();
+    reply.raw.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
+    reply.raw.write('data: '+JSON.stringify({type:'ready'})+'\\n\\n');
+    let lastId='0-0';
+    let closed=false;
+    req.raw.on('close',()=>{closed=true});
+    while(!closed){
+      const result=await redisReadStream(`realtime:${payload.id}`,lastId,15000);
+      if(closed) break;
+      if(!Array.isArray(result)) continue;
+      for(const stream of result as any[]){
+        const entries=Array.isArray(stream?.[1])?stream[1]:[];
+        for(const entry of entries){
+          const id=String(entry?.[0]||lastId);
+          const fields=Array.isArray(entry?.[1])?entry[1]:[];
+          let event:any=null;
+          for(let i=0;i<fields.length;i+=2) if(fields[i]==='payload') { try{event=JSON.parse(String(fields[i+1]))}catch{} }
+          if(event) reply.raw.write('data: '+JSON.stringify(event)+'\\n\\n');
+          lastId=id;
+        }
+      }
+    }
+    return reply;
+  }catch{return reply.status(401).send({error:'UNAUTHORIZED'});}
+});
 app.get('/calls/config',{preHandler:verifyToken},async(_req,reply)=>{
   const iceServers:any[]=[{urls:'stun:stun.l.google.com:19302'}];
   const turnUrl=String(process.env.TURN_URL||'').trim();
@@ -181,16 +201,13 @@ app.post('/calls/start',{preHandler:verifyToken},async(req,reply)=>{
   const callId=String((r.rows[0] as any).id);
   const data={callId,username:actorRow.username||'',displayName:actorRow.display_name||actorRow.username||'مستخدم',video:Boolean(b.video),url:'/call?incoming=1&callId='+encodeURIComponent(callId)};
   void notifyUser(String(b.toUserId),'call','مكالمة واردة','@'+(actorRow.username||'مستخدم')+' يتصل بك',me,data).catch(()=>{});
-  const timer=setTimeout(async()=>{try{
-    const x=await db.execute(sql`UPDATE calls SET status='missed',ended_at=now() WHERE id=${callId} AND status='ringing' RETURNING caller_id,callee_id`);
-    if(x.rows[0]){const row=x.rows[0] as any;await notifyUser(String(row.caller_id),'missed_call','مكالمة فائتة','لم يرد المستخدم على مكالمتك',String(row.callee_id),{callId});await notifyUser(String(row.callee_id),'missed_call','مكالمة فائتة','فاتتك مكالمة',String(row.caller_id),{callId});}
-  }finally{callTimers.delete(callId)}},30000);
-  callTimers.set(callId,timer);
-  for(const res of realtimeClients.get(String(b.toUserId))||[])res.write(`data: ${JSON.stringify({type:'call',kind:'invite',callId,fromUserId:me,fromUsername:actorRow.username||'',fromDisplayName:actorRow.display_name||actorRow.username||'مستخدم',video:Boolean(b.video)})}\\n\\n`);
+  await db.execute(sql`UPDATE calls SET expires_at=now()+interval '30 seconds' WHERE id=${callId}`);
+  await publishRealtime(String(b.toUserId), {type:'call',kind:'invite',callId,fromUserId:me,fromUsername:actorRow.username||'',fromDisplayName:actorRow.display_name||actorRow.username||'مستخدم',video:Boolean(b.video)});
   return reply.status(201).send({callId});
 });
 app.get('/calls/:id',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const {id}=req.params as {id:string};
+  await db.execute(sql`UPDATE calls SET status='missed',ended_at=now() WHERE id=${id} AND status='ringing' AND expires_at IS NOT NULL AND expires_at<=now()`);
   const r=await db.execute(sql`SELECT c.id,c.caller_id,c.callee_id,c.kind,c.status,u.username,u.display_name FROM calls c JOIN users u ON u.id=c.caller_id WHERE c.id=${id} AND (c.caller_id=${me} OR c.callee_id=${me}) LIMIT 1`);
   if(!r.rows[0])return reply.status(404).send({error:'CALL_NOT_FOUND'}); return reply.send({call:r.rows[0]});
 });
@@ -198,28 +215,25 @@ app.post('/calls/:id/accept',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const {id}=req.params as {id:string};
   const r=await db.execute(sql`UPDATE calls SET status='accepted',started_at=now() WHERE id=${id} AND callee_id=${me} AND status='ringing' RETURNING caller_id`);
   if(!r.rows[0])return reply.status(409).send({error:'CALL_NOT_AVAILABLE'});
-  const timer=callTimers.get(id); if(timer)clearTimeout(timer); callTimers.delete(id);
-  for(const res of realtimeClients.get(String((r.rows[0] as any).caller_id))||[])res.write(`data: ${JSON.stringify({type:'call',kind:'accept',callId:id,fromUserId:me})}\\n\\n`);
+  await publishRealtime(String((r.rows[0] as any).caller_id), {type:'call',kind:'accept',callId:id,fromUserId:me});
   return reply.send({ok:true});
 });
 app.post('/calls/:id/reject',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const {id}=req.params as {id:string};
   const r=await db.execute(sql`UPDATE calls SET status='rejected',ended_at=now() WHERE id=${id} AND callee_id=${me} AND status='ringing' RETURNING caller_id`);
   if(!r.rows[0])return reply.status(409).send({error:'CALL_NOT_AVAILABLE'});
-  const timer=callTimers.get(id); if(timer)clearTimeout(timer); callTimers.delete(id);
-  for(const res of realtimeClients.get(String((r.rows[0] as any).caller_id))||[])res.write(`data: ${JSON.stringify({type:'call',kind:'reject',callId:id,fromUserId:me})}\\n\\n`);
+  await publishRealtime(String((r.rows[0] as any).caller_id), {type:'call',kind:'reject',callId:id,fromUserId:me});
   return reply.send({ok:true});
 });
 app.post('/calls/:id/end',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id; const {id}=req.params as {id:string};
   const r=await db.execute(sql`UPDATE calls SET status='ended',ended_at=now() WHERE id=${id} AND (caller_id=${me} OR callee_id=${me}) AND status IN ('ringing','accepted') RETURNING caller_id,callee_id`);
   if(!r.rows[0])return reply.send({ok:true});
-  const timer=callTimers.get(id); if(timer)clearTimeout(timer); callTimers.delete(id);
   const row=r.rows[0] as any; const other=String(row.caller_id)===me?String(row.callee_id):String(row.caller_id);
-  for(const res of realtimeClients.get(other)||[])res.write(`data: ${JSON.stringify({type:'call',kind:'hangup',callId:id,fromUserId:me})}\\n\\n`);
+  await publishRealtime(other, {type:'call',kind:'hangup',callId:id,fromUserId:me});
   return reply.send({ok:true});
 });
-app.post('/calls/signal',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.toUserId||!b?.kind)return reply.status(400).send({error:'INVALID_SIGNAL'});const callId=String(b.payload?.callId||'');if(!callId)return reply.status(400).send({error:'INVALID_SIGNAL'});const call=await db.execute(sql`SELECT caller_id,callee_id,status FROM calls WHERE id=${callId} AND status IN ('ringing','accepted') AND (caller_id=${me} OR callee_id=${me}) LIMIT 1`);const row=call.rows[0] as any;if(!row)return reply.status(403).send({error:'CALL_NOT_AVAILABLE'});const expectedPeer=String(row.caller_id)===me?String(row.callee_id):String(row.caller_id);if(String(b.toUserId)!==expectedPeer)return reply.status(403).send({error:'INVALID_CALL_PEER'});const meRow=await db.execute(sql`SELECT username FROM users WHERE id=${me} LIMIT 1`);const fromUsername=(meRow.rows[0] as any)?.username||'';for(const res of realtimeClients.get(expectedPeer)||[])res.write(`data: ${JSON.stringify({type:"call",callId,fromUserId:me,fromUsername,kind:b.kind,payload:b.payload})}\\n\\n`);return reply.send({ok:true});});
+app.post('/calls/signal',{preHandler:verifyToken},async(req,reply)=>{const me=(req.user as {id:string}).id;const b=req.body as any;if(!b?.toUserId||!b?.kind)return reply.status(400).send({error:'INVALID_SIGNAL'});const callId=String(b.payload?.callId||'');if(!callId)return reply.status(400).send({error:'INVALID_SIGNAL'});const call=await db.execute(sql`SELECT caller_id,callee_id,status FROM calls WHERE id=${callId} AND status IN ('ringing','accepted') AND (caller_id=${me} OR callee_id=${me}) LIMIT 1`);const row=call.rows[0] as any;if(!row)return reply.status(403).send({error:'CALL_NOT_AVAILABLE'});const expectedPeer=String(row.caller_id)===me?String(row.callee_id):String(row.caller_id);if(String(b.toUserId)!==expectedPeer)return reply.status(403).send({error:'INVALID_CALL_PEER'});const meRow=await db.execute(sql`SELECT username FROM users WHERE id=${me} LIMIT 1`);const fromUsername=(meRow.rows[0] as any)?.username||'';await publishRealtime(expectedPeer, {type:'call',callId,fromUserId:me,fromUsername,kind:b.kind,payload:b.payload});return reply.send({ok:true});});
 app.get('/sw.js',async(_req,reply)=>reply.type('application/javascript').send(`self.addEventListener('push',e=>{let d={title:'إنستعراق',body:'إشعار جديد',data:{}};try{d=e.data.json()}catch{}e.waitUntil(self.registration.showNotification(d.title,{body:d.body,icon:'/favicon.svg',data:d.data||{}}))});self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil(clients.openWindow(e.notification.data?.url||'/notifications'))});`));
 
 
@@ -234,9 +248,20 @@ const start = async () => {
  try {
   await ensureAuthSchema();
   const port=Number(process.env.PORT)||3000;
+  if (requireRedis) await assertRedisReady();
   await app.listen({port,host:'0.0.0.0'});
   app.log.info({port},'HTTP server started');
   await setupRealtimeAndPush();
+  const sweep = async () => {
+    try {
+      const expired = await db.execute(sql`UPDATE calls SET status='missed',ended_at=now() WHERE status='ringing' AND expires_at IS NOT NULL AND expires_at<=now() RETURNING id,caller_id,callee_id`);
+      for (const row of expired.rows as any[]) {
+        await notifyUser(String(row.caller_id),'missed_call','مكالمة فائتة','لم يرد المستخدم على مكالمتك',String(row.callee_id),{callId:String(row.id)});
+        await notifyUser(String(row.callee_id),'missed_call','مكالمة فائتة','فاتتك مكالمة',String(row.caller_id),{callId:String(row.id)});
+      }
+    } catch (error) { app.log.error(error, 'expired call sweep failed'); }
+  };
+  setInterval(() => void sweep(), 5000).unref();
  }catch(err){app.log.error(err);}
 };
 start();
