@@ -276,7 +276,7 @@ export default function ReelsPage() {
     const list = listRef.current;
     if (!list || !activeId) return;
     const activeCard = list.querySelector<HTMLElement>(
-      ".reel-card[data-reel-id="" + CSS.escape(activeId) + ""]",
+      ".reel-card[data-reel-id=\"" + CSS.escape(activeId) + "\"]",
     );
     activeCard?.scrollIntoView({ block: "nearest" });
   }, [activeId]);
