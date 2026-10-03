@@ -1,6 +1,6 @@
 import { useEffect,useState,useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { apiRequest,connectRealtime,sendSignal,startCall,getCall,getCallConfig,acceptCall,rejectCall,endCall,getActiveUsers,getMessageNotes,setMessageNote,deleteMessageNote,pingPresence } from "../lib/api";
+import { apiRequest,connectRealtime,sendSignal,startCall,getCall,getCallConfig,acceptCall,rejectCall,endCall,getActiveUsers,getMessageNotes,setMessageNote,deleteMessageNote,pingPresence,readCache,writeCache } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 
 type Message={id:string;content:string;createdAt:string;senderId:string;receiverId:string};
