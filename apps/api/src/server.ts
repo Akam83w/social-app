@@ -98,6 +98,7 @@ if (!jwtSecret || jwtSecret.length < 32) throw new Error('JWT_SECRET must be con
 
 const app = Fastify({ logger: true, bodyLimit: 200 * 1024 * 1024 });
 app.decorate('notifyUser', notifyUser);
+app.decorate('publishRealtime', publishRealtime);
 app.addHook('onRequest', async (request) => {
   (request as FastifyRequest & { startedAt?: number }).startedAt = Date.now();
 });
