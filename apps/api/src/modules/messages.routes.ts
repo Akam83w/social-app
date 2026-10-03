@@ -75,5 +75,6 @@ export async function messagesRoutes(app: FastifyInstance){
   const a: any = actor.rows[0];
   await (app as any).notifyUser(other.id, 'message', 'رسالة جديدة', `@${a?.username || 'مستخدم'} أرسل لك رسالة`, me, { actorId: me, url: '/messages?username=' + encodeURIComponent(a?.username || '') });
 })().catch(() => {});
-return reply.status(201).send({ message: result.rows[0] });});
+const r0: any = result.rows[0];
+return reply.status(201).send({ message: { id: r0.id, content: r0.content, createdAt: r0.created_at, senderId: r0.sender_id, receiverId: r0.receiver_id } });});
 }
