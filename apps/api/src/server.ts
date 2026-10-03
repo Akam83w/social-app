@@ -23,6 +23,7 @@ import { moderationRoutes } from './modules/moderation.routes';
 import { moderationAppealSchema, performanceSchema, callStartSchema, callSignalSchema, pushSubscriptionSchema, fcmTokenSchema } from './modules/request.schemas';
 import { recordRequest, maybeAlertOn5xx, prometheusMetrics } from './services/observability.service';
 import { assertRedisReady, redisAddStreamEvent, redisIncr, redisExpire, redisReadStream } from './services/redis.service';
+import { requireAction } from './services/anti-abuse.service';
 
 
 async function allowDistributedRateLimit(scope: string, key: string, limit: number, windowSeconds: number) {
@@ -206,6 +207,7 @@ app.get('/calls/config',{preHandler:verifyToken},async(_req,reply)=>{
 });
 app.post('/calls/start',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id;
+  try { await requireAction('calls', me, 20, 3600); } catch { return reply.status(429).send({error:'RATE_LIMITED'}); }
   const parsed=callStartSchema.safeParse(req.body);
   if(!parsed.success)return reply.status(400).send({error:'INVALID_CALL',details:parsed.error.flatten()});
   const b=parsed.data;
@@ -254,6 +256,7 @@ app.post('/calls/:id/end',{preHandler:verifyToken},async(req,reply)=>{
 });
 app.post('/calls/signal',{preHandler:verifyToken},async(req,reply)=>{
   const me=(req.user as {id:string}).id;
+  try { await requireAction('call-signals', me, 600, 3600); } catch { return reply.status(429).send({error:'RATE_LIMITED'}); }
   const parsed=callSignalSchema.safeParse(req.body);
   if(!parsed.success)return reply.status(400).send({error:'INVALID_SIGNAL',details:parsed.error.flatten()});
   const b=parsed.data;
