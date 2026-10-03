@@ -176,22 +176,29 @@ app.get('/realtime',async(req,reply)=>{
     reply.hijack();
     reply.raw.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','Connection':'keep-alive','X-Accel-Buffering':'no'});
     reply.raw.write('data: '+JSON.stringify({type:'ready'})+'\\n\\n');
-    let lastId='0-0';
+    let personalLastId='0-0';
+    let publicLastId='0-0';
     let closed=false;
     req.raw.on('close',()=>{closed=true});
     while(!closed){
-      const result=await redisReadStream(`realtime:${payload.id}`,lastId,15000);
+      const [personal,global]=await Promise.all([
+        redisReadStream(`realtime:${payload.id}`,personalLastId,8000),
+        redisReadStream('realtime:public',publicLastId,8000),
+      ]);
       if(closed) break;
-      if(!Array.isArray(result)) continue;
-      for(const stream of result as any[]){
-        const entries=Array.isArray(stream?.[1])?stream[1]:[];
-        for(const entry of entries){
-          const id=String(entry?.[0]||lastId);
-          const fields=Array.isArray(entry?.[1])?entry[1]:[];
-          let event:any=null;
-          for(let i=0;i<fields.length;i+=2) if(fields[i]==='payload') { try{event=JSON.parse(String(fields[i+1]))}catch{} }
-          if(event) reply.raw.write('data: '+JSON.stringify(event)+'\\n\\n');
-          lastId=id;
+      for(const result of [personal,global]){
+        if(!Array.isArray(result)) continue;
+        for(const stream of result as any[]){
+          const streamName=String(stream?.[0]||'');
+          const entries=Array.isArray(stream?.[1])?stream[1]:[];
+          for(const entry of entries){
+            const id=String(entry?.[0]||'0-0');
+            const fields=Array.isArray(entry?.[1])?entry[1]:[];
+            let event:any=null;
+            for(let i=0;i<fields.length;i+=2) if(fields[i]==='payload') { try{event=JSON.parse(String(fields[i+1]))}catch{} }
+            if(event) reply.raw.write('data: '+JSON.stringify(event)+'\\n\\n');
+            if(streamName==='realtime:public') publicLastId=id; else personalLastId=id;
+          }
         }
       }
     }
