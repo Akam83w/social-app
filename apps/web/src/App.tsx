@@ -25,6 +25,7 @@ const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
 const PolicyPage = React.lazy(() => import("./pages/PolicyPage"));
 const SavedPage = React.lazy(() => import("./pages/SavedPage"));
+const ModerationPage = React.lazy(() => import("./pages/ModerationPage"));
 import { useAuth } from "./context/AuthContext";
 import { prefetchApi } from "./lib/api";
 const NativePushBootstrap = React.lazy(() => import("./NativePushBootstrap"));
@@ -143,6 +144,7 @@ function ProtectedApp() {
         />
         <Route path="/hashtag/:tag" element={<HashtagPage />} />
         <Route path="/profile/settings" element={<AccountSettingsPage />} />
+        <Route path="/moderation" element={<ModerationPage />} />
         <Route path="/u/:username" element={<ProfilePage />} />
         <Route path="/post/:id" element={<PostPage />} />
         <Route
