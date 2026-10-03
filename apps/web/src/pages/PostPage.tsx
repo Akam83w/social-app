@@ -9,6 +9,8 @@ import {
   getPostLikeStatus,
   likePost,
   unlikePost,
+  likeComment,
+  unlikeComment,
   API_URL,
 } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -38,6 +40,8 @@ type Comment = {
   content: string;
   createdAt: string;
   updatedAt: string;
+  likeCount: number;
+  likedByMe: boolean;
   user: {
     id: string;
     username: string;
@@ -260,6 +264,19 @@ export default function PostPage() {
     }
   }
 
+  async function toggleCommentLike(commentId: string) {
+    if (!token) return;
+    const current = comments.find((comment) => comment.id === commentId);
+    if (!current) return;
+    setComments((items) => items.map((comment) => comment.id === commentId ? { ...comment, likedByMe: !comment.likedByMe, likeCount: Math.max(0, comment.likeCount + (comment.likedByMe ? -1 : 1)) } : comment));
+    try {
+      if (current.likedByMe) await unlikeComment(commentId, token);
+      else await likeComment(commentId, token);
+    } catch {
+      setComments((items) => items.map((comment) => comment.id === commentId ? { ...comment, likedByMe: current.likedByMe, likeCount: current.likeCount } : comment));
+    }
+  }
+
   async function removeComment(commentId: string) {
     if (!token) return;
 
@@ -373,23 +390,10 @@ export default function PostPage() {
               alignItems: "center",
             }}
           >
-            <button
-              type="button"
-              onClick={() => {
-                setReplyingTo(
-                  replyingTo === comment.id ? null : comment.id,
-                );
-                setReplyText("");
-              }}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "#555",
-                cursor: "pointer",
-                padding: 0,
-                fontFamily: "inherit",
-              }}
-            >
+            <button type="button" onClick={() => void toggleCommentLike(comment.id)} style={{ border: "none", background: "transparent", color: comment.likedByMe ? "#d00" : "#555", cursor: "pointer", padding: 0, fontFamily: "inherit", fontWeight: 600 }}>
+              {comment.likedByMe ? "❤️" : "♡"} {comment.likeCount || 0}
+            </button>
+            <button type="button" onClick={() => { setReplyingTo(replyingTo === comment.id ? null : comment.id); setReplyText(""); }} style={{ border: "none", background: "transparent", color: "#555", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>
               ↩ رد
             </button>
 
