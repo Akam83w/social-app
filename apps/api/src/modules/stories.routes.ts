@@ -4,6 +4,7 @@ import { db } from '../db';
 import { verifyToken } from '../middleware/auth.middleware';
 import { moderateMedia, registerModerationViolation } from '../services/moderation.service';
 import { storyImageSchema } from './request.schemas';
+import { assertSafeImageReference } from '../services/media-security.service';
 
 export async function storiesRoutes(app:FastifyInstance){
  app.post('/stories',{preHandler:verifyToken},async(request,reply)=>{
@@ -11,6 +12,7 @@ export async function storiesRoutes(app:FastifyInstance){
    const parsed=storyImageSchema.safeParse(request.body);
    if(!parsed.success)return reply.status(400).send({error:'VALIDATION_ERROR',details:parsed.error.flatten()});
    const body=parsed.data;
+   try { assertSafeImageReference(body.mediaUrl); } catch { return reply.status(400).send({error:'INVALID_MEDIA_REFERENCE'}); }
    let decision;
    try{decision=await moderateMedia(body.mediaUrl,'image')}
    catch(err){return reply.status(503).send({error:err instanceof Error?err.message:'MODERATION_UNAVAILABLE'})}
