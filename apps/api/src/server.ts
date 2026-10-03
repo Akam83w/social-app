@@ -100,7 +100,7 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret || jwtSecret.length < 32) throw new Error('JWT_SECRET must be configured with at least 32 characters');
 
-const app = Fastify({ logger: true, bodyLimit: 8 * 1024 * 1024 });
+const app = Fastify({ logger: true, bodyLimit: 200 * 1024 * 1024 });
 app.decorate('notifyUser', notifyUser);
 app.addHook('onSend', async (_request, reply) => {
   reply.header('X-Content-Type-Options', 'nosniff');
