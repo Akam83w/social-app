@@ -1488,133 +1488,33 @@ img {
   width: 100vw;
   height: 100dvh;
   overflow: hidden;
-  display: grid;
-  place-items: center;
-  background: #000;
+  background: #102d3d;
   isolation: isolate;
 }
-
-.qx-flag {
+.qx-dijla-scene {
   position: absolute;
   inset: 0;
-  z-index: -1;
-  display: grid;
-  place-items: center;
-  background:
-    linear-gradient(
-      to bottom,
-      #ce1126 0%,
-      #ce1126 33.333%,
-      #fff 33.333%,
-      #fff 66.666%,
-      #000 66.666%,
-      #000 100%
-    );
+  overflow: hidden;
+  background: linear-gradient(to bottom,#102d3d 0%,#4e9c9d 48%,#e0b875 76%,#f3d99d 100%);
+  animation: dijla-open 900ms ease-out both;
 }
-
-.qx-flag::after {
-  content: "";
+.dijla-sky,.dijla-sun,.dijla-city,.dijla-water,.dijla-water-lines,.dijla-flag-pole {
   position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at center, rgba(0,0,0,.04), rgba(0,0,0,.24)),
-    linear-gradient(90deg, rgba(0,0,0,.16), transparent 25%, transparent 75%, rgba(0,0,0,.16));
 }
-
-.qx-flag-word {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 1;
-  transform: translate(-50%, -50%);
-  color: #007a3d;
-  font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", sans-serif;
-  font-size: clamp(30px, 8vw, 92px);
-  font-weight: 900;
-  white-space: nowrap;
-  opacity: .95;
-  text-shadow: 0 2px 8px rgba(0,0,0,.08);
-}
-
-.qx-splash-content {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 24px;
-  text-align: center;
-}
-
-.qx-logo {
-  color: #fff;
-  font-size: clamp(78px, 24vw, 190px);
-  font-weight: 950;
-  line-height: .82;
-  letter-spacing: -7px;
-  font-family: Inter, "Segoe UI", sans-serif;
-  text-shadow:
-    0 5px 28px rgba(0,0,0,.48),
-    0 1px 0 rgba(255,255,255,.25);
-  animation: qx-logo-in 900ms cubic-bezier(.16,1,.3,1) both;
-}
-
-.qx-tagline {
-  color: #fff;
-  padding: 9px 18px 11px;
-  border-radius: 999px;
-  background: rgba(0,0,0,.32);
-  border: 1px solid rgba(255,255,255,.24);
-  box-shadow: 0 10px 35px rgba(0,0,0,.22);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  font-family: "Noto Naskh Arabic", "Amiri", "Segoe UI", sans-serif;
-  font-size: clamp(19px, 5.5vw, 42px);
-  font-weight: 850;
-  line-height: 1.5;
-  white-space: nowrap;
-  animation: qx-tagline-in 900ms 350ms cubic-bezier(.16,1,.3,1) both;
-}
-
-.qx-splash::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  pointer-events: none;
-  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%);
-  transform: translateX(120%);
-  animation: qx-shine 1200ms 850ms ease-out both;
-}
-
-@keyframes qx-logo-in {
-  0% { opacity: 0; transform: translateY(35px) scale(.72); filter: blur(10px); }
-  65% { opacity: 1; transform: translateY(-4px) scale(1.04); filter: blur(0); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes qx-tagline-in {
-  0% { opacity: 0; transform: translateY(24px) scale(.9); }
-  60% { opacity: 1; transform: translateY(-2px) scale(1.02); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes qx-shine {
-  0% { transform: translateX(120%); }
-  100% { transform: translateX(-120%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .qx-logo,
-  .qx-tagline,
-  .qx-splash::after {
-    animation: none;
-  }
-}
-
-
+.dijla-sky { inset: 0; background: radial-gradient(circle at 68% 39%,rgba(255,238,174,.9) 0 5%,rgba(255,216,137,.25) 20%,transparent 42%); }
+.dijla-sun { width:22vw;height:22vw;max-width:220px;max-height:220px;right:19%;top:31%;border-radius:50%;background:#ffe5a3;filter:blur(3px);box-shadow:0 0 100px 45px rgba(255,217,138,.35); }
+.dijla-city { left:0;right:0;bottom:42%;height:14%;opacity:.85;background:#172e34;clip-path:polygon(0 55%,5% 42%,9% 51%,13% 28%,18% 50%,22% 36%,27% 54%,31% 31%,37% 53%,42% 39%,47% 51%,53% 34%,58% 50%,64% 30%,70% 52%,76% 36%,81% 50%,87% 31%,92% 48%,97% 37%,100% 50%,100% 100%,0 100%); }
+.dijla-water { left:-5%;right:-5%;bottom:-3%;height:52%;background:linear-gradient(135deg,#174d60,#167f83 48%,#4db4a0);border-radius:50% 50% 0 0/10% 10% 0 0; }
+.dijla-water-lines { inset:auto -5% 4% -5%;height:40%;opacity:.3;background:repeating-linear-gradient(177deg,transparent 0 55px,rgba(214,255,241,.8) 57px 60px,transparent 62px 105px);transform:rotate(-2deg);animation:dijla-water 4s ease-in-out infinite alternate; }
+.dijla-flag-pole { left:13%;top:17%;height:67%;width:10px;border-radius:8px;background:#d7d7d2;box-shadow:0 0 8px rgba(0,0,0,.25); }
+.dijla-flag-pole::before { content:"";position:absolute;top:-10px;left:-7px;width:24px;height:24px;border-radius:50%;background:#e8d49a; }
+.dijla-flag { position:absolute;left:9px;top:35px;width:68vw;max-width:720px;height:29%;min-height:170px;transform-origin:left center;animation:dijla-flag-wave 1.1s ease-in-out infinite;filter:drop-shadow(0 8px 14px rgba(0,0,0,.18));background:linear-gradient(to bottom,#ce1126 0 33.33%,#fff 33.33% 66.66%,#111 66.66%);clip-path:polygon(0 0,94% 8%,100% 22%,96% 37%,100% 51%,95% 67%,100% 82%,95% 100%,0 92%); }
+.dijla-flag b { position:absolute;left:38%;top:38%;transform:translate(-50%,-50%);color:#087a3d;font-family:"Noto Naskh Arabic","Amiri","Segoe UI",sans-serif;font-size:clamp(25px,6vw,64px);font-weight:900;white-space:nowrap; }
+.qx-splash::after { content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,.12),transparent 30%,transparent 70%,rgba(0,0,0,.2)); }
+@keyframes dijla-open { from{opacity:.75;transform:scale(1.025)} to{opacity:1;transform:scale(1)} }
+@keyframes dijla-flag-wave { 0%,100%{transform:skewY(0deg) scaleX(1)} 50%{transform:skewY(1.4deg) scaleX(.985)} }
+@keyframes dijla-water { from{transform:translateX(-14px) rotate(-2deg)} to{transform:translateX(14px) rotate(-2deg)} }
+@media (prefers-reduced-motion:reduce){.qx-dijla-scene,.dijla-flag,.dijla-water-lines{animation:none}}
 
 /* ---------------- SDM ORIGINAL PROFILE REDESIGN ---------------- */
 .profile-page-card {
