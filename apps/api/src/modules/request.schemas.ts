@@ -14,7 +14,7 @@ export const commentSchema = z.object({
 });
 
 export const imageUploadSchema = z.object({
-  contentType: z.string().regex(/^image\\/(jpeg|png|webp|gif)$/i),
+  contentType: z.string().regex(/^image\/(jpeg|png|webp|gif)$/i),
   size: z.number().int().positive().max(10 * 1024 * 1024),
 });
 
