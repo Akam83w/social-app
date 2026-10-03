@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import { and, desc, eq, isNull, gt } from 'drizzle-orm';
+import { and, desc, eq, isNull, gt, sql } from 'drizzle-orm';
 import { db } from '../../db';
 import { passwordResetCodes, users } from '../../db/schema';
 import { sendPasswordResetEmail } from '../../services/email.service';
@@ -66,9 +66,10 @@ export async function createPasswordResetCode(email: string) {
 }
 
 export async function verifyPasswordResetCode(
-  email: string,
+  rawEmail: string,
   code: string
 ) {
+  const email = rawEmail.trim().toLowerCase();
   const [user] = await db
     .select({ id: users.id })
     .from(users)
@@ -171,6 +172,7 @@ export async function completePasswordReset(
     .update(users)
     .set({
       passwordHash,
+      authVersion: sql`coalesce(${users.authVersion},1)+1`,
       updatedAt: new Date(),
     })
     .where(eq(users.id, reset.userId));
