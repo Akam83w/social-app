@@ -8,6 +8,27 @@ export const messageSchema = z.object({
   content: z.string().trim().min(1).max(2000),
 });
 
+export const commentSchema = z.object({
+  content: z.string().trim().min(1).max(2000),
+  parentCommentId: z.string().uuid().optional(),
+});
+
+export const imageUploadSchema = z.object({
+  contentType: z.string().regex(/^image\\/(jpeg|png|webp|gif)$/i),
+  size: z.number().int().positive().max(10 * 1024 * 1024),
+});
+
+export const profileUpdateSchema = z.object({
+  displayName: z.string().trim().max(100).optional(),
+  username: z.string().trim().regex(/^[A-Za-z0-9_.]{2,30}$/),
+  phone: z.string().trim().max(20).optional(),
+  bio: z.string().trim().max(500).optional(),
+});
+
+export const avatarSchema = z.object({
+  avatarUrl: z.union([z.string().max(2_000_000), z.null()]),
+});
+
 export const callStartSchema = z.object({
   toUserId: z.string().uuid(),
   video: z.boolean().default(false),
