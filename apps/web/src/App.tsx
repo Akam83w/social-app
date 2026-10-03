@@ -243,23 +243,35 @@ function ProtectedApp() {
 
 function App() {
   const { token, user } = useAuth();
-  const [showSplash, setShowSplash] = React.useState(() => {
-    // The Iraqi splash is an install/first-launch experience only.
-    // A normal browser refresh must keep the current route and open directly there.
-    try {
-      return localStorage.getItem("sdm_splash_seen") !== "1";
-    } catch {
-      return true;
-    }
-  });
+  // The Dijla opening scene is the app's real launch screen.
+  // It runs on every app mount and on a genuine background -> foreground resume.
+  const [showSplash, setShowSplash] = React.useState(true);
+  const hiddenAtRef = React.useRef<number | null>(null);
 
   const finishSplash = React.useCallback(() => {
-    try {
-      localStorage.setItem("sdm_splash_seen", "1");
-    } catch {
-      // Ignore storage failures; the app can still continue normally.
-    }
     setShowSplash(false);
+  }, []);
+
+  React.useEffect(() => {
+    const show = () => setShowSplash(true);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+      if (document.visibilityState === "visible" && hiddenAtRef.current !== null) {
+        const hiddenFor = Date.now() - hiddenAtRef.current;
+        hiddenAtRef.current = null;
+        if (hiddenFor >= 1500) show();
+      }
+    };
+
+    window.addEventListener("sdm:show-launch-splash", show);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("sdm:show-launch-splash", show);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   React.useEffect(() => {
