@@ -540,7 +540,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     // The user ID is immutable, so a username/name change never creates a new local account.
     // Re-issue the token with the current username so old JWT data cannot linger.
-    const token = app.jwt.sign({ id: user.id, username: user.username });
+    const token = app.jwt.sign({ id: user.id, username: user.username, authVersion: user.authVersion || 1 });
     return reply.status(200).send({ user, token });
   });
 }
