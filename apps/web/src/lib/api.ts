@@ -94,7 +94,7 @@ export async function uploadVideo(
 
     while (offset < file.size) {
       try {
-        offset = await uploadTusChunk(uploadUrl, prepare.token, file.slice(offset, Math.min(offset + 6 * 1024 * 1024, file.size)), offset, file.size, updateProgress);
+        offset = await uploadTusChunk(uploadUrl, prepare.token, file.slice(offset, Math.min(offset + 2 * 1024 * 1024, file.size)), offset, file.size, updateProgress);
         localStorage.setItem(uploadKey, JSON.stringify({ url: uploadUrl, offset, token: prepare.token }));
       } catch {
         offset = await tusHead(uploadUrl, prepare.token);
