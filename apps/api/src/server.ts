@@ -18,6 +18,8 @@ import { storiesRoutes } from './modules/stories.routes';
 import { passwordResetRoutes } from './modules/password-reset/password-reset.routes';
 import { verifyToken } from './middleware/auth.middleware';
 import { videoRoutes } from './modules/video.routes';
+import { moderationRoutes } from './modules/moderation.routes';
+import { moderationAppealSchema, performanceSchema } from './modules/request.schemas';
 import { assertRedisReady, redisAddStreamEvent, redisIncr, redisExpire, redisReadStream } from './services/redis.service';
 
 
@@ -116,9 +118,9 @@ app.post('/moderation/appeal', async (request, reply) => {
   try {
     await request.jwtVerify();
     const userId=(request.user as {id:string}).id;
-    const body=request.body as {reason?:string};
-    const reason=String(body.reason||'').trim().slice(0,2000);
-    if(!reason)return reply.status(400).send({error:'VALIDATION_ERROR'});
+    const parsed=moderationAppealSchema.safeParse(request.body);
+    if(!parsed.success)return reply.status(400).send({error:'VALIDATION_ERROR',details:parsed.error.flatten()});
+    const reason=parsed.data.reason;
     const existing=await db.execute(sql`SELECT id FROM moderation_appeals WHERE user_id=${userId} AND status='pending' LIMIT 1`);
     if(existing.rows[0])return reply.status(409).send({error:'APPEAL_ALREADY_PENDING'});
     const result=await db.execute(sql`INSERT INTO moderation_appeals(user_id,reason) VALUES(${userId},${reason}) RETURNING id,created_at`);
@@ -136,12 +138,10 @@ app.register(passwordResetRoutes);
 app.post('/performance', async (request, reply) => {
   if (!(await allowDistributedRateLimit('performance', request.ip, 30, 60))) return reply.status(204).send();
   const body = request.body as unknown;
-  const metricBody = (body && typeof body === 'object') ? body as Record<string, unknown> : {};
-  const name = String(metricBody.name || '').slice(0, 20);
-  const value = Number(metricBody.value);
-  const path = String(metricBody.path || '').slice(0, 200);
-  if (!name || !Number.isFinite(value) || value < 0 || value > 120_000) return reply.status(204).send();
-  request.log.info({ metric: name, value: Math.round(value * 100) / 100, path, connection: String(metricBody.connection || '').slice(0, 20) }, 'performance_metric');
+  const parsed = performanceSchema.safeParse(body);
+  if (!parsed.success) return reply.status(204).send();
+  const { name, value, path, connection } = parsed.data;
+  request.log.info({ metric: name, value: Math.round(value * 100) / 100, path: path || '', connection: connection || '' }, 'performance_metric');
   return reply.status(204).send();
 });
 
