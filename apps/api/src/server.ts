@@ -92,12 +92,18 @@ async function notifyUser(userId:string,type:string,title:string,body:string,act
   const item={id:(r.rows[0] as any).id,type:'notification',notificationType:type,title,body,data,createdAt:(r.rows[0] as any).created_at};
   for(const res of realtimeClients.get(userId)||[]) res.write(`data: ${JSON.stringify(item)}\n\n`);
   const subs=await db.execute(sql`SELECT id,subscription FROM push_subscriptions WHERE user_id=${userId}`);
-  for(const s of subs.rows as any[]) try{await webpush.sendNotification(JSON.parse(s.subscription),JSON.stringify({title,body,data}),{TTL:60,urgency:'high'});}catch(e:any){if(e?.statusCode===404||e?.statusCode===410)await db.execute(sql`DELETE FROM push_subscriptions WHERE id=${s.id}`);}
+  await Promise.allSettled((subs.rows as any[]).map(async s=>{
+    try{await webpush.sendNotification(JSON.parse(s.subscription),JSON.stringify({title,body,data}),{TTL:60,urgency:'high'});}
+    catch(e:any){if(e?.statusCode===404||e?.statusCode===410)await db.execute(sql`DELETE FROM push_subscriptions WHERE id=${s.id}`);}
+  }));
   if(firebaseMessaging){
     const tokens=await db.execute(sql`SELECT id,token FROM fcm_tokens WHERE user_id=${userId}`);
     const fcmData: Record<string,string>={type,title,body};
     for(const [key,value] of Object.entries(data||{})) fcmData[key]=typeof value==='string'?value:JSON.stringify(value);
-    for(const row of tokens.rows as any[]) try{await firebaseMessaging.send({token:String(row.token),data:fcmData,android:{priority:'high'}});}catch(e:any){const code=String(e?.code||'');if(code.includes('registration-token-not-registered')||code.includes('invalid-registration-token'))await db.execute(sql`DELETE FROM fcm_tokens WHERE id=${row.id}`);}
+    await Promise.allSettled((tokens.rows as any[]).map(async row=>{
+      try{await firebaseMessaging!.send({token:String(row.token),data:fcmData,android:{priority:'high'}});}
+      catch(e:any){const code=String(e?.code||'');if(code.includes('registration-token-not-registered')||code.includes('invalid-registration-token'))await db.execute(sql`DELETE FROM fcm_tokens WHERE id=${row.id}`);}
+    }));
   }
 }
 
