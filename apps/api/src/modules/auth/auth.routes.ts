@@ -3,10 +3,14 @@ import bcrypt from 'bcryptjs';
 import { registerSchema, loginSchema } from './auth.schema';
 import { registerUser, loginUser, loginWithOAuth, linkOAuthIdentity, getLinkedOAuthIdentities, unlinkOAuthIdentity, updateUserAvatar } from './auth.service';
 import { verifyToken } from '../../middleware/auth.middleware';
+import { isAllowedMediaUrl } from '../../services/media-url';
+import { createLimiter } from '../../services/rate-limit';
 import { eq } from 'drizzle-orm';
 import { db } from '../../db';
 import { users, posts, likes, follows } from '../../db/schema';
 import { desc, sql, and } from 'drizzle-orm';
+
+const loginFailures = createLimiter(10, 15 * 60_000);
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/register', async (request, reply) => {
@@ -51,10 +55,11 @@ export async function authRoutes(app: FastifyInstance) {
       const result = await loginWithOAuth({ accessToken: body.accessToken, provider: body.provider as 'facebook' | 'twitter', username: typeof body.username === 'string' ? body.username : undefined, phone: typeof body.phone === 'string' ? body.phone : undefined });
       if (result.needsProfile) return reply.send({ needsProfile: true });
       if (!result.user) return reply.status(500).send({ error: 'OAUTH_USER_MISSING' });
-      const token = app.jwt.sign({ id: result.user.id, username: result.user.username });
+      const [av] = await db.select({ authVersion: users.authVersion }).from(users).where(eq(users.id, result.user.id)).limit(1);
+      const token = app.jwt.sign({ id: result.user.id, username: result.user.username, authVersion: av?.authVersion || 1 });
       return reply.send({ user: result.user, token, needsProfile: false });
     } catch (err: any) {
-      if (['OAUTH_INVALID_TOKEN','OAUTH_EMAIL_REQUIRED','USERNAME_TAKEN','PHONE_TAKEN'].includes(err.message)) return reply.status(err.message === 'OAUTH_INVALID_TOKEN' ? 401 : 409).send({ error: err.message });
+      if (['OAUTH_INVALID_TOKEN','OAUTH_EMAIL_REQUIRED','OAUTH_EMAIL_NOT_VERIFIED','USERNAME_TAKEN','PHONE_TAKEN'].includes(err.message)) return reply.status(err.message === 'OAUTH_INVALID_TOKEN' ? 401 : 409).send({ error: err.message });
       app.log.error(err); return reply.status(500).send({ error: 'INTERNAL_ERROR' });
     }
   });
@@ -143,12 +148,17 @@ export async function authRoutes(app: FastifyInstance) {
       });
     }
 
+    const failKey = parsed.data.identifier.trim().toLowerCase();
+    if (!loginFailures.check(failKey)) return reply.header('Retry-After', '900').status(429).send({ error: 'RATE_LIMITED' });
+
     try {
       const user = await loginUser(parsed.data);
+      loginFailures.reset(failKey);
       const token = app.jwt.sign({ id: user.id, username: user.username, authVersion: user.authVersion || 1 });
       return reply.status(200).send({ user, token });
     } catch (err: any) {
       if (err.message === 'INVALID_CREDENTIALS') {
+        loginFailures.hit(failKey);
         return reply.status(401).send({ error: 'INVALID_CREDENTIALS' });
       }
       app.log.error(err);
@@ -274,6 +284,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (typeof body.avatarUrl === 'string' && body.avatarUrl.length > 2_000_000) {
       return reply.status(413).send({ error: 'AVATAR_TOO_LARGE' });
     }
+    if (typeof body.avatarUrl === 'string' && !isAllowedMediaUrl(body.avatarUrl)) return reply.status(400).send({ error: 'INVALID_AVATAR_URL' });
 
     try {
       const user = await updateUserAvatar(

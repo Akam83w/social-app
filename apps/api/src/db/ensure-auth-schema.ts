@@ -30,6 +30,7 @@ export async function ensureAuthSchema() {
   await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at timestamp`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS comment_likes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, comment_id uuid NOT NULL REFERENCES comments(id) ON DELETE CASCADE, created_at timestamp NOT NULL DEFAULT now(), CONSTRAINT comment_likes_user_comment_unique UNIQUE(user_id, comment_id))`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS comment_likes_comment_id_idx ON comment_likes(comment_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS messages_pair_created_idx ON messages(sender_id, receiver_id, created_at DESC)`);
   await db.execute(sql`CREATE TABLE IF NOT EXISTS user_notes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE, content varchar(60) NOT NULL, created_at timestamp NOT NULL DEFAULT now(), updated_at timestamp NOT NULL DEFAULT now(), expires_at timestamp NOT NULL, CONSTRAINT user_notes_user_unique UNIQUE(user_id))`);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS user_notes_expires_at_idx ON user_notes(expires_at)`);
   await db.execute(sql`UPDATE users SET supporter_expires_at = created_at + interval '90 days', verified_at = COALESCE(verified_at, created_at) WHERE supporter_number IS NOT NULL AND supporter_number::int BETWEEN 1 AND 1932`);

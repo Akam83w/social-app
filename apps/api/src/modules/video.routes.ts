@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { posts } from '../db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyToken } from '../middleware/auth.middleware';
+import { moderateMedia, registerModerationViolation } from '../services/moderation.service';
 import { createDirectVideoUpload, getPublicVideoUrl, downloadVideoToFile, processVideo, removeStorageFile } from '../services/video.service';
 
 export async function videoRoutes(app: FastifyInstance) {
@@ -109,6 +110,20 @@ async function processUploadedVideoInBackground(
     try {
       await downloadVideoToFile(objectName, tempPath);
       const media = await processVideo(tempPath, userId);
+
+      if (media.mediaPoster) {
+        let flagged = false; let decision: any = null;
+        try { decision = await moderateMedia(media.mediaPoster, 'image'); flagged = decision.flagged; }
+        catch (modErr) { app.log.error({ err: modErr, recordId }, 'video moderation unavailable'); }
+        if (flagged) {
+          if (kind === 'post') await db.delete(posts).where(eq(posts.id, recordId));
+          else await db.execute(sql`DELETE FROM stories WHERE id=${recordId}`);
+          const enforcement = await registerModerationViolation(userId, kind, null, decision);
+          try { await (app as any).notifyUser(userId, 'moderation', 'تم رفض الفيديو', enforcement.action === 'warning' ? 'تم رفض المحتوى لأنه يخالف إرشادات SDM.' : 'تم رفض المحتوى وتم تطبيق إجراء على الحساب بسبب تكرار المخالفات.', userId, { url: '/profile/settings' }); } catch {}
+          await removeStorageFile(objectName).catch(() => {});
+          return;
+        }
+      }
 
       if (kind === 'post') {
         await db.update(posts).set({
