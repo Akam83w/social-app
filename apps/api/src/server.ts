@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import type { FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
@@ -20,7 +21,7 @@ import { verifyToken } from './middleware/auth.middleware';
 import { videoRoutes } from './modules/video.routes';
 import { moderationRoutes } from './modules/moderation.routes';
 import { moderationAppealSchema, performanceSchema, callStartSchema, callSignalSchema, pushSubscriptionSchema, fcmTokenSchema } from './modules/request.schemas';
-import { recordRequest, maybeAlertOn5xx, prometheusMetrics, recordMediaFailure, recordCallFailure } from './services/observability.service';
+import { recordRequest, maybeAlertOn5xx, prometheusMetrics } from './services/observability.service';
 import { assertRedisReady, redisAddStreamEvent, redisIncr, redisExpire, redisReadStream } from './services/redis.service';
 
 
