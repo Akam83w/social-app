@@ -6,6 +6,8 @@ import {
   createComment,
   getPostComments,
   likePost,
+  likeComment,
+  unlikeComment,
   readCache,
   writeCache,
 } from "../lib/api";
@@ -40,6 +42,8 @@ type Comment = {
   content: string;
   createdAt: string;
   updatedAt: string;
+  likeCount: number;
+  likedByMe: boolean;
   user: User;
 };
 
@@ -166,6 +170,19 @@ export default function ReelsPage() {
     }
   };
 
+  const toggleCommentLike = async (commentId: string) => {
+    if (!token) return;
+    const current = comments.find((comment) => comment.id === commentId);
+    if (!current) return;
+    setComments((items) => items.map((comment) => comment.id === commentId ? { ...comment, likedByMe: !comment.likedByMe, likeCount: Math.max(0, comment.likeCount + (comment.likedByMe ? -1 : 1)) } : comment));
+    try {
+      if (current.likedByMe) await unlikeComment(commentId, token);
+      else await likeComment(commentId, token);
+    } catch {
+      setComments((items) => items.map((comment) => comment.id === commentId ? { ...comment, likedByMe: current.likedByMe, likeCount: current.likeCount } : comment));
+    }
+  };
+
   const addComment = async (parentCommentId?: string) => {
     const content = (parentCommentId ? replyText : commentText).trim();
     if (!token || !commentsReel || !content || commentSending) return;
@@ -178,6 +195,8 @@ export default function ReelsPage() {
       const newComment: Comment = {
         ...data.comment,
         parentCommentId: parentCommentId ?? null,
+        likeCount: 0,
+        likedByMe: false,
         user: {
           id: "me",
           username: "me",
@@ -406,6 +425,9 @@ export default function ReelsPage() {
                             <MentionText content={comment.content} />
                           </div>
                           <div style={{ display: "flex", gap: 14, marginTop: 5, fontSize: 12, color: "#777" }}>
+                            <button type="button" onClick={() => void toggleCommentLike(comment.id)} style={{ color: comment.likedByMe ? "#d00" : "#777", fontWeight: 700 }}>
+                              {comment.likedByMe ? "❤️" : "♡"} {comment.likeCount || 0}
+                            </button>
                             <button type="button" onClick={() => { setReplyingTo(comment.id); setReplyText(""); }}>رد</button>
                             <span>{new Date(comment.createdAt).toLocaleString("ar-IQ")}</span>
                           </div>
