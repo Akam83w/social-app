@@ -193,6 +193,7 @@ export async function loginUser(input: LoginInput) {
     verifiedAt: existingUser.verifiedAt,
     moderationStatus: existingUser.moderationStatus,
       isPrivate: existingUser.isPrivate,
+    authVersion: existingUser.authVersion || 1,
     suspendedUntil: existingUser.suspendedUntil,
     moderationStrikes: Number(existingUser.moderationStrikes || 0),
   };
