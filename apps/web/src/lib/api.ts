@@ -236,6 +236,13 @@ export async function createComment(postId: string, content: string, token: stri
   return apiRequest(`/posts/${postId}/comments`, token, { method: 'POST', body: JSON.stringify({ content, ...(parentCommentId ? { parentCommentId } : {}) }) });
 }
 export async function deleteComment(commentId: string, token: string) { return apiRequest(`/comments/${commentId}`, token, { method: 'DELETE' }); }
+export async function likeComment(commentId: string, token: string) { return apiRequest(`/comments/${commentId}/like`, token, { method: 'POST' }); }
+export async function unlikeComment(commentId: string, token: string) { return apiRequest(`/comments/${commentId}/like`, token, { method: 'DELETE' }); }
+export async function getActiveUsers(token: string) { return apiRequest('/presence/active', token); }
+export async function getMessageNotes(token: string) { return apiRequest('/messages/notes', token); }
+export async function setMessageNote(token: string, content: string) { return apiRequest('/messages/notes', token, { method: 'POST', body: JSON.stringify({ content }) }); }
+export async function deleteMessageNote(token: string) { return apiRequest('/messages/notes', token, { method: 'DELETE' }); }
+export async function pingPresence(token: string) { return apiRequest('/presence/ping', token, { method: 'POST' }); }
 
 export function connectRealtime(token: string, onEvent: (event: any) => void) {
   const es = new EventSource(API_URL + '/realtime?token=' + encodeURIComponent(token));
