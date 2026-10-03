@@ -36,13 +36,16 @@ function QXSplash({ onDone }: { onDone: () => void }) {
   }, [onDone]);
 
   return (
-    <div className="qx-splash" dir="rtl" aria-label="QX">
-      <div className="qx-flag" aria-hidden="true">
-        <div className="qx-flag-word">الله أكبر</div>
-      </div>
-      <div className="qx-splash-content">
-        <div className="qx-logo" aria-label="QX">QX</div>
-        <div className="qx-tagline">معًا بأيادي عراقية</div>
+    <div className="qx-splash" dir="rtl" aria-label="نهر دجلة والعلم العراقي">
+      <div className="qx-dijla-scene" aria-hidden="true">
+        <div className="dijla-sky" />
+        <div className="dijla-sun" />
+        <div className="dijla-city" />
+        <div className="dijla-water" />
+        <div className="dijla-water-lines" />
+        <div className="dijla-flag-pole">
+          <div className="dijla-flag"><b>الله أكبر</b></div>
+        </div>
       </div>
     </div>
   );
@@ -163,23 +166,30 @@ function ProtectedApp() {
 
 function App() {
   const { token, user } = useAuth();
-  const [showSplash, setShowSplash] = React.useState(() => {
-    // The Iraqi splash is an install/first-launch experience only.
-    // A normal browser refresh must keep the current route and open directly there.
-    try {
-      return localStorage.getItem("qx_splash_seen") !== "1";
-    } catch {
-      return true;
-    }
-  });
+  // The Dijla scene is the app's permanent opening screen.
+  // It appears on every app start and when the app returns from the background.
+  const [showSplash, setShowSplash] = React.useState(true);
+  const hiddenAtRef = React.useRef<number | null>(null);
 
-  const finishSplash = React.useCallback(() => {
-    try {
-      localStorage.setItem("qx_splash_seen", "1");
-    } catch {
-      // Ignore storage failures; the app can still continue normally.
-    }
-    setShowSplash(false);
+  const finishSplash = React.useCallback(() => setShowSplash(false), []);
+
+  React.useEffect(() => {
+    const show = () => setShowSplash(true);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+      } else if (document.visibilityState === "visible" && hiddenAtRef.current !== null) {
+        const elapsed = Date.now() - hiddenAtRef.current;
+        hiddenAtRef.current = null;
+        if (elapsed >= 1500) show();
+      }
+    };
+    window.addEventListener("sdm:show-launch-splash", show);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("sdm:show-launch-splash", show);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   React.useEffect(() => {
