@@ -1,4 +1,4 @@
-const CACHE_NAME = "sdm-shell-v1";
+const CACHE_NAME = "sdm-shell-v2";
 const STATIC_ASSETS = ["/", "/index.html"];
 
 self.addEventListener("install", event => {
@@ -14,17 +14,20 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET" || !request.url.startsWith(self.location.origin)) return;
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/") || url.pathname.startsWith("/posts")) return;
-  if (request.destination === "image" || request.destination === "style" || request.destination === "script" || url.pathname === "/") {
-    event.respondWith(caches.match(request).then(cached => {
-      const network = fetch(request).then(response => {
+  if (request.destination === "document" || url.pathname === "/" || request.destination === "style" || request.destination === "script" || request.destination === "image") {
+    event.respondWith((async () => {
+      const cached = await caches.match(request);
+      try {
+        const response = await fetch(request, { cache: request.destination === "document" ? "no-store" : "default" });
         if (response.ok) {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
+          await caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
         }
         return response;
-      }).catch(() => cached);
-      return cached || network;
-    }));
+      } catch {
+        return cached || Response.error();
+      }
+    })());
   }
 });
 
