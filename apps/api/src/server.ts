@@ -35,7 +35,7 @@ async function allowDistributedRateLimit(scope: string, key: string, limit: numb
 
 async function publishRealtime(userId: string, event: Record<string, unknown>) {
   try {
-    await redisAddStreamEvent(`realtime:${userId}`, {
+    await redisAddStreamEvent(userId === '__public__' ? 'realtime:public' : `realtime:${userId}`, {
       type: String(event.type || 'event'),
       payload: JSON.stringify(event),
     });
