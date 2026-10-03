@@ -26,6 +26,7 @@ const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage")
 const PolicyPage = React.lazy(() => import("./pages/PolicyPage"));
 const SavedPage = React.lazy(() => import("./pages/SavedPage"));
 import { useAuth } from "./context/AuthContext";
+import { prefetchApi } from "./lib/api";
 const NativePushBootstrap = React.lazy(() => import("./NativePushBootstrap"));
 
 function QXSplash({ onDone }: { onDone: () => void }) {
@@ -161,6 +162,7 @@ function ProtectedApp() {
 }
 
 function App() {
+  const { token, user } = useAuth();
   const [showSplash, setShowSplash] = React.useState(() => {
     // The Iraqi splash is an install/first-launch experience only.
     // A normal browser refresh must keep the current route and open directly there.
@@ -181,25 +183,68 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    if (showSplash) return;
-    // Warm route chunks only after the splash/first screen is usable.
-    const warmRoutes = () => {
-      void Promise.all([
+    if (!token) return;
+    let cancelled = false;
+
+    // Start the whole app warm-up immediately, even while the splash is visible.
+    // This removes the old "open page first, then start loading it" waterfall.
+    const warmApp = async () => {
+      const routeChunks = [
         import("./pages/ExplorePage"),
         import("./pages/ReelsPage"),
         import("./pages/MessagesPage"),
         import("./pages/ProfilePage"),
         import("./pages/SavedPage"),
-      ]);
+        import("./pages/AccountSettingsPage"),
+        import("./pages/PostPage"),
+      ];
+
+      const dataRequests = [
+        prefetchApi("/posts?limit=20", token, 30_000),
+        prefetchApi("/stories", token, 30_000),
+        prefetchApi("/posts?limit=30", token, 30_000),
+        prefetchApi("/posts/explore?limit=30", token, 30_000),
+        prefetchApi("/messages", token, 15_000),
+        prefetchApi("/messages/notes", token, 15_000),
+        prefetchApi("/presence/active", token, 15_000),
+        prefetchApi("/notifications", token, 15_000),
+        prefetchApi("/notifications/config", token, 30_000),
+        prefetchApi("/posts?limit=50", token, 15_000),
+      ];
+
+      const profileRequests = user?.username
+        ? [prefetchApi("/auth/users/" + encodeURIComponent(user.username), token, 30_000)]
+        : [];
+
+      const results = await Promise.allSettled([...routeChunks, ...dataRequests, ...profileRequests]);
+      if (cancelled) return;
+
+      // Warm the most important profile pictures without downloading post videos/images.
+      const avatarUrls = new Set<string>();
+      for (const result of results) {
+        if (result.status !== "fulfilled") continue;
+        const collect = (value: unknown) => {
+          if (!value || typeof value !== "object") return;
+          if (Array.isArray(value)) { value.forEach(collect); return; }
+          for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+            if (key === "avatarUrl" && typeof child === "string" && child.startsWith("http")) avatarUrls.add(child);
+            else if (key !== "mediaUrl" && key !== "mediaPoster") collect(child);
+            if (avatarUrls.size >= 40) return;
+          }
+        };
+        collect(result.value);
+        if (avatarUrls.size >= 40) break;
+      }
+      avatarUrls.forEach(url => {
+        const image = new Image();
+        image.decoding = "async";
+        image.src = url;
+      });
     };
-    const idle = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
-    if (idle) {
-      const id = idle(warmRoutes, { timeout: 2500 });
-      return () => window.cancelIdleCallback?.(id);
-    }
-    const timer = window.setTimeout(warmRoutes, 1200);
-    return () => window.clearTimeout(timer);
-  }, [showSplash]);
+
+    void warmApp();
+    return () => { cancelled = true; };
+  }, [token, user?.username]);
 
   if (showSplash) {
     return <QXSplash onDone={finishSplash} />;
