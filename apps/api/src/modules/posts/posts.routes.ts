@@ -76,8 +76,8 @@ export async function postsRoutes(app: FastifyInstance) {
 
       const post = await createPost(payload.id, parsed.data);
       const followers = await db.execute(sql`SELECT follower_id FROM follows WHERE following_id=${payload.id} AND status='accepted'`);
-      const actor = await db.execute(sql`SELECT username,display_name FROM users WHERE id=${payload.id} LIMIT 1`);
-      const a:any=actor.rows[0]; for(const row of followers.rows as any[]) await (app as any).notifyUser(row.follower_id,'post','منشور جديد',`@${a?.username||"مستخدم"} نشر منشوراً جديداً`,payload.id,{actorId:payload.id,url:'/post/'+post.id});
+      const actor = await db.execute(sql`SELECT username,display_name,avatar_url,supporter_number,supporter_expires_at,verified_at,email FROM users WHERE id=${payload.id} LIMIT 1`);
+      const a:any=actor.rows[0]; const livePost={id:post.id,content:post.content,mediaUrl:post.mediaUrl,mediaType:post.mediaType,mediaPoster:post.mediaPoster,createdAt:post.createdAt,updatedAt:post.updatedAt,user:{id:payload.id,username:a?.username||'',displayName:a?.display_name||null,avatarUrl:a?.avatar_url||null,supporterNumber:a?.supporter_number||null,supporterExpiresAt:a?.supporter_expires_at||null,verifiedAt:a?.verified_at||null,isFounder:String(a?.email||'').toLowerCase()==='sdmtr033@gmail.com'},likeCount:0,likedByMe:false}; for(const row of followers.rows as any[]) { await (app as any).publishRealtime?.(row.follower_id,{type:'post',post:livePost}); await (app as any).notifyUser(row.follower_id,'post','منشور جديد',`@${a?.username||"مستخدم"} نشر منشوراً جديداً`,payload.id,{actorId:payload.id,url:'/post/'+post.id}); }
       return reply.status(201).send({ post });
     } catch (err) {
       app.log.error(err);
