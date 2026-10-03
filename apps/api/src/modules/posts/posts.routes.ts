@@ -4,6 +4,7 @@ import { db } from '../../db';
 import { verifyToken } from '../../middleware/auth.middleware';
 import { moderateMedia, registerModerationViolation } from '../../services/moderation.service';
 import { createPostSchema } from './posts.schema';
+import { imageUploadSchema, commentSchema, reportSchema } from '../request.schemas';
 import { createDirectImageUpload } from '../../services/image.service';
 import {
   getPostLikeStatus,
@@ -30,12 +31,9 @@ export async function postsRoutes(app: FastifyInstance) {
   app.post('/posts/image/upload', { preHandler: verifyToken }, async (request, reply) => {
     try {
       const payload = request.user as { id: string };
-      const body = request.body as { contentType?: string; size?: number };
-      const upload = await createDirectImageUpload(
-        payload.id,
-        String(body.contentType || ''),
-        Number(body.size || 0),
-      );
+      const parsed = imageUploadSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'INVALID_IMAGE_UPLOAD', details: parsed.error.flatten() });
+      const upload = await createDirectImageUpload(payload.id, parsed.data.contentType, parsed.data.size);
       return reply.status(200).send(upload);
     } catch (err) {
       const code = err instanceof Error ? err.message : 'IMAGE_UPLOAD_URL_FAILED';
@@ -219,18 +217,10 @@ export async function postsRoutes(app: FastifyInstance) {
       const payload = request.user as { id: string };
       const { id } = request.params as { id: string };
       if (!(await ensurePostAccessible(payload.id, id))) return reply.status(404).send({ error: 'POST_NOT_FOUND' });
-      const body = request.body as {
-        content?: string;
-        parentCommentId?: string;
-      };
-
-      const content = body.content?.trim();
-
-      if (!content) {
-        return reply.status(400).send({
-          error: 'VALIDATION_ERROR',
-        });
-      }
+      const parsed = commentSchema.safeParse(request.body);
+      if (!parsed.success) return reply.status(400).send({ error: 'VALIDATION_ERROR', details: parsed.error.flatten() });
+      const body = parsed.data;
+      const content = body.content;
 
       if (body.parentCommentId) {
         const parentComment = await getCommentById(body.parentCommentId);
@@ -335,13 +325,9 @@ export async function postsRoutes(app: FastifyInstance) {
 
   app.post('/reports', { preHandler: verifyToken }, async (request, reply) => {
     const reporterId = (request.user as { id: string }).id;
-    const body = request.body as { targetId?: string; targetType?: string; reason?: string };
-    const targetId = String(body.targetId || '').trim();
-    const targetType = String(body.targetType || '').trim().toLowerCase();
-    const reason = String(body.reason || '').trim().slice(0, 500);
-    if (!targetId || !['post', 'user'].includes(targetType) || !reason) {
-      return reply.status(400).send({ error: 'INVALID_REPORT' });
-    }
+    const parsed = reportSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: 'INVALID_REPORT', details: parsed.error.flatten() });
+    const { targetId, targetType, reason } = parsed.data;
     if (targetType === 'post') {
       const found = await db.execute(sql`SELECT id FROM posts WHERE id=${targetId} LIMIT 1`);
       if (!found.rows[0]) return reply.status(404).send({ error: 'TARGET_NOT_FOUND' });
