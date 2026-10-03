@@ -6,6 +6,7 @@ import {
   createComment,
   getPostComments,
   likePost,
+  unlikePost,
   likeComment,
   unlikeComment,
   readCache,
@@ -121,30 +122,41 @@ export default function ReelsPage() {
   }, [token]);
 
   const handleDoubleTapLike = async (reel: Reel) => {
-    if (!token || likedIds.has(reel.id)) return;
-    setLikedIds((current) => new Set(current).add(reel.id));
+    if (!token) return;
+    const wasLiked = Boolean(reel.likedByMe || likedIds.has(reel.id));
+
+    // Keep the heart animation for every double tap, but toggle the actual like.
+    setHeartReelId(reel.id);
+    window.setTimeout(() => setHeartReelId((current) => current === reel.id ? null : current), 700);
+
+    setLikedIds((current) => {
+      const next = new Set(current);
+      if (wasLiked) next.delete(reel.id);
+      else next.add(reel.id);
+      return next;
+    });
     setReels((current) =>
       current.map((item) =>
         item.id === reel.id
-          ? { ...item, likeCount: (item.likeCount || 0) + 1, likedByMe: true }
+          ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) + (wasLiked ? -1 : 1)), likedByMe: !wasLiked }
           : item,
       ),
     );
+
     try {
-      await likePost(reel.id, token);
-      writeCache("reels-feed", reels.map((item) =>
-        item.id === reel.id ? { ...item, likeCount: (item.likeCount || 0) + 1, likedByMe: true } : item,
-      ));
+      if (wasLiked) await unlikePost(reel.id, token);
+      else await likePost(reel.id, token);
     } catch {
       setLikedIds((current) => {
         const next = new Set(current);
-        next.delete(reel.id);
+        if (wasLiked) next.add(reel.id);
+        else next.delete(reel.id);
         return next;
       });
       setReels((current) =>
         current.map((item) =>
           item.id === reel.id
-            ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) - 1), likedByMe: false }
+            ? { ...item, likeCount: Math.max(0, (item.likeCount || 0) + (wasLiked ? 1 : -1)), likedByMe: wasLiked }
             : item,
         ),
       );
