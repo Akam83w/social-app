@@ -74,3 +74,17 @@ export const performanceSchema = z.object({
   path: z.string().max(200).optional(),
   connection: z.string().max(20).optional(),
 });
+
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.string().url().max(2048),
+  expirationTime: z.number().nullable().optional(),
+  keys: z.object({
+    p256dh: z.string().min(16).max(512),
+    auth: z.string().min(8).max(512),
+  }),
+}).passthrough();
+
+export const fcmTokenSchema = z.object({
+  token: z.string().min(20).max(4096),
+  platform: z.enum(['android', 'ios', 'web']).default('android'),
+});
