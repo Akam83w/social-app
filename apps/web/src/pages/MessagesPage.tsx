@@ -11,10 +11,10 @@ type Note={user:{id:string;username:string;displayName:string|null;avatarUrl:str
 
 export default function MessagesPage(){
  const {token,user}=useAuth(); const navigate=useNavigate(); const [params]=useSearchParams();
- const [chats,setChats]=useState<Chat[]>([]); const [active,setActive]=useState<Chat|null>(null); const [text,setText]=useState("");
+ const [chats,setChats]=useState<Chat[]>(()=>readCache<Chat[]>("messages")??[]); const [active,setActive]=useState<Chat|null>(null); const [text,setText]=useState("");
  const [username,setUsername]=useState(params.get("username")||""); const [error,setError]=useState("");
  const [activeUsers,setActiveUsers]=useState<ActiveUser[]>([]); const [notes,setNotes]=useState<Note[]>([]);
- const [noteOpen,setNoteOpen]=useState(false); const [noteText,setNoteText]=useState(""); const [noteSaving,setNoteSaving]=useState(false);
+ const [noteOpen,setNoteOpen]=useState(false); const [noteText,setNoteText]=useState(""); const [noteSaving,setNoteSaving]=useState(false); const [loadingChat,setLoadingChat]=useState(false); const endRef=useRef<HTMLDivElement>(null);
 
  const load=async()=>{if(!token)return;try{const [ch,n,a]=await Promise.all([apiRequest("/messages",token),getMessageNotes(token),getActiveUsers(token)]);setChats(ch.chats??[]);setNotes(n.notes??[]);setActiveUsers(a.users??[]);}catch{setError("تعذر تحميل الرسائل.");}};
  const refreshPresence=async()=>{if(!token)return;try{const [n,a]=await Promise.all([getMessageNotes(token),getActiveUsers(token)]);setNotes(n.notes??[]);setActiveUsers(a.users??[]);}catch{}};
