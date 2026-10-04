@@ -1423,18 +1423,18 @@ img {
 /* ---------------- CREATE POST ---------------- */
 .create-post-page{overflow:hidden;background:#fff;border:1px solid rgba(20,20,20,.07);border-radius:22px;box-shadow:0 10px 42px rgba(20,25,30,.05)}
 .create-post-header{display:flex;align-items:center;gap:13px;padding:17px 20px;border-bottom:1px solid #eef0f1}
-.create-post-header h1{margin:0;font-size:19px;letter-spacing:-.4px}
-.create-post-header p{margin:4px 0 0;color:#94999e;font-size:11px}
+.create-post-header h1{margin:0;font-family:var(--dj-font-ar);font-size:19px;font-weight:800;line-height:1.35;letter-spacing:0;color:var(--dj-text);text-align:right}
+.create-post-header p{margin:4px 0 0;font-family:var(--dj-font-ar);color:var(--dj-text-2);font-size:12px;line-height:1.55;text-align:right}
 .create-back{width:40px;height:40px;display:grid;place-items:center;border:1px solid #e3e5e6;border-radius:12px;color:#202426;text-decoration:none;font-size:29px;line-height:1}
 .create-post-page form{padding:18px 20px 20px}
 .create-author{display:flex;align-items:center;gap:10px}
 .create-author>img{width:48px;height:48px;border-radius:50%;object-fit:cover;background:#eee}
 .create-author>div{min-width:0;display:flex;flex-direction:column;gap:3px;flex:1}
-.create-author strong{font-size:13px}
-.create-author span{color:#969ba0;font-size:10px}
+.create-author strong{font-family:var(--dj-font-ar);font-size:14px;font-weight:800;line-height:1.45;color:var(--dj-text)}
+.create-author span{font-family:var(--dj-font-ar);color:var(--dj-text-2);font-size:11px;line-height:1.4}
 .create-visibility{flex:0 0 auto!important;padding:6px 9px;border:1px solid #e5e7e8;border-radius:999px;background:#fafafa;color:#62686d!important;font-size:10px!important}
-.create-textarea{display:block;width:100%;min-height:190px;margin-top:17px;padding:4px 2px;border:0;outline:0;resize:none;background:transparent;color:#222;font:inherit;font-size:18px;line-height:1.8}
-.create-textarea::placeholder{color:#a3a8ad}
+.create-textarea{display:block;width:100%;min-height:190px;margin-top:17px;padding:6px 2px;border:0;outline:0;resize:none;background:transparent;color:var(--dj-text);font-family:var(--dj-font-ar);font-size:18px;font-weight:500;line-height:1.9;direction:rtl;text-align:right;unicode-bidi:plaintext;letter-spacing:0}
+.create-textarea::placeholder{color:var(--dj-text-2);opacity:.9}
 .create-media-preview{position:relative;margin-top:5px;overflow:hidden;border:1px solid #e4e6e7;border-radius:17px;background:#101313}
 .create-media-preview img,.create-media-preview video{display:block;width:100%;max-height:560px;object-fit:contain}
 .create-remove-media{position:absolute;top:10px;left:10px;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:rgba(0,0,0,.72);color:#fff;font-size:24px;line-height:1}
@@ -1445,9 +1445,9 @@ img {
 .create-tools span{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:#eef8f5;color:#078968;font-size:17px;font-weight:800}
 .create-tools a span{background:#f3effb;color:#7652b5}
 .create-tools div{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
-.create-tools b{font-size:12px}.create-tools small{color:#9a9fa4;font-size:9px}.create-tools i{font-style:normal;color:#a7abb0;font-size:21px}
+.create-tools b{font-family:var(--dj-font-ar);font-size:13px;font-weight:750;line-height:1.45;color:var(--dj-text)}.create-tools small{font-family:var(--dj-font-ar);color:var(--dj-text-2);font-size:10px;line-height:1.45}.create-tools i{font-style:normal;color:var(--dj-text-2);font-size:21px}
 .create-bottom{display:flex;align-items:center;gap:10px;margin-top:14px;min-height:44px}
-.create-counter{color:#a1a6ab;font-size:10px;white-space:nowrap}
+.create-counter{font-family:var(--dj-font-ar);color:var(--dj-text-2);font-size:11px;line-height:1.4;white-space:nowrap}
 .create-error{margin:0;flex:1;color:#c33b43;font-size:10px;line-height:1.5}
 .create-submit{margin-inline-start:auto;min-width:108px;padding:11px 17px;border-radius:12px;background:#111715;color:#fff;font-weight:800;font-size:12px;box-shadow:0 7px 18px rgba(0,0,0,.12);transition:.2s ease}
 .create-submit:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(0,0,0,.16)}
