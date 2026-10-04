@@ -1455,6 +1455,19 @@ img {
 .create-login-state{padding:55px 25px;text-align:center}.create-login-state strong{font-size:17px}.create-login-state p{color:#858b90;font-size:12px}.create-login-state a{display:inline-flex;margin-top:8px;padding:10px 18px;border-radius:11px;background:#111715;color:#fff;text-decoration:none;font-size:12px;font-weight:800}
 @media(max-width:480px){.composer-card{margin-top:12px;padding:12px 11px 8px;border-radius:18px}.composer-avatar{width:42px;height:42px;flex-basis:42px}.composer-input{height:42px;font-size:12px;padding:0 14px}.composer-action{font-size:10px}.composer-action span{font-size:15px}.create-post-page{border-radius:18px}.create-post-header{padding:14px}.create-post-page form{padding:14px}.create-textarea{min-height:155px;font-size:17px}.create-author>img{width:44px;height:44px}.create-visibility{font-size:9px!important}.create-bottom{align-items:flex-end;flex-wrap:wrap}.create-error{order:3;flex-basis:100%}.create-submit{width:100%;margin-inline-start:0}}
 
+
+/* Create post — theme-aware Arabic typography */
+[data-theme="dark"] .create-post-page{background:var(--dj-surface);border-color:var(--dj-border);color:var(--dj-text);box-shadow:var(--dj-shadow-sm)}
+[data-theme="dark"] .create-post-header{border-bottom-color:var(--dj-border)}
+[data-theme="dark"] .create-back{color:var(--dj-text);border-color:var(--dj-border);background:var(--dj-surface-2)}
+[data-theme="dark"] .create-visibility{background:var(--dj-surface-2);border-color:var(--dj-border);color:var(--dj-text-2)!important}
+[data-theme="dark"] .create-tools{border-color:var(--dj-border)}
+[data-theme="dark"] .create-tools button,[data-theme="dark"] .create-tools a{background:var(--dj-surface);color:var(--dj-text)}
+[data-theme="dark"] .create-tools button:hover,[data-theme="dark"] .create-tools a:hover{background:var(--dj-surface-2)}
+[data-theme="dark"] .create-tools button+a{border-top-color:var(--dj-border)}
+[data-theme="dark"] .create-submit{background:var(--dj-accent-strong);color:#fff}
+[data-theme="dark"] .create-textarea{color:var(--dj-text)}
+
 /* Profile people lists */
 .profile-stats button{display:flex;align-items:center;gap:5px;border:0;background:transparent;padding:0;font:inherit;cursor:pointer;color:inherit}
 .profile-stats button:hover span{text-decoration:underline}
