@@ -120,6 +120,16 @@ function ProtectedApp() {
       <RouteScrollReset />
       <PersistentTabs />
       <Routes>
+        {/* Persistent tab pages are rendered by PersistentTabs above. These
+            route matches intentionally render nothing so the catch-all 404
+            page never appears underneath a valid page. */}
+        <Route path="/" element={null} />
+        <Route path="/explore" element={null} />
+        <Route path="/reels" element={null} />
+        <Route path="/messages" element={null} />
+        <Route path="/notifications" element={null} />
+        <Route path="/saved" element={null} />
+        <Route path="/profile" element={null} />
         <Route path="/call" element={<CallPage />} />
         <Route path="/create" element={<CreatePostPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
