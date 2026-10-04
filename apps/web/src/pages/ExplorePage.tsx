@@ -16,12 +16,12 @@ export default function ExplorePage() {
   const [loading,setLoading]=useState(true); const [searching,setSearching]=useState(false); const [error,setError]=useState("");
   const key = "explore:public";
 
-  async function loadExplore() {
-    if (!token) return; setLoading(true); setError("");
+  async function loadExplore(showLoading = !explore.length) {
+    if (!token) return; if (showLoading) setLoading(true); setError("");
     try { const d=await apiRequest("/posts/explore?limit=30",token); const next=d.posts??[]; setExplore(next); writeCache(key,{posts:next}); }
     catch { setError("تعذر تحميل الاستكشاف."); } finally { setLoading(false); }
   }
-  useEffect(()=>{const cached=readCache<{posts:Post[]}>(key,2*60*1000);if(cached?.posts?.length){setExplore(cached.posts);setLoading(false)}void loadExplore();},[token]);
+  useEffect(()=>{const cached=readCache<{posts:Post[]}>(key,10*60*1000);const hasCached=Boolean(cached?.posts?.length);if(cached?.posts?.length)setExplore(cached.posts);setLoading(!hasCached);void loadExplore(!hasCached);},[token]);
 
   async function search(e:React.FormEvent) {
     e.preventDefault(); if(!token) return; const value=query.trim(); if(!value)return;
