@@ -325,3 +325,204 @@ input[type=email],input[type=tel],input[type=password],code{font-family:"Inter",
 [data-theme="dark"] .notification-meta {
   color:var(--dj-text-2);
 }
+
+/* =========================================================
+   DARK MODE — platform-style text system
+   ========================================================= */
+
+[data-theme="dark"] {
+  --dj-font-ar: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --dj-text: #f5f5f5;
+  --dj-text-2: #a8adb5;
+  --dj-text-3: #7f8792;
+  --dj-text-disabled: #626a75;
+  --dj-placeholder: #8b939d;
+}
+
+/* Use one platform-like system font and normal rendering for readable Arabic text. */
+[data-theme="dark"] body,
+[data-theme="dark"] #root,
+[data-theme="dark"] button,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  font-family: var(--dj-font-ar);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Primary copy: names, post text, comments and notification content. */
+[data-theme="dark"] .post-text,
+[data-theme="dark"] .post-content p,
+[data-theme="dark"] .comment,
+[data-theme="dark"] .comment-text,
+[data-theme="dark"] .notification,
+[data-theme="dark"] .notification-text,
+[data-theme="dark"] .notification-item,
+[data-theme="dark"] .feed-post,
+[data-theme="dark"] .saved-card p,
+[data-theme="dark"] .saved-card strong,
+[data-theme="dark"] .explore-card,
+[data-theme="dark"] .explore-user,
+[data-theme="dark"] .chat-peer,
+[data-theme="dark"] .dm-preview,
+[data-theme="dark"] .profile-bio,
+[data-theme="dark"] .profile-identity .profile-bio {
+  color: var(--dj-text);
+}
+
+/* Primary identity text should be bright, not greyed out. */
+[data-theme="dark"] .post-user-info strong,
+[data-theme="dark"] .profile-row strong,
+[data-theme="dark"] .suggestion strong,
+[data-theme="dark"] .profile-identity h1,
+[data-theme="dark"] .profile-name-line,
+[data-theme="dark"] .profile-name-line > span:first-child,
+[data-theme="dark"] .profile-username,
+[data-theme="dark"] .profile-posts-title,
+[data-theme="dark"] .settings-profile-card strong,
+[data-theme="dark"] .settings-row > b:first-child,
+[data-theme="dark"] .search-result strong,
+[data-theme="dark"] .notification-item strong,
+[data-theme="dark"] .chat-peer strong,
+[data-theme="dark"] .dm-row strong,
+[data-theme="dark"] .explore-user-row strong {
+  color: var(--dj-text);
+}
+
+/* Secondary copy: timestamps, usernames, counts, metadata and descriptions. */
+[data-theme="dark"] .post-user-info span,
+[data-theme="dark"] .comments-link,
+[data-theme="dark"] .post-content time,
+[data-theme="dark"] .profile-row span,
+[data-theme="dark"] .suggestion span,
+[data-theme="dark"] .profile-identity p,
+[data-theme="dark"] .profile-stats span,
+[data-theme="dark"] .profile-post span,
+[data-theme="dark"] .reel-user span,
+[data-theme="dark"] .reel-meta,
+[data-theme="dark"] .reels-title small,
+[data-theme="dark"] .settings-header small,
+[data-theme="dark"] .settings-profile-card span,
+[data-theme="dark"] .settings-row > span small,
+[data-theme="dark"] .settings-options small,
+[data-theme="dark"] .settings-switch-row small,
+[data-theme="dark"] .explore-head > span,
+[data-theme="dark"] .explore-user-row span,
+[data-theme="dark"] .explore-card > small,
+[data-theme="dark"] .saved-page header p,
+[data-theme="dark"] .saved-empty,
+[data-theme="dark"] .search-result > div:nth-child(2) span,
+[data-theme="dark"] .msg-time,
+[data-theme="dark"] .dm-top time,
+[data-theme="dark"] .day-sep,
+[data-theme="dark"] .notification time,
+[data-theme="dark"] .notification-item time,
+[data-theme="dark"] .notification-meta,
+[data-theme="dark"] .post-meta,
+[data-theme="dark"] .comment-meta {
+  color: var(--dj-text-2);
+}
+
+/* Tertiary/helper copy stays visible without competing with content. */
+[data-theme="dark"] .sidebar-footer,
+[data-theme="dark"] .story,
+[data-theme="dark"] .feed-heading p,
+[data-theme="dark"] .profile-private-notice,
+[data-theme="dark"] .settings-info,
+[data-theme="dark"] .settings-options > b,
+[data-theme="dark"] .create-tools small,
+[data-theme="dark"] .create-counter,
+[data-theme="dark"] .people-list small,
+[data-theme="dark"] .chat-empty,
+[data-theme="dark"] .dm-empty,
+[data-theme="dark"] .profile-empty {
+  color: var(--dj-text-3);
+}
+
+/* Text metrics: compact like social feeds, but comfortable for Arabic. */
+[data-theme="dark"] .post-text,
+[data-theme="dark"] .post-content p,
+[data-theme="dark"] .comment,
+[data-theme="dark"] .comment-text,
+[data-theme="dark"] .notification-text,
+[data-theme="dark"] .notification-item,
+[data-theme="dark"] .saved-card p,
+[data-theme="dark"] .explore-card {
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+[data-theme="dark"] .post-user-info strong,
+[data-theme="dark"] .notification-item strong,
+[data-theme="dark"] .chat-peer strong {
+  font-weight: 600;
+}
+
+[data-theme="dark"] .post-content > strong,
+[data-theme="dark"] .comments-link,
+[data-theme="dark"] .post-user-info span,
+[data-theme="dark"] .profile-row span,
+[data-theme="dark"] .suggestion span,
+[data-theme="dark"] .post-content time,
+[data-theme="dark"] .profile-stats span,
+[data-theme="dark"] .profile-post span,
+[data-theme="dark"] .notification-meta,
+[data-theme="dark"] .notification time,
+[data-theme="dark"] .notification-item time,
+[data-theme="dark"] .msg-time,
+[data-theme="dark"] .dm-top time {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Inputs/placeholders should be clearly readable instead of looking printed/faded. */
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--dj-placeholder);
+  opacity: 1;
+}
+
+[data-theme="dark"] .create-textarea,
+[data-theme="dark"] .chat-composer textarea,
+[data-theme="dark"] .dm-search input,
+[data-theme="dark"] .account-search-form input,
+[data-theme="dark"] .explore-search input {
+  color: var(--dj-text);
+  font-size: 14px;
+}
+
+[data-theme="dark"] .create-textarea::placeholder,
+[data-theme="dark"] .chat-composer textarea::placeholder,
+[data-theme="dark"] .dm-search input::placeholder,
+[data-theme="dark"] .account-search-form input::placeholder,
+[data-theme="dark"] .explore-search input::placeholder {
+  color: var(--dj-placeholder);
+  opacity: 1;
+}
+
+/* Keep interactive text vivid; never let generic muted rules wash out links/actions. */
+[data-theme="dark"] .profile-row button,
+[data-theme="dark"] .suggestions-title button,
+[data-theme="dark"] .suggestion button,
+[data-theme="dark"] .section-heading button,
+[data-theme="dark"] .search-actions a,
+[data-theme="dark"] .search-actions button,
+[data-theme="dark"] .settings-message,
+[data-theme="dark"] .settings-save,
+[data-theme="dark"] .auth-link,
+[data-theme="dark"] .auth-switch button,
+[data-theme="dark"] .auth-policy,
+[data-theme="dark"] .policy-back {
+  color: var(--dj-accent);
+}
+
+/* Do not apply the text hierarchy to media overlays, icons or status colors. */
+[data-theme="dark"] .reels-feed-shell,
+[data-theme="dark"] .reels-feed-shell .reel-user,
+[data-theme="dark"] .reels-feed-shell .reel-actions,
+[data-theme="dark"] .reels-feed-shell .reel-actions button,
+[data-theme="dark"] .floating-heart {
+  color: #fff;
+}
