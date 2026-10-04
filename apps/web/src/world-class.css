@@ -94,3 +94,22 @@ input[type=email],input[type=tel],input[type=password],code{font-family:"Inter",
 [data-theme="dark"] .sk {
   background: linear-gradient(90deg, var(--dj-surface-2) 25%, var(--dj-surface) 50%, var(--dj-surface-2) 75%);
 }
+
+/* Dark-mode fixes found during the screen pass: legacy reel/profile surfaces
+   in index.css use fixed white backgrounds, so keep them on the global tokens. */
+[data-theme="dark"] .reel-card,
+[data-theme="dark"] .reels-empty,
+[data-theme="dark"] .profile-page-card {
+  background: var(--dj-surface) !important;
+  border-color: var(--dj-border);
+  color: var(--dj-text);
+}
+[data-theme="dark"] .reel-user span,
+[data-theme="dark"] .reel-meta,
+[data-theme="dark"] .reels-title small {
+  color: var(--dj-text-2);
+}
+[data-theme="dark"] .profile-page-card a,
+[data-theme="dark"] .profile-page-card button {
+  color: inherit;
+}
