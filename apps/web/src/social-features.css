@@ -76,3 +76,97 @@
 .sk-lines{flex:1;display:flex;flex-direction:column;gap:8px}.sk-lines .sk{height:12px;width:60%}.sk-lines .sk.short{width:35%}
 @media(max-width:820px){body.in-chat .topbar,body.in-chat .mobile-nav{display:none}body.in-chat .page-layout{padding:0}body.in-chat .feed-container{padding:0}.chat-screen{height:100dvh;border:0;border-radius:0}}
 @media(prefers-color-scheme:dark){.chat-screen,.chat-top,.chat-scroll,.chat-composer,.dm-row{background:#111;border-color:#222;color:#eee}.theirs .bubble{background:#25282d;color:#eee}.chat-composer textarea,.dm-search input{background:#1b1d21;border-color:#2a2d33;color:#eee}.day-sep{background:#1b1d21}.chat-back{color:#eee}}
+
+
+/* Dark mode typography normalization for social/reels/chat legacy styles. */
+[data-theme="dark"] .messages-title span,
+[data-theme="dark"] .chat-row span,
+[data-theme="dark"] .chat-row small,
+[data-theme="dark"] .chat-header span,
+[data-theme="dark"] .story-create p,
+[data-theme="dark"] .reel-comments-list article small,
+[data-theme="dark"] .reel-no-comments,
+[data-theme="dark"] .saved-page header p,
+[data-theme="dark"] .saved-empty,
+[data-theme="dark"] .saved-card p,
+[data-theme="dark"] .explore-head span,
+[data-theme="dark"] .explore-user-row span,
+[data-theme="dark"] .explore-card > small,
+[data-theme="dark"] .explore-empty,
+[data-theme="dark"] .peer-text small,
+[data-theme="dark"] .day-sep,
+[data-theme="dark"] .msg-time,
+[data-theme="dark"] .chat-empty,
+[data-theme="dark"] .dm-top time,
+[data-theme="dark"] .dm-preview,
+[data-theme="dark"] .dm-empty {
+  color: var(--dj-text-2);
+}
+
+[data-theme="dark"] .saved-card,
+[data-theme="dark"] .chat-back,
+[data-theme="dark"] .theirs .bubble,
+[data-theme="dark"] .chat-empty strong,
+[data-theme="dark"] .dm-empty strong {
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .saved-page,
+[data-theme="dark"] .explore-page,
+[data-theme="dark"] .explore-public-section,
+[data-theme="dark"] .saved-card,
+[data-theme="dark"] .explore-card,
+[data-theme="dark"] .chat-screen,
+[data-theme="dark"] .chat-top,
+[data-theme="dark"] .chat-scroll,
+[data-theme="dark"] .chat-composer,
+[data-theme="dark"] .dm-row {
+  background: var(--dj-surface);
+  border-color: var(--dj-border);
+}
+
+[data-theme="dark"] .saved-card p,
+[data-theme="dark"] .explore-card > p {
+  color: var(--dj-text-2);
+}
+
+[data-theme="dark"] .explore-search input,
+[data-theme="dark"] .dm-search input,
+[data-theme="dark"] .chat-composer textarea {
+  background: var(--dj-surface-2);
+  border-color: var(--dj-border);
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .explore-tabs button.active,
+[data-theme="dark"] .explore-user-row:hover,
+[data-theme="dark"] .chat-back:active,
+[data-theme="dark"] .chat-actions button:active,
+[data-theme="dark"] .dm-row:active {
+  background: var(--dj-surface-2);
+}
+
+[data-theme="dark"] .reel-comments-sheet {
+  background: var(--dj-surface);
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .reel-comment-form {
+  background: var(--dj-surface);
+  border-color: var(--dj-border);
+}
+
+[data-theme="dark"] .reel-comment-form input {
+  background: var(--dj-surface-2);
+  border-color: var(--dj-border);
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .reel-follow {
+  color: var(--dj-text);
+  background: var(--dj-surface-2);
+}
+
+[data-theme="dark"] .reel-action.saved {
+  color: var(--dj-accent);
+}
