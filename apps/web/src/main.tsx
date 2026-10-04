@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
+import "./social-features.css";
+import "./world-class.css";
 import App from "./App.tsx";
 import { AuthProvider } from "./context/AuthContext";
 import { registerServiceWorker } from "./lib/api";

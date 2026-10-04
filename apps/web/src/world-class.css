@@ -1,5 +1,5 @@
 /* Dijla Social — global design layer */
-:root{--dj-font-ar:"Tajawal","Inter",ui-sans-serif,system-ui,sans-serif;--dj-bg:#f6f7f9;--dj-surface:#fff;--dj-surface-2:#f0f2f5;--dj-text:#171717;--dj-text-2:#5b6470;--dj-border:rgba(20,20,20,.07);--dj-accent:#0d9488;--dj-accent-strong:#0f766e;--dj-accent-soft:rgba(13,148,136,.1);--dj-shadow-sm:0 1px 2px rgba(16,24,40,.06);--dj-shadow-md:0 8px 24px rgba(16,24,40,.08);--dj-shadow-lg:0 20px 48px rgba(16,24,40,.14);--dj-radius-md:14px;--dj-radius-lg:20px;--dj-topbar-bg:rgba(255,255,255,.82);--dj-ring:rgba(13,148,136,.35);color-scheme:light}
+:root{--dj-font-ar:ui-sans-serif,system-ui,"Segoe UI",Tahoma,sans-serif;--dj-bg:#f6f7f9;--dj-surface:#fff;--dj-surface-2:#f0f2f5;--dj-text:#171717;--dj-text-2:#5b6470;--dj-border:rgba(20,20,20,.07);--dj-accent:#0d9488;--dj-accent-strong:#0f766e;--dj-accent-soft:rgba(13,148,136,.1);--dj-shadow-sm:0 1px 2px rgba(16,24,40,.06);--dj-shadow-md:0 8px 24px rgba(16,24,40,.08);--dj-shadow-lg:0 20px 48px rgba(16,24,40,.14);--dj-radius-md:14px;--dj-radius-lg:20px;--dj-topbar-bg:rgba(255,255,255,.82);--dj-ring:rgba(13,148,136,.35);color-scheme:light}
 [data-theme=dark]{--dj-bg:#0b0d10;--dj-surface:#14181d;--dj-surface-2:#1c2129;--dj-text:#e8eaed;--dj-text-2:#9aa3af;--dj-border:rgba(255,255,255,.08);--dj-accent:#2dd4bf;--dj-accent-strong:#14b8a6;--dj-accent-soft:rgba(45,212,191,.12);--dj-shadow-sm:0 1px 2px rgba(0,0,0,.4);--dj-shadow-md:0 8px 24px rgba(0,0,0,.45);--dj-shadow-lg:0 20px 48px rgba(0,0,0,.55);--dj-topbar-bg:rgba(11,13,16,.8);color-scheme:dark}
 :root{font-family:var(--dj-font-ar)}html{scroll-behavior:smooth}body{font-family:var(--dj-font-ar);transition:background-color .25s ease,color .25s ease}
 input[type=email],input[type=tel],input[type=password],code{font-family:"Inter",var(--dj-font-ar)}
@@ -26,3 +26,90 @@ input[type=email],input[type=tel],input[type=password],code{font-family:"Inter",
 [data-theme=dark] .auth-appeal{background:var(--dj-surface);border-color:var(--dj-border)}[data-theme=dark] .auth-error{background:rgba(225,29,72,.12);color:#fda4af}
 [data-theme=dark] .policy-sheet{background:var(--dj-surface);border-color:var(--dj-border);color:var(--dj-text)}[data-theme=dark] .policy-sheet section{border-top-color:var(--dj-border)}[data-theme=dark] .policy-back{background:var(--dj-surface-2)}[data-theme=dark] .policy-bottom{background:var(--dj-accent-soft)}
 [data-theme=dark] .settings-link-button{background:var(--dj-accent-soft);color:var(--dj-accent)}[data-theme=dark] .settings-link-button.danger{background:rgba(225,29,72,.12);color:#fda4af;border-color:rgba(225,29,72,.25)}[data-theme=dark] .settings-linked-badge{background:var(--dj-accent-soft);color:var(--dj-accent)}
+
+/* Dark chat surfaces: use the global design tokens instead of fixed light colors. */
+[data-theme="dark"] .chat-screen,
+[data-theme="dark"] .chat-top,
+[data-theme="dark"] .chat-scroll,
+[data-theme="dark"] .chat-composer,
+[data-theme="dark"] .dm-row {
+  background: var(--dj-surface);
+  border-color: var(--dj-border);
+  color: var(--dj-text);
+}
+[data-theme="dark"] .chat-back,
+[data-theme="dark"] .chat-peer,
+[data-theme="dark"] .chat-actions button {
+  color: var(--dj-text);
+}
+[data-theme="dark"] .chat-back:active,
+[data-theme="dark"] .chat-actions button:active,
+[data-theme="dark"] .dm-row:active {
+  background: var(--dj-surface-2);
+}
+[data-theme="dark"] .online-dot {
+  border-color: var(--dj-surface);
+}
+[data-theme="dark"] .theirs .bubble {
+  background: var(--dj-surface-2);
+  color: var(--dj-text);
+}
+[data-theme="dark"] .mine .bubble {
+  background: var(--dj-accent-strong);
+  color: #fff;
+}
+[data-theme="dark"] .day-sep {
+  background: var(--dj-surface-2);
+  color: var(--dj-text-2);
+}
+[data-theme="dark"] .chat-empty strong,
+[data-theme="dark"] .dm-empty strong {
+  color: var(--dj-text);
+}
+[data-theme="dark"] .chat-composer textarea,
+[data-theme="dark"] .dm-search input {
+  background: var(--dj-surface-2);
+  border-color: var(--dj-border);
+  color: var(--dj-text);
+}
+[data-theme="dark"] .chat-composer textarea:focus {
+  background: var(--dj-surface);
+  border-color: var(--dj-accent);
+}
+[data-theme="dark"] .send-btn {
+  background: var(--dj-accent-strong);
+}
+[data-theme="dark"] .send-btn:disabled {
+  background: var(--dj-surface-2);
+  color: var(--dj-text-2);
+}
+[data-theme="dark"] .dm-preview,
+[data-theme="dark"] .dm-top time,
+[data-theme="dark"] .msg-time {
+  color: var(--dj-text-2);
+}
+[data-theme="dark"] .dm-row:hover {
+  background: var(--dj-surface-2);
+}
+[data-theme="dark"] .sk {
+  background: linear-gradient(90deg, var(--dj-surface-2) 25%, var(--dj-surface) 50%, var(--dj-surface-2) 75%);
+}
+
+/* Dark-mode fixes found during the screen pass: legacy reel/profile surfaces
+   in index.css use fixed white backgrounds, so keep them on the global tokens. */
+[data-theme="dark"] .reel-card,
+[data-theme="dark"] .reels-empty,
+[data-theme="dark"] .profile-page-card {
+  background: var(--dj-surface) !important;
+  border-color: var(--dj-border);
+  color: var(--dj-text);
+}
+[data-theme="dark"] .reel-user span,
+[data-theme="dark"] .reel-meta,
+[data-theme="dark"] .reels-title small {
+  color: var(--dj-text-2);
+}
+[data-theme="dark"] .profile-page-card a,
+[data-theme="dark"] .profile-page-card button {
+  color: inherit;
+}
