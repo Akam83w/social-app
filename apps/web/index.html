@@ -14,9 +14,12 @@
     <title>دجلة سوشيال</title>
     <script>
       try {
-        var t = localStorage.getItem("dj-theme");
-        if (!t) t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        document.documentElement.dataset.theme = t;
+        var savedTheme = localStorage.getItem("dj-theme");
+        var theme = savedTheme === "light" || savedTheme === "dark"
+          ? savedTheme
+          : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.dataset.themeMode = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "auto";
       } catch (e) {}
     </script>
   </head>
