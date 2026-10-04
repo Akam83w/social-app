@@ -2052,3 +2052,197 @@ img {
 @media(max-width:480px){.auth-scene{min-height:34svh;height:34svh}.auth-scene-copy strong{font-size:24px}.auth-pour{left:44%;width:145px}.auth-two{grid-template-columns:1fr}.auth-panel{padding:25px 16px 32px}.auth-form input{height:47px}.policy-sheet{padding:22px 17px}.policy-sheet h1{font-size:29px}}
 
 .settings-linked-badge{padding:6px 10px;border-radius:999px;background:#e9f7f1;color:#078968;font-size:10px;font-weight:800}.settings-link-button{border:0;border-radius:10px;padding:8px 14px;background:#111715;color:#fff;font:inherit;font-size:11px;font-weight:800}.settings-link-button.danger{background:#f4f4f4;color:#9a3d3d;border:1px solid #e4e4e4}
+
+
+/* =========================================================
+   DARK MODE — typography normalization
+   Keep semantic/accent/overlay colors, but remove legacy
+   light-theme neutrals from normal readable text.
+   ========================================================= */
+[data-theme="dark"] .side-link,
+[data-theme="dark"] .story,
+[data-theme="dark"] .feed-heading p,
+[data-theme="dark"] .filter-button,
+[data-theme="dark"] .post-user-info span,
+[data-theme="dark"] .post-text,
+[data-theme="dark"] .post-content p,
+[data-theme="dark"] .comments-link,
+[data-theme="dark"] .post-content time,
+[data-theme="dark"] .profile-row span,
+[data-theme="dark"] .suggestion span,
+[data-theme="dark"] .profile-identity p,
+[data-theme="dark"] .profile-identity .profile-bio,
+[data-theme="dark"] .profile-stats span,
+[data-theme="dark"] .avatar-crop-panel label,
+[data-theme="dark"] .profile-post span,
+[data-theme="dark"] .profile-empty,
+[data-theme="dark"] .account-search > p,
+[data-theme="dark"] .search-result > div:nth-child(2) span,
+[data-theme="dark"] .reels-title small,
+[data-theme="dark"] .reel-user span,
+[data-theme="dark"] .reel-meta,
+[data-theme="dark"] .reels-empty,
+[data-theme="dark"] .settings-header small,
+[data-theme="dark"] .settings-profile-card span,
+[data-theme="dark"] .settings-group h2,
+[data-theme="dark"] .settings-row > span small,
+[data-theme="dark"] .settings-row > b:last-child,
+[data-theme="dark"] .settings-row.danger,
+[data-theme="dark"] .settings-field > span,
+[data-theme="dark"] .settings-info,
+[data-theme="dark"] .settings-options small,
+[data-theme="dark"] .settings-options > b,
+[data-theme="dark"] .settings-switch-row small,
+[data-theme="dark"] .create-post-header p,
+[data-theme="dark"] .create-author span,
+[data-theme="dark"] .create-visibility,
+[data-theme="dark"] .create-textarea,
+[data-theme="dark"] .create-textarea::placeholder,
+[data-theme="dark"] .create-tools small,
+[data-theme="dark"] .create-tools i,
+[data-theme="dark"] .create-counter,
+[data-theme="dark"] .create-login-state p,
+[data-theme="dark"] .people-modal > p,
+[data-theme="dark"] .people-list small,
+[data-theme="dark"] .profile-username,
+[data-theme="dark"] .profile-badge,
+[data-theme="dark"] .profile-posts-title,
+[data-theme="dark"] .profile-stats,
+[data-theme="dark"] .profile-stats > button,
+[data-theme="dark"] .profile-stats > button strong,
+[data-theme="dark"] .profile-private-notice,
+[data-theme="dark"] .profile-instagram-stats > div,
+[data-theme="dark"] .profile-instagram-stats > div strong,
+[data-theme="dark"] .profile-instagram-stats > div span,
+[data-theme="dark"] .profile-bio,
+[data-theme="dark"] .profile-instagram-stats span,
+[data-theme="dark"] .profile-post > span,
+[data-theme="dark"] .auth-subtitle,
+[data-theme="dark"] .auth-card label span,
+[data-theme="dark"] .auth-card small,
+[data-theme="dark"] .auth-divider,
+[data-theme="dark"] .auth-switch,
+[data-theme="dark"] .auth-dijla,
+[data-theme="dark"] .auth-panel h1,
+[data-theme="dark"] .auth-form label,
+[data-theme="dark"] .optional,
+[data-theme="dark"] .policy-lead,
+[data-theme="dark"] .policy-sheet section p,
+[data-theme="dark"] .policy-dijla {
+  color: var(--dj-text-2);
+}
+
+[data-theme="dark"] .profile-topbar-username,
+[data-theme="dark"] .profile-menu-button,
+[data-theme="dark"] .profile-posts-title,
+[data-theme="dark"] .profile-instagram-stats strong,
+[data-theme="dark"] .profile-action-row > .profile-edit-own,
+[data-theme="dark"] .profile-name-line > span:first-child,
+[data-theme="dark"] .auth-panel h1,
+[data-theme="dark"] .auth-form input,
+[data-theme="dark"] .auth-card input,
+[data-theme="dark"] .auth-card textarea,
+[data-theme="dark"] .policy-sheet h1,
+[data-theme="dark"] .policy-sheet h2 {
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .filter-button,
+[data-theme="dark"] .profile-edit,
+[data-theme="dark"] .profile-accounts button,
+[data-theme="dark"] .profile-footer-actions button,
+[data-theme="dark"] .crop-actions button,
+[data-theme="dark"] .account-search-form input,
+[data-theme="dark"] .search-result,
+[data-theme="dark"] .settings-field input,
+[data-theme="dark"] .settings-field textarea,
+[data-theme="dark"] .create-textarea {
+  border-color: var(--dj-border);
+  background: var(--dj-surface-2);
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .profile-topbar,
+[data-theme="dark"] .profile-stats,
+[data-theme="dark"] .profile-posts {
+  border-color: var(--dj-border);
+  background: var(--dj-surface);
+}
+
+[data-theme="dark"] .profile-avatar-wrap {
+  background: var(--dj-surface);
+}
+
+[data-theme="dark"] .profile-avatar,
+[data-theme="dark"] .post-avatar {
+  border-color: var(--dj-surface);
+}
+
+[data-theme="dark"] .profile-post {
+  background: var(--dj-surface-2);
+}
+
+[data-theme="dark"] .profile-cover {
+  background: linear-gradient(135deg, #202a2a, #151b1d);
+}
+
+[data-theme="dark"] .story-ring,
+[data-theme="dark"] .story-ring.own {
+  background:
+    linear-gradient(var(--dj-surface), var(--dj-surface)) padding-box,
+    conic-gradient(from 210deg, #08a87e, #75d55e, #ffd55b, #ff7b56, #08a87e) border-box;
+}
+
+[data-theme="dark"] .story-image,
+[data-theme="dark"] .post-avatar,
+[data-theme="dark"] .profile-avatar {
+  background: var(--dj-surface-2);
+}
+
+[data-theme="dark"] .icon-button:hover,
+[data-theme="dark"] .more-button:hover,
+[data-theme="dark"] .action:hover {
+  background: var(--dj-surface-2);
+}
+
+[data-theme="dark"] .search-actions a,
+[data-theme="dark"] .search-actions button {
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .search-actions button {
+  background: var(--dj-surface-2);
+  border-color: var(--dj-border);
+}
+
+[data-theme="dark"] .auth-card,
+[data-theme="dark"] .auth-panel,
+[data-theme="dark"] .policy-sheet {
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .auth-card input,
+[data-theme="dark"] .auth-card textarea,
+[data-theme="dark"] .auth-form input {
+  background: var(--dj-surface-2);
+  border-color: var(--dj-border);
+}
+
+[data-theme="dark"] .auth-social {
+  color: var(--dj-text);
+}
+
+[data-theme="dark"] .auth-primary {
+  background: var(--dj-accent-strong);
+  color: #fff;
+}
+
+[data-theme="dark"] .policy-back {
+  color: var(--dj-accent);
+  background: var(--dj-surface-2);
+}
+
+[data-theme="dark"] .settings-row,
+[data-theme="dark"] .settings-field {
+  color: var(--dj-text);
+}
