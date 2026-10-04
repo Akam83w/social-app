@@ -1,4 +1,5 @@
 import OptimizedImage from "../OptimizedImage";
+import { ThemeToggle } from "../../ThemeToggle";
 import React,{useEffect} from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -50,7 +51,7 @@ const stories = [
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const { user,token } = useAuth();
-  useEffect(()=>{if(!token)return;let stop=()=>{};(async()=>{try{if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.register('/sw.js');const cfg=await apiRequest('/notifications/config',token);if('PushManager' in window&&Notification.permission==='granted'&&cfg.publicKey){const bytes=Uint8Array.from(atob(cfg.publicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));const sub=await reg.pushManager.getSubscription()||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});await apiRequest('/notifications/push-subscription',token,{method:'POST',body:JSON.stringify(sub.toJSON())})}}stop=connectRealtime(token,e=>{window.dispatchEvent(new CustomEvent('sdm:realtime', { detail: e }));if(e.type==='notification'&&'Notification'in window&&Notification.permission==='granted')navigator.serviceWorker?.ready.then(r=>r.showNotification(e.title,{body:e.body,data:e.data||{}})).catch(()=>{});if(e.type==='call'&&e.kind==='invite'&&e.callId)navigate('/call?incoming=1&callId='+encodeURIComponent(e.callId))})}catch{}})();return()=>stop()},[token]);
+  useEffect(()=>{if(!token)return;let stop=()=>{};(async()=>{try{if('serviceWorker' in navigator){const reg=await navigator.serviceWorker.ready;const cfg=await apiRequest('/notifications/config',token);if('PushManager' in window&&Notification.permission==='granted'&&cfg.publicKey){const bytes=Uint8Array.from(atob(cfg.publicKey.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));const sub=await reg.pushManager.getSubscription()||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});await apiRequest('/notifications/push-subscription',token,{method:'POST',body:JSON.stringify(sub.toJSON())})}}stop=connectRealtime(token,e=>{window.dispatchEvent(new CustomEvent('sdm:realtime', { detail: e }));if(e.type==='notification'&&'Notification'in window&&Notification.permission==='granted')reg.showNotification(e.title,{body:e.body,data:e.data||{}}).catch(()=>{});if(e.type==='call'&&e.kind==='invite'&&e.callId)navigate('/call?incoming=1&callId='+encodeURIComponent(e.callId))})}catch{}})();return()=>stop()},[token,navigate]);
 
   return (
     <div className="app-shell" dir="rtl">
@@ -62,6 +63,7 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
 
           <div className="top-actions">
+            <ThemeToggle />
             <Link to="/explore" className="icon-button mobile-hide">
               <SearchIcon />
             </Link>
@@ -144,6 +146,7 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
 
           <div className="sidebar-footer">
+            <ThemeToggle />
             <span>دجلة سوشيال</span>
             <span>•</span>
             <span>نسخة تجريبية</span>
