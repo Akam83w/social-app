@@ -1,6 +1,6 @@
 /* Dijla Social — global design layer */
 :root{--dj-font-ar:ui-sans-serif,system-ui,"Segoe UI",Tahoma,sans-serif;--dj-bg:#f6f7f9;--dj-surface:#fff;--dj-surface-2:#f0f2f5;--dj-text:#171717;--dj-text-2:#5b6470;--dj-border:rgba(20,20,20,.07);--dj-accent:#0d9488;--dj-accent-strong:#0f766e;--dj-accent-soft:rgba(13,148,136,.1);--dj-shadow-sm:0 1px 2px rgba(16,24,40,.06);--dj-shadow-md:0 8px 24px rgba(16,24,40,.08);--dj-shadow-lg:0 20px 48px rgba(16,24,40,.14);--dj-radius-md:14px;--dj-radius-lg:20px;--dj-topbar-bg:rgba(255,255,255,.82);--dj-ring:rgba(13,148,136,.35);color-scheme:light}
-[data-theme=dark]{--dj-bg:#0b0d10;--dj-surface:#14181d;--dj-surface-2:#1c2129;--dj-text:#e8eaed;--dj-text-2:#9aa3af;--dj-border:rgba(255,255,255,.08);--dj-accent:#2dd4bf;--dj-accent-strong:#14b8a6;--dj-accent-soft:rgba(45,212,191,.12);--dj-shadow-sm:0 1px 2px rgba(0,0,0,.4);--dj-shadow-md:0 8px 24px rgba(0,0,0,.45);--dj-shadow-lg:0 20px 48px rgba(0,0,0,.55);--dj-topbar-bg:rgba(11,13,16,.8);color-scheme:dark}
+[data-theme=dark]{--dj-bg:#0b0d10;--dj-surface:#14181d;--dj-surface-2:#1c2129;--dj-text:#f3f4f6;--dj-text-2:#b7bec8;--dj-border:rgba(255,255,255,.08);--dj-accent:#2dd4bf;--dj-accent-strong:#14b8a6;--dj-accent-soft:rgba(45,212,191,.12);--dj-shadow-sm:0 1px 2px rgba(0,0,0,.4);--dj-shadow-md:0 8px 24px rgba(0,0,0,.45);--dj-shadow-lg:0 20px 48px rgba(0,0,0,.55);--dj-topbar-bg:rgba(11,13,16,.8);color-scheme:dark}
 :root{font-family:var(--dj-font-ar)}html{scroll-behavior:smooth}body{font-family:var(--dj-font-ar);transition:background-color .25s ease,color .25s ease}
 input[type=email],input[type=tel],input[type=password],code{font-family:"Inter",var(--dj-font-ar)}
 .app-shell,.topbar,.desktop-sidebar,.right-panel,.post-card,.profile-card,.suggestions,.stories-card,.mobile-nav,.profile-page-card,.auth-card,.create-button,.side-link,.nav-item{transition:background-color .25s ease,border-color .25s ease,color .25s ease,box-shadow .25s ease}
@@ -234,4 +234,94 @@ input[type=email],input[type=tel],input[type=password],code{font-family:"Inter",
 [data-theme="dark"] .note-modal button[type="submit"] {
   background: var(--dj-accent-strong) !important;
   color: #fff !important;
+}
+
+
+/* =========================================================
+   DARK MODE — readable app-wide typography
+   Semantic hierarchy inspired by mature platform UIs:
+   primary content is bright, secondary content is softer,
+   while links/actions keep the accent color.
+   ========================================================= */
+[data-theme="dark"] {
+  --dj-text:#f3f4f6;
+  --dj-text-2:#b7bec8;
+  --dj-text-3:#8f99a6;
+  --dj-text-disabled:#697381;
+  --dj-placeholder:#858f9c;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] #root {
+  color:var(--dj-text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] li,
+[data-theme="dark"] dd,
+[data-theme="dark"] dt,
+[data-theme="dark"] article,
+[data-theme="dark"] section,
+[data-theme="dark"] main,
+[data-theme="dark"] label {
+  color:var(--dj-text);
+}
+
+[data-theme="dark"] small,
+[data-theme="dark"] time,
+[data-theme="dark"] .muted,
+[data-theme="dark"] [aria-description],
+[data-theme="dark"] [data-secondary-text] {
+  color:var(--dj-text-2);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color:var(--dj-placeholder);
+  opacity:1;
+}
+
+[data-theme="dark"] button,
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  color:var(--dj-text);
+}
+
+[data-theme="dark"] a:not([class*="accent"]):not([class*="link"]) {
+  color:inherit;
+}
+
+[data-theme="dark"] a {
+  text-decoration-color:currentColor;
+}
+
+[data-theme="dark"] :disabled,
+[data-theme="dark"] [aria-disabled="true"] {
+  color:var(--dj-text-disabled);
+}
+
+[data-theme="dark"] .post-text,
+[data-theme="dark"] .post-content,
+[data-theme="dark"] .comment,
+[data-theme="dark"] .comment-text,
+[data-theme="dark"] .notification,
+[data-theme="dark"] .notification-text,
+[data-theme="dark"] .notification-item,
+[data-theme="dark"] .feed-post,
+[data-theme="dark"] .post-card {
+  color:var(--dj-text);
+}
+
+[data-theme="dark"] .post-content time,
+[data-theme="dark"] .comment time,
+[data-theme="dark"] .notification time,
+[data-theme="dark"] .notification-item time,
+[data-theme="dark"] .post-meta,
+[data-theme="dark"] .comment-meta,
+[data-theme="dark"] .notification-meta {
+  color:var(--dj-text-2);
 }
