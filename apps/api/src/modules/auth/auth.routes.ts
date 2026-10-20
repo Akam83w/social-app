@@ -319,6 +319,27 @@ export async function authRoutes(app: FastifyInstance) {
     return reply.send({ users: rows });
   });
 
+  app.get('/auth/suggestions', { preHandler: verifyToken }, async (request, reply) => {
+    const me = (request.user as { id: string }).id;
+    const rows = await db.execute(sql`
+      SELECT u.id, u.username, u.display_name AS "displayName", u.avatar_url AS "avatarUrl"
+      FROM users u
+      WHERE u.id <> ${me}
+        AND NOT EXISTS (
+          SELECT 1 FROM follows f
+          WHERE f.follower_id = ${me} AND f.following_id = u.id
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM blocks b
+          WHERE (b.blocker_id = ${me} AND b.blocked_id = u.id)
+             OR (b.blocker_id = u.id AND b.blocked_id = ${me})
+        )
+      ORDER BY u.created_at DESC
+      LIMIT 6
+    `);
+    return reply.send({ users: rows.rows });
+  });
+
   app.get('/auth/search/users/:username', { preHandler: verifyToken }, async (request, reply) => {
     const { username } = request.params as { username: string };
     const payload = request.user as { id: string };

@@ -156,7 +156,7 @@ export function NotificationsLivePage(){
  const navigate=useNavigate();
  const[list,setList]=useState<any[]>([]);
  const[permission,setPermission]=useState<string>(()=>typeof Notification!=="undefined"?Notification.permission:"default");
- const load=async()=>{if(token){const d=await apiRequest('/notifications',token);setList(d.notifications||[])}};
+ const load=async()=>{if(token){const d=await apiRequest('/notifications',token);setList(d.notifications||[]);try{await apiRequest('/notifications/read',token,{method:'POST'});window.dispatchEvent(new Event('sdm:notifications-read'))}catch{}}};
  useEffect(()=>{void load();if(typeof Notification!=="undefined")setPermission(Notification.permission)},[token]);
  const enable=async()=>{
    if(!token||!('Notification'in window)||!('serviceWorker'in navigator))return;

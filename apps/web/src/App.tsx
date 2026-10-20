@@ -1,5 +1,5 @@
 import React from "react";
-import { SearchIcon, BellIcon } from "./components/icons/Icons";
+import { SearchIcon } from "./components/icons/Icons";
 import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import "./index.css";
 import "./social-features.css";
@@ -25,6 +25,7 @@ const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
 const ForgotPasswordPage = React.lazy(() => import("./pages/ForgotPasswordPage"));
 const PolicyPage = React.lazy(() => import("./pages/PolicyPage"));
 const SavedPage = React.lazy(() => import("./pages/SavedPage"));
+const StoriesPage = React.lazy(() => import("./pages/StoriesPage"));
 import { useAuth } from "./context/AuthContext";
 import { prefetchApi } from "./lib/api";
 const NativePushBootstrap = React.lazy(() => import("./NativePushBootstrap"));
@@ -134,26 +135,8 @@ function ProtectedApp() {
         <Route path="/create" element={<CreatePostPage />} />
         <Route path="/create-post" element={<CreatePostPage />} />
         <Route path="/create-story" element={<CreateStoryPage />} />
-        <Route
-          path="/stories"
-          element={
-            <SimplePage
-              title="القصص"
-              description="هنا ستظهر جميع القصص."
-              icon={<BellIcon size={52} />}
-            />
-          }
-        />
-        <Route
-          path="/stories/:username"
-          element={
-            <SimplePage
-              title="القصة"
-              description="صفحة القصة."
-              icon={<BellIcon size={52} />}
-            />
-          }
-        />
+        <Route path="/stories" element={<StoriesPage />} />
+        <Route path="/stories/:username" element={<StoriesPage />} />
         <Route path="/hashtag/:tag" element={<HashtagPage />} />
         <Route path="/profile/settings" element={<AccountSettingsPage />} />
         <Route path="/u/:username" element={<ProfilePage />} />
