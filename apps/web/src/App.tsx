@@ -4,7 +4,6 @@ import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import "./index.css";
 import "./social-features.css";
 import Layout from "./components/layout/Layout";
-// Start downloading the first screen immediately so the splash time is used for real work.
 const homePageModule = import("./pages/HomePage");
 const HomePage = React.lazy(() => homePageModule);
 const PostPage = React.lazy(() => import("./pages/PostPage"));
@@ -14,8 +13,10 @@ const CreatePostPage = React.lazy(() => import("./pages/CreatePostPage"));
 const CreateStoryPage = React.lazy(() => import("./pages/CreateStoryPage"));
 const ReelsPage = React.lazy(() => import("./pages/ReelsPage"));
 const MessagesPage = React.lazy(() => import("./pages/MessagesPage"));
-const CallPage = React.lazy(() => import("./pages/MessagesPage").then(m => ({ default: m.CallPage })));
-const NotificationsLivePage = React.lazy(() => import("./pages/MessagesPage").then(m => ({ default: m.NotificationsLivePage })));
+const CallPage = React.lazy(() => import("./pages/CallPage").then((m) => ({ default: m.CallPage })));
+const NotificationsLivePage = React.lazy(() =>
+  import("./pages/CallPage").then((m) => ({ default: m.NotificationsLivePage })),
+);
 const ProfilePage = React.lazy(() => import("./pages/ProfilePage"));
 const AccountSettingsPage = React.lazy(() => import("./pages/AccountSettingsPage"));
 const HashtagPage = React.lazy(() => import("./pages/HashtagPage"));
@@ -45,7 +46,9 @@ function QXSplash({ onDone }: { onDone: () => void }) {
         <div className="dijla-water" />
         <div className="dijla-water-lines" />
         <div className="dijla-flag-pole">
-          <div className="dijla-flag"><b>الله أكبر</b></div>
+          <div className="dijla-flag">
+            <b>الله أكبر</b>
+          </div>
         </div>
       </div>
       <div className="qx-splash-brand">
@@ -61,20 +64,18 @@ function PersistentTabs() {
   const location = useLocation();
   const path = location.pathname;
   const tabs = ["/", "/explore", "/reels", "/messages", "/notifications", "/saved", "/profile"];
-  const [visited, setVisited] = React.useState<string[]>(() => tabs.includes(path) ? [path] : []);
+  const [visited, setVisited] = React.useState<string[]>(() => (tabs.includes(path) ? [path] : []));
   const scrollPositions = React.useRef<Record<string, number>>({});
   const previousPath = React.useRef(path);
 
   React.useEffect(() => {
     if (tabs.includes(path)) {
-      setVisited((current) => current.includes(path) ? current : [...current, path]);
-
+      setVisited((current) => (current.includes(path) ? current : [...current, path]));
       const from = previousPath.current;
       if (tabs.includes(from)) {
         scrollPositions.current[from] = window.scrollY;
       }
       previousPath.current = path;
-
       const savedY = scrollPositions.current[path] ?? 0;
       window.requestAnimationFrame(() => window.scrollTo(0, savedY));
     }
@@ -84,15 +85,51 @@ function PersistentTabs() {
   const isVisible = (target: string) => path === target;
 
   return (
-    <React.Suspense fallback={<main className="feed-container"><section className="stories-card"><p>جاري تحميل الصفحة...</p></section></main>}>
+    <React.Suspense
+      fallback={
+        <main className="feed-container">
+          <section className="stories-card">
+            <p>جاري تحميل الصفحة...</p>
+          </section>
+        </main>
+      }
+    >
       <>
-      {isVisited("/") && <div style={{display:isVisible("/") ? "block" : "none"}}><HomePage /></div>}
-      {isVisited("/explore") && <div style={{display:isVisible("/explore") ? "block" : "none"}}><ExplorePage /></div>}
-      {isVisited("/reels") && <div style={{display:isVisible("/reels") ? "block" : "none"}}><ReelsPage /></div>}
-      {isVisited("/messages") && <div style={{display:isVisible("/messages") ? "block" : "none"}}><MessagesPage /></div>}
-      {isVisited("/notifications") && <div style={{display:isVisible("/notifications") ? "block" : "none"}}><NotificationsLivePage /></div>}
-      {isVisited("/saved") && <div style={{display:isVisible("/saved") ? "block" : "none"}}><SavedPage /></div>}
-      {isVisited("/profile") && <div style={{display:isVisible("/profile") ? "block" : "none"}}><ProfilePage /></div>}
+        {isVisited("/") && (
+          <div style={{ display: isVisible("/") ? "block" : "none" }}>
+            <HomePage />
+          </div>
+        )}
+        {isVisited("/explore") && (
+          <div style={{ display: isVisible("/explore") ? "block" : "none" }}>
+            <ExplorePage />
+          </div>
+        )}
+        {isVisited("/reels") && (
+          <div style={{ display: isVisible("/reels") ? "block" : "none" }}>
+            <ReelsPage />
+          </div>
+        )}
+        {isVisited("/messages") && (
+          <div style={{ display: isVisible("/messages") ? "block" : "none" }}>
+            <MessagesPage />
+          </div>
+        )}
+        {isVisited("/notifications") && (
+          <div style={{ display: isVisible("/notifications") ? "block" : "none" }}>
+            <NotificationsLivePage />
+          </div>
+        )}
+        {isVisited("/saved") && (
+          <div style={{ display: isVisible("/saved") ? "block" : "none" }}>
+            <SavedPage />
+          </div>
+        )}
+        {isVisited("/profile") && (
+          <div style={{ display: isVisible("/profile") ? "block" : "none" }}>
+            <ProfilePage />
+          </div>
+        )}
       </>
     </React.Suspense>
   );
@@ -100,75 +137,71 @@ function PersistentTabs() {
 
 function RouteScrollReset() {
   const { pathname } = useLocation();
-  const previousPath = React.useRef(pathname);
-
   React.useEffect(() => {
     const persistentTabs = ["/", "/explore", "/reels", "/messages", "/notifications", "/saved", "/profile"];
     if (!persistentTabs.includes(pathname)) {
       window.scrollTo(0, 0);
     }
-    previousPath.current = pathname;
   }, [pathname]);
-
   return null;
 }
 
 function ProtectedApp() {
   const { isAuthenticated } = useAuth();
-
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-
   return (
-    <React.Suspense fallback={<main className="feed-container"><section className="stories-card"><p>جاري تحميل الصفحة...</p></section></main>}>
-    <Layout>
-      <RouteScrollReset />
-      <PersistentTabs />
-      <Routes>
-        {/* Persistent tab pages are rendered by PersistentTabs above. These
-            route matches intentionally render nothing so the catch-all 404
-            page never appears underneath a valid page. */}
-        <Route path="/" element={null} />
-        <Route path="/explore" element={null} />
-        <Route path="/reels" element={null} />
-        <Route path="/messages" element={null} />
-        <Route path="/notifications" element={null} />
-        <Route path="/saved" element={null} />
-        <Route path="/profile" element={null} />
-        <Route path="/call" element={<CallPage />} />
-        <Route path="/create" element={<CreatePostPage />} />
-        <Route path="/create-post" element={<CreatePostPage />} />
-        <Route path="/create-story" element={<CreateStoryPage />} />
-        <Route path="/stories" element={<StoriesPage />} />
-        <Route path="/stories/:username" element={<StoriesPage />} />
-        <Route path="/hashtag/:tag" element={<HashtagPage />} />
-        <Route path="/profile/settings" element={<AccountSettingsPage />} />
-        <Route path="/u/:username" element={<ProfilePage />} />
-        <Route path="/post/:id" element={<PostPage />} />
-        <Route
-          path="*"
-          element={
-            <SimplePage
-              title="الصفحة غير موجودة"
-              description="الرابط الذي فتحته غير موجود."
-              icon={<SearchIcon size={52} />}
-            />
-          }
-        />
-      </Routes>
-    </Layout>
+    <React.Suspense
+      fallback={
+        <main className="feed-container">
+          <section className="stories-card">
+            <p>جاري تحميل الصفحة...</p>
+          </section>
+        </main>
+      }
+    >
+      <Layout>
+        <RouteScrollReset />
+        <PersistentTabs />
+        <Routes>
+          <Route path="/" element={null} />
+          <Route path="/explore" element={null} />
+          <Route path="/reels" element={null} />
+          <Route path="/messages" element={null} />
+          <Route path="/notifications" element={null} />
+          <Route path="/saved" element={null} />
+          <Route path="/profile" element={null} />
+          <Route path="/call" element={<CallPage />} />
+          <Route path="/create" element={<CreatePostPage />} />
+          <Route path="/create-post" element={<CreatePostPage />} />
+          <Route path="/create-story" element={<CreateStoryPage />} />
+          <Route path="/stories" element={<StoriesPage />} />
+          <Route path="/stories/:username" element={<StoriesPage />} />
+          <Route path="/hashtag/:tag" element={<HashtagPage />} />
+          <Route path="/profile/settings" element={<AccountSettingsPage />} />
+          <Route path="/u/:username" element={<ProfilePage />} />
+          <Route path="/post/:id" element={<PostPage />} />
+          <Route
+            path="*"
+            element={
+              <SimplePage
+                title="الصفحة غير موجودة"
+                description="الرابط الذي فتحته غير موجود."
+                icon={<SearchIcon size={52} />}
+              />
+            }
+          />
+        </Routes>
+      </Layout>
     </React.Suspense>
   );
 }
 
 function App() {
   const { token, user } = useAuth();
-  // The Dijla scene is the app's permanent opening screen.
-  // It appears on every app start and when the app returns from the background.
   const [showSplash, setShowSplash] = React.useState(true);
   const hiddenAtRef = React.useRef<number | null>(null);
-
   const finishSplash = React.useCallback(() => setShowSplash(false), []);
 
   React.useEffect(() => {
@@ -193,9 +226,6 @@ function App() {
   React.useEffect(() => {
     if (!token) return;
     let cancelled = false;
-
-    // Start the whole app warm-up immediately, even while the splash is visible.
-    // This removes the old "open page first, then start loading it" waterfall.
     const warmApp = async () => {
       const routeChunks = [
         import("./pages/ExplorePage"),
@@ -206,7 +236,6 @@ function App() {
         import("./pages/AccountSettingsPage"),
         import("./pages/PostPage"),
       ];
-
       const dataRequests = [
         prefetchApi("/posts?limit=20", token, 30_000),
         prefetchApi("/stories", token, 30_000),
@@ -219,23 +248,23 @@ function App() {
         prefetchApi("/notifications/config", token, 30_000),
         prefetchApi("/posts?limit=50", token, 15_000),
       ];
-
       const profileRequests = user?.username
         ? [prefetchApi("/auth/users/" + encodeURIComponent(user.username), token, 30_000)]
         : [];
-
       const results = await Promise.allSettled([...routeChunks, ...dataRequests, ...profileRequests]);
       if (cancelled) return;
-
-      // Warm the most important profile pictures without downloading post videos/images.
       const avatarUrls = new Set<string>();
       for (const result of results) {
         if (result.status !== "fulfilled") continue;
         const collect = (value: unknown) => {
           if (!value || typeof value !== "object") return;
-          if (Array.isArray(value)) { value.forEach(collect); return; }
+          if (Array.isArray(value)) {
+            value.forEach(collect);
+            return;
+          }
           for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-            if (key === "avatarUrl" && typeof child === "string" && child.startsWith("http")) avatarUrls.add(child);
+            if (key === "avatarUrl" && typeof child === "string" && child.startsWith("http"))
+              avatarUrls.add(child);
             else if (key !== "mediaUrl" && key !== "mediaPoster") collect(child);
             if (avatarUrls.size >= 40) return;
           }
@@ -243,15 +272,16 @@ function App() {
         collect(result.value);
         if (avatarUrls.size >= 40) break;
       }
-      avatarUrls.forEach(url => {
+      avatarUrls.forEach((url) => {
         const image = new Image();
         image.decoding = "async";
         image.src = url;
       });
     };
-
     void warmApp();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [token, user?.username]);
 
   if (showSplash) {
