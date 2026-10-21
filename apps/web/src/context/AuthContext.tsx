@@ -1,5 +1,5 @@
 import { API_URL } from "../lib/api";
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
 interface User {
@@ -32,8 +32,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function loadAccounts(): Account[] {
-  const stored = localStorage.getItem('accounts');
-  return stored ? JSON.parse(stored) : [];
+  try {
+    const stored = localStorage.getItem('accounts');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
 }
 
 function saveAccounts(accounts: Account[]) {
@@ -68,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('currentUserId', userData.id);
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setAccounts((prev) => {
       const updated = prev.filter((a) => a.user.id !== currentUserId);
       saveAccounts(updated);
@@ -81,7 +85,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return updated;
     });
-  };
+  }, [currentUserId]);
+
+  const invalidateSession = useCallback((reason?: string) => {
+    setAccounts((prev) => {
+      const updated = prev.filter((a) => a.user.id !== currentUserId);
+      saveAccounts(updated);
+      if (updated.length > 0) {
+        setCurrentUserId(updated[0].user.id);
+        localStorage.setItem('currentUserId', updated[0].user.id);
+      } else {
+        setCurrentUserId(null);
+        localStorage.removeItem('currentUserId');
+      }
+      return updated;
+    });
+    try {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('sdm_cache_') || k.startsWith('feed-') || k.startsWith('stories-'))) keys.push(k);
+      }
+      keys.forEach((k) => localStorage.removeItem(k));
+    } catch {}
+    void reason;
+  }, [currentUserId]);
 
   const switchAccount = (userId: string) => {
     if (accounts.some((a) => a.user.id === userId)) {
@@ -93,20 +121,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const currentAccount = accounts.find((a) => a.user.id === currentUserId) || null;
 
   useEffect(() => {
-    // Always refresh the account from the server by its immutable user ID.
-    // This keeps the same account after username, display name, phone, bio, or avatar changes.
     const account = currentAccount;
     if (!account?.token) return;
 
-    
     let cancelled = false;
 
     void fetch(API_URL + '/auth/me', {
       headers: { Authorization: 'Bearer ' + account.token },
     })
       .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'AUTH_REFRESH_FAILED');
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const err = String((data as any).error || 'AUTH_REFRESH_FAILED');
+          if (response.status === 401 || err === 'UNAUTHORIZED' || err === 'SESSION_REVOKED') {
+            throw Object.assign(new Error(err), { code: 'UNAUTHORIZED' });
+          }
+          throw new Error(err);
+        }
         return data as { user: User; token: string };
       })
       .then((data) => {
@@ -123,14 +154,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setCurrentUserId(data.user.id);
         localStorage.setItem('currentUserId', data.user.id);
       })
-      .catch(() => {
-        // Keep the locally stored session if the API is temporarily unavailable.
+      .catch((error) => {
+        if (cancelled) return;
+        if (error && (error as any).code === 'UNAUTHORIZED') {
+          invalidateSession(String(error.message || 'UNAUTHORIZED'));
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentAccount?.token, currentAccount?.user.id, invalidateSession]);
+
+  useEffect(() => {
+    const onUnauthorized = () => {
+      invalidateSession('UNAUTHORIZED');
+    };
+    window.addEventListener('sdm:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('sdm:unauthorized', onUnauthorized);
+  }, [invalidateSession]);
 
   return (
     <AuthContext.Provider
