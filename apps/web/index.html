@@ -17,12 +17,13 @@
     <title>دجلة سوشيال</title>
     <script>
       try {
-        var savedTheme = localStorage.getItem("dj-theme");
-        var theme = savedTheme === "light" || savedTheme === "dark"
-          ? savedTheme
-          : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        // Always follow the device — no manual theme buttons.
+        localStorage.removeItem("dj-theme");
+        var dark = matchMedia("(prefers-color-scheme: dark)").matches;
+        var theme = dark ? "dark" : "light";
         document.documentElement.dataset.theme = theme;
-        document.documentElement.dataset.themeMode = savedTheme === "light" || savedTheme === "dark" ? savedTheme : "auto";
+        document.documentElement.dataset.themeMode = "auto";
+        document.documentElement.style.colorScheme = theme;
       } catch (e) {}
     </script>
   </head>
