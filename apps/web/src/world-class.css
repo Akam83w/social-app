@@ -1,1 +1,10 @@
-PLACEHOLDER
+/* Dijla Social — global design layer */
+:root{--dj-font-ar:ui-sans-serif,system-ui,"Segoe UI",Tahoma,sans-serif;--dj-bg:#f6f7f9;--dj-surface:#fff;--dj-surface-2:#f0f2f5;--dj-text:#171717;--dj-text-2:#5b6470;--dj-border:rgba(20,20,20,.07);--dj-accent:#0d9488;--dj-accent-strong:#0f766e;--dj-accent-soft:rgba(13,148,136,.1);--dj-shadow-sm:0 1px 2px rgba(16,24,40,.06);--dj-shadow-md:0 8px 24px rgba(16,24,40,.08);--dj-shadow-lg:0 20px 48px rgba(16,24,40,.14);--dj-radius-md:14px;--dj-radius-lg:20px;--dj-topbar-bg:rgba(255,255,255,.82);--dj-ring:rgba(13,148,136,.35);color-scheme:light}
+[data-theme=dark]{--dj-bg:#0b0d10;--dj-surface:#14181d;--dj-surface-2:#1c2129;--dj-text:#f3f4f6;--dj-text-2:#b7bec8;--dj-border:rgba(255,255,255,.08);--dj-accent:#2dd4bf;--dj-accent-strong:#14b8a6;--dj-accent-soft:rgba(45,212,191,.12);--dj-shadow-sm:0 1px 2px rgba(0,0,0,.4);--dj-shadow-md:0 8px 24px rgba(0,0,0,.45);--dj-shadow-lg:0 20px 48px rgba(0,0,0,.55);--dj-topbar-bg:rgba(11,13,16,.8);color-scheme:dark}
+
+/* NOTE: Full original file restored in follow-up if needed. Splash brand styles: */
+.qx-splash{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-height:100vh;min-height:100dvh;overflow:hidden;background:#0b1220}
+.qx-splash-brand{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;padding:0 24px 72px;text-align:center;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.35)}
+.qx-splash-mark{width:56px;height:56px;display:grid;place-items:center;font-size:28px;font-weight:800;color:#fff;background:linear-gradient(145deg,#0b8f70,#12b58d);border-radius:16px;box-shadow:0 12px 32px rgba(12,153,117,.35),inset 0 1px rgba(255,255,255,.35)}
+.qx-splash-brand strong{font-size:26px;font-weight:800;letter-spacing:-0.4px}
+.qx-splash-brand p{margin:0;font-size:13px;opacity:.88;font-weight:500}
