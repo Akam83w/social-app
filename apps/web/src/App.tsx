@@ -32,12 +32,12 @@ const NativePushBootstrap = React.lazy(() => import("./NativePushBootstrap"));
 
 function QXSplash({ onDone }: { onDone: () => void }) {
   React.useEffect(() => {
-    const timer = window.setTimeout(onDone, 3000);
+    const timer = window.setTimeout(onDone, 2400);
     return () => window.clearTimeout(timer);
   }, [onDone]);
 
   return (
-    <div className="qx-splash" dir="rtl" aria-label="نهر دجلة والعلم العراقي">
+    <div className="qx-splash" dir="rtl" aria-label="دجلة سوشيال">
       <div className="qx-dijla-scene" aria-hidden="true">
         <div className="dijla-sky" />
         <div className="dijla-sun" />
@@ -47,6 +47,11 @@ function QXSplash({ onDone }: { onDone: () => void }) {
         <div className="dijla-flag-pole">
           <div className="dijla-flag"><b>الله أكبر</b></div>
         </div>
+      </div>
+      <div className="qx-splash-brand">
+        <span className="qx-splash-mark">د</span>
+        <strong>دجلة سوشيال</strong>
+        <p>منصة التواصل الاجتماعي العراقية</p>
       </div>
     </div>
   );

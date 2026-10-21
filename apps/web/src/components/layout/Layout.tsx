@@ -36,7 +36,7 @@ export default function Layout({ children }: LayoutProps) {
       <header className="topbar">
         <div className="topbar-inner">
           <Link to="/" className="brand">
-            <span className="brand-mark">ع</span>
+            <span className="brand-mark">د</span>
             <span>دجلة سوشيال</span>
           </Link>
 
@@ -126,8 +126,6 @@ export default function Layout({ children }: LayoutProps) {
           <div className="sidebar-footer">
             <ThemeToggle />
             <span>دجلة سوشيال</span>
-            <span>•</span>
-            <span>نسخة تجريبية</span>
           </div>
         </aside>
 
