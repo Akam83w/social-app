@@ -1,0 +1,373 @@
+/* Real theme layer — forces readable light/dark using --dj-* tokens.
+   Loaded last so it wins over hardcoded colors in index.css. */
+
+/* Ensure tokens always exist (fallback if world-class missing) */
+:root {
+  --dj-bg: #f6f7f9;
+  --dj-surface: #ffffff;
+  --dj-surface-2: #f0f2f5;
+  --dj-text: #17191c;
+  --dj-text-2: #5b6470;
+  --dj-border: rgba(20, 20, 20, 0.08);
+  --dj-accent: #0d9488;
+  --dj-accent-strong: #0f766e;
+  --dj-accent-soft: rgba(13, 148, 136, 0.12);
+  --dj-topbar-bg: rgba(255, 255, 255, 0.88);
+  --dj-card: #ffffff;
+  --dj-muted-bg: #eef1f4;
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --dj-bg: #0b0d10;
+  --dj-surface: #14181d;
+  --dj-surface-2: #1c2129;
+  --dj-text: #f3f4f6;
+  --dj-text-2: #b7bec8;
+  --dj-border: rgba(255, 255, 255, 0.1);
+  --dj-accent: #2dd4bf;
+  --dj-accent-strong: #14b8a6;
+  --dj-accent-soft: rgba(45, 212, 191, 0.14);
+  --dj-topbar-bg: rgba(11, 13, 16, 0.88);
+  --dj-card: #14181d;
+  --dj-muted-bg: #1c2129;
+  color-scheme: dark;
+}
+
+/* Global surfaces & text */
+html {
+  background: var(--dj-bg);
+  color: var(--dj-text);
+}
+
+body {
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--dj-accent) 8%, transparent), transparent 28%),
+    var(--dj-bg);
+  color: var(--dj-text);
+}
+
+.app-shell,
+.feed-container,
+.main-content,
+.page {
+  color: var(--dj-text);
+}
+
+/* Top bar & navigation */
+.topbar {
+  background: var(--dj-topbar-bg) !important;
+  border-bottom-color: var(--dj-border) !important;
+  color: var(--dj-text);
+}
+
+.brand,
+.brand span,
+.brand strong {
+  color: var(--dj-text) !important;
+}
+
+.icon-button,
+.theme-toggle {
+  color: var(--dj-text-2);
+  border-color: var(--dj-border);
+  background: transparent;
+}
+
+.icon-button:hover,
+.theme-toggle:hover {
+  background: var(--dj-accent-soft);
+  color: var(--dj-accent-strong);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--dj-border);
+  cursor: pointer;
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+.desktop-sidebar,
+.right-panel,
+.mobile-nav {
+  background: var(--dj-surface) !important;
+  border-color: var(--dj-border) !important;
+  color: var(--dj-text);
+}
+
+.side-link,
+.nav-item {
+  color: var(--dj-text-2) !important;
+}
+
+.side-link:hover,
+.nav-item:hover,
+.side-link.active,
+.nav-item.active {
+  color: var(--dj-text) !important;
+  background: var(--dj-accent-soft) !important;
+}
+
+/* Cards & feed */
+.post-card,
+.stories-card,
+.profile-card,
+.suggestions,
+.composer-card,
+.messages-panel,
+.dm-panel,
+.chat-screen,
+.settings-card,
+.auth-card,
+.profile-page-card,
+.explore-card,
+.saved-card,
+.reel-card {
+  background: var(--dj-card) !important;
+  border-color: var(--dj-border) !important;
+  color: var(--dj-text) !important;
+}
+
+.post-user-info strong,
+.post-text,
+.post-content,
+.post-content p,
+.post-caption,
+.feed-heading h1,
+.feed-heading h2,
+.dm-head h1,
+.profile-identity strong,
+.profile-row strong {
+  color: var(--dj-text) !important;
+}
+
+.post-user-info span,
+.post-content time,
+.comments-link,
+.feed-heading p,
+.dm-sub,
+.dm-preview,
+.dm-top time,
+.profile-identity p,
+.profile-identity .profile-bio,
+.profile-stats span,
+.suggestion span,
+.story span,
+.filter-button {
+  color: var(--dj-text-2) !important;
+}
+
+/* Inputs */
+input,
+textarea,
+select {
+  background: var(--dj-surface-2);
+  color: var(--dj-text);
+  border-color: var(--dj-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--dj-text-2);
+  opacity: 0.9;
+}
+
+.composer-input,
+.chat-composer textarea,
+.dm-search input,
+.create-textarea {
+  color: var(--dj-text) !important;
+  background: transparent;
+}
+
+/* Chat */
+.chat-top {
+  background: color-mix(in srgb, var(--dj-surface) 92%, transparent) !important;
+  border-color: var(--dj-border);
+  color: var(--dj-text);
+}
+
+.chat-peer strong,
+.peer-text strong,
+.dm-top strong {
+  color: var(--dj-text) !important;
+}
+
+.peer-text small {
+  color: var(--dj-text-2) !important;
+}
+
+.theirs .bubble {
+  background: var(--dj-surface-2) !important;
+  color: var(--dj-text) !important;
+}
+
+.mine .bubble {
+  background: var(--dj-accent-strong) !important;
+  color: #fff !important;
+}
+
+.day-sep,
+.msg-time {
+  color: var(--dj-text-2) !important;
+}
+
+.send-btn {
+  background: var(--dj-accent-strong) !important;
+  color: #fff !important;
+}
+
+/* Settings / account */
+.settings-header h1,
+.settings-group h2,
+.settings-row > span,
+.settings-row > b,
+.settings-field > span {
+  color: var(--dj-text) !important;
+}
+
+.settings-header small,
+.settings-row > span small,
+.settings-info,
+.settings-options small {
+  color: var(--dj-text-2) !important;
+}
+
+.settings-row,
+.settings-group {
+  border-color: var(--dj-border) !important;
+  background: var(--dj-surface);
+}
+
+/* Empty states & errors */
+.dm-empty,
+.chat-empty,
+.profile-empty,
+.reels-empty,
+.explore-empty,
+.search-error {
+  color: var(--dj-text-2) !important;
+}
+
+.dm-empty strong,
+.chat-empty strong {
+  color: var(--dj-text) !important;
+}
+
+/* Mobile nav labels */
+.mobile-nav a,
+.mobile-nav button,
+.mobile-nav span {
+  color: var(--dj-text-2);
+}
+
+.mobile-nav a.active,
+.mobile-nav button.active {
+  color: var(--dj-accent-strong);
+}
+
+/* Auth pages */
+.auth-card h1,
+.auth-card label,
+.auth-card p {
+  color: var(--dj-text);
+}
+
+.auth-card a {
+  color: var(--dj-accent-strong);
+}
+
+/* Skeleton / muted blocks */
+.sk,
+.sk-av,
+.chat-skeleton .sk {
+  background: var(--dj-muted-bg) !important;
+}
+
+/* Design-port messages panel overrides */
+.messages-panel.dm-panel,
+.dm-note-sheet {
+  background: var(--dj-surface) !important;
+  color: var(--dj-text) !important;
+  border-color: var(--dj-border) !important;
+}
+
+.dm-search input {
+  background: var(--dj-surface-2) !important;
+  border-color: var(--dj-border) !important;
+  color: var(--dj-text) !important;
+}
+
+.dm-search button,
+.dm-note-share,
+.dm-note-plus {
+  background: var(--dj-accent-strong) !important;
+  color: #fff !important;
+}
+
+.dm-note-cancel {
+  background: var(--dj-surface-2) !important;
+  border-color: var(--dj-border) !important;
+  color: var(--dj-text) !important;
+}
+
+.dm-row:hover {
+  background: var(--dj-surface-2) !important;
+}
+
+.dm-list {
+  border-top-color: var(--dj-border) !important;
+}
+
+/* Prevent light-only hardcoded grays from winning in dark mode */
+html[data-theme="dark"] .post-card a,
+html[data-theme="dark"] .side-link,
+html[data-theme="dark"] .nav-item {
+  color: inherit;
+}
+
+html[data-theme="dark"] .more-button,
+html[data-theme="dark"] .action {
+  color: var(--dj-text-2);
+}
+
+html[data-theme="dark"] .action.liked,
+html[data-theme="dark"] .action.saved {
+  color: var(--dj-accent);
+}
+
+/* Smooth theme switch */
+html,
+body,
+.topbar,
+.post-card,
+.stories-card,
+.desktop-sidebar,
+.mobile-nav,
+.messages-panel,
+.chat-screen {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  .topbar,
+  .post-card,
+  .stories-card,
+  .desktop-sidebar,
+  .mobile-nav,
+  .messages-panel,
+  .chat-screen {
+    transition: none;
+  }
+}
