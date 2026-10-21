@@ -1,0 +1,146 @@
+/* Design port from Grok workspace prototype → real Dijla Social app
+   Visual language only. Data still comes from the real API. */
+
+:root {
+  --dj-font-ar: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, "Segoe UI", Tahoma, sans-serif;
+}
+
+html,
+body,
+button,
+input,
+textarea {
+  font-family: var(--dj-font-ar);
+}
+
+/* Splash brand (opening screen) */
+.qx-splash {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #0b1220;
+}
+
+.qx-splash-brand {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px 72px;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.35);
+}
+
+.qx-splash-mark {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(145deg, #0b8f70, #12b58d);
+  border-radius: 16px;
+  box-shadow:
+    0 12px 32px rgba(12, 153, 117, 0.35),
+    inset 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.qx-splash-brand strong {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.qx-splash-brand p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.88;
+  font-weight: 500;
+}
+
+/* Composer — zip-inspired cleaner actions */
+.composer-card {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 20px;
+}
+
+.composer-input {
+  min-height: 48px;
+  color: #5e6863;
+  font-weight: 500;
+}
+
+.composer-action {
+  min-height: 44px;
+  border-radius: 14px;
+  color: #078968;
+  font-weight: 700;
+  background: rgba(7, 137, 104, 0.06);
+}
+
+.composer-action:hover {
+  background: rgba(7, 137, 104, 0.12);
+}
+
+.composer-action b {
+  font-weight: 700;
+}
+
+/* Stories ring closer to prototype */
+.story-ring:not(.own) {
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(145deg, #078968, #12b58d) border-box;
+}
+
+/* Heart pop on double-tap */
+@keyframes design-heart-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.55);
+    opacity: 0;
+  }
+  35% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0;
+  }
+}
+
+.double-like-heart {
+  animation: design-heart-pop 0.7s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .double-like-heart {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+[data-theme="dark"] .composer-action {
+  background: rgba(45, 212, 191, 0.1);
+  color: #2dd4bf;
+}
+
+[data-theme="dark"] .composer-input {
+  color: var(--dj-text-2, #b7bec8);
+}
+
+[data-theme="dark"] .story-ring:not(.own) {
+  background:
+    linear-gradient(var(--dj-surface, #14181d), var(--dj-surface, #14181d)) padding-box,
+    linear-gradient(145deg, #14b8a6, #2dd4bf) border-box;
+}
