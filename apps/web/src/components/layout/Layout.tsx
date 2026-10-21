@@ -1,5 +1,4 @@
 import OptimizedImage from "../OptimizedImage";
-import { ThemeToggle } from "../../ThemeToggle";
 import React,{useEffect} from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -41,7 +40,6 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
 
           <div className="top-actions">
-            <ThemeToggle />
             <Link to="/explore" className="icon-button mobile-hide">
               <SearchIcon />
             </Link>
@@ -124,7 +122,6 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
 
           <div className="sidebar-footer">
-            <ThemeToggle />
             <span>دجلة سوشيال</span>
           </div>
         </aside>
